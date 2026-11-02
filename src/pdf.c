@@ -476,6 +476,18 @@ read_input(FILE *in)
 
 /* ---- structure ---- */
 
+typedef VEC(char *) Tags;
+
+/* a set of tag names, kept small: one entry per distinct tag */
+static void
+push_unique(Tags *t, char *tag)
+{
+	for (size_t i = 0; i < t->n; i++)
+		if (streq(t->v[i], tag))
+			return;
+	VPUSH(*t, tag);
+}
+
 static void
 attach(int e)
 {
@@ -933,8 +945,8 @@ pdf_main(FILE *in, FILE *out, const char *file)
 		civil(when, &y, &mo, &d, &h, &mi, &s);
 		snprintf(date, sizeof date, "D:%04d%02d%02d%02d%02d%02dZ", y, mo, d, h, mi, s);
 	}
-	VEC(char *) troles = {0};
-	VEC(char *) stdtags = {0};
+	Tags troles = {0};
+	Tags stdtags = {0};
 	int naf = 0;
 	for (size_t i = 0; i < elems.n; i++) {
 		Elem *e = &elems.v[i];
@@ -944,9 +956,9 @@ pdf_main(FILE *in, FILE *out, const char *file)
 			continue;
 		}
 		if (e->ns == NS_TEKX)
-			VPUSH(troles, e->tag);
+			push_unique(&troles, e->tag);
 		else
-			VPUSH(stdtags, e->tag);
+			push_unique(&stdtags, e->tag);
 		bputs(b, "<< /Type /StructElem /S ");
 		pname(b, e->tag);
 		bprintf(b, " /NS %d 0 R /P %d 0 R /K [", ns[e->ns], e->parent >= 0 ? elem_ref[e->parent] : sroot);
@@ -1177,35 +1189,92 @@ pdf_main(FILE *in, FILE *out, const char *file)
 		bprintf(cat, " /Outlines %d 0 R /PageMode /UseOutlines", outlines);
 	bputs(cat, " >>");
 
-	/* assemble */
+	/* assemble: every object that is not itself a stream goes into an
+	 * object stream, and a compressed cross-reference stream indexes them */
 	Buf file_out = {0}, idseed = {0};
 	u8 id[16];
-	bputs(&file_out, "%PDF-2.0\n%\xE2\xE3\xCF\xD3\n");
-	size_t *offs = xmalloc(objs.n * sizeof *offs);
-	for (size_t i = 0; i < objs.n; i++) {
-		offs[i] = file_out.n;
-		bprintf(&file_out, "%zu 0 obj\n", i + 1);
-		if (objs.v[i].n)
-			bput(&file_out, objs.v[i].s, objs.v[i].n);
-		else
-			bputs(&file_out, "null");
-		bputs(&file_out, "\nendobj\n");
-	}
 	bput(&idseed, x.s, x.n);
 	for (size_t pi = 0; pi < pages.n; pi++)
 		bput(&idseed, contents[pi].s ? contents[pi].s : "", contents[pi].n);
 	md5((u8 *)idseed.s, idseed.n, id);
+
+	size_t norig = objs.n;
+	int *in_stream = xcalloc(norig + 1, sizeof *in_stream);	/* object stream number, 0: none */
+	int *index = xcalloc(norig + 1, sizeof *index);
+	VEC(int) batch = {0};
+	for (size_t i = 0; i <= norig; i++) {
+		bool flush = i == norig;
+		if (i < norig) {
+			Buf *o = &objs.v[i];
+			bool is_stream = o->n >= 9 && memcmp(o->s + o->n - 9, "endstream", 9) == 0;
+			if (!is_stream)
+				VPUSH(batch, (int)i);
+			flush = batch.n == 100;
+		}
+		if (!flush || batch.n == 0)
+			continue;
+		Buf hdr = {0}, body = {0};
+		for (size_t k = 0; k < batch.n; k++) {
+			Buf *o = &objs.v[batch.v[k]];
+			bprintf(&hdr, "%d %zu ", batch.v[k] + 1, body.n);
+			if (o->n)
+				bput(&body, o->s, o->n);
+			else
+				bputs(&body, "null");
+			bputc(&body, '\n');
+		}
+		size_t first = hdr.n;
+		bput(&hdr, body.s, body.n);
+		int os = alloc_obj();
+		for (size_t k = 0; k < batch.n; k++) {
+			in_stream[batch.v[k]] = os;
+			index[batch.v[k]] = (int)k;
+		}
+		stream_obj(os, fmt("/Type /ObjStm /N %zu /First %zu", batch.n, first), (u8 *)hdr.s, hdr.n, true);
+		batch.n = 0;
+	}
+
+	bputs(&file_out, "%PDF-2.0\n%\xE2\xE3\xCF\xD3\n");
+	int xref_obj = alloc_obj();
+	size_t *offs = xcalloc(objs.n + 1, sizeof *offs);
+	for (size_t i = 0; i < objs.n; i++) {
+		if ((i < norig && in_stream[i]) || (int)i + 1 == xref_obj)
+			continue;
+		offs[i] = file_out.n;
+		bprintf(&file_out, "%zu 0 obj\n", i + 1);
+		bput(&file_out, objs.v[i].s, objs.v[i].n);
+		bputs(&file_out, "\nendobj\n");
+	}
 	size_t xref = file_out.n;
-	bprintf(&file_out, "xref\n0 %zu\n0000000000 65535 f\r\n", objs.n + 1);
-	for (size_t i = 0; i < objs.n; i++)
-		bprintf(&file_out, "%010zu 00000 n\r\n", offs[i]);
-	bprintf(&file_out, "trailer\n<< /Size %zu /Root %d 0 R /ID [<", objs.n + 1, catalog);
+	offs[xref_obj - 1] = xref;
+	Buf xs = {0};
+	bput(&xs, "\0\0\0\0\0\xff\xff", 7);	/* object 0: free */
+	for (size_t i = 0; i < objs.n; i++) {
+		u8 e[7];
+		bool packed = i < norig && in_stream[i];
+		u32 f2 = packed ? (u32)in_stream[i] : (u32)offs[i];
+		u32 f3 = packed ? (u32)index[i] : 0;
+		e[0] = packed ? 2 : 1;
+		e[1] = (u8)(f2 >> 24);
+		e[2] = (u8)(f2 >> 16);
+		e[3] = (u8)(f2 >> 8);
+		e[4] = (u8)f2;
+		e[5] = (u8)(f3 >> 8);
+		e[6] = (u8)f3;
+		bput(&xs, e, 7);
+	}
+	Buf dict = {0};
+	bprintf(&dict, "/Type /XRef /Size %zu /W [1 4 2] /Root %d 0 R /ID [<", objs.n + 1, catalog);
 	for (int k = 0; k < 2; k++) {
 		for (int i = 0; i < 16; i++)
-			bprintf(&file_out, "%02X", id[i]);
-		bputs(&file_out, k ? ">]" : "> <");
+			bprintf(&dict, "%02X", id[i]);
+		bputs(&dict, k ? ">]" : "> <");
 	}
-	bprintf(&file_out, " >>\nstartxref\n%zu\n%%%%EOF\n", xref);
+	stream_obj(xref_obj, bstr(&dict), (u8 *)xs.s, xs.n, true);
+	bprintf(&file_out, "%d 0 obj\n", xref_obj);
+	bput(&file_out, objs.v[xref_obj - 1].s, objs.v[xref_obj - 1].n);
+	bputs(&file_out, "\nendobj\n");
+	bprintf(&file_out, "startxref\n%zu\n%%%%EOF\n", xref);
 	fwrite(file_out.s, 1, file_out.n, out);
 	return ferror(out) ? 1 : 0;
 }

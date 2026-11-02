@@ -280,6 +280,9 @@ through a fallback `/RoleMap` for readers that ignore namespaces.
 - **Metadata:** XMP declaring PDF/UA-2 and WTPDF accessibility and reuse.
 - **Safety net:** any content outside marked content is wrapped as an artifact.
 
+Every object that is not itself a stream (structure elements, dictionaries)
+is packed into compressed object streams, and indexed by a compressed
+cross-reference stream. A 59-page, 1,080-formula document comes to 1.7 MB.
 Streams are compressed by tekx's own deflate, and output is reproducible under
 `SOURCE_DATE_EPOCH`.
 

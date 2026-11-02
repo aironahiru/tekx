@@ -180,6 +180,8 @@ op_rule(Ops *ops, double x, double y, double w, double h, int sp)
 	VPUSH(*ops, o);
 }
 
+static int cur_line;	/* source line of the block being set, for warnings */
+
 /* ---- labels and numbering ---- */
 
 typedef struct {
@@ -486,7 +488,7 @@ shape(const char *s, Ctx c)
 		int k = i < n ? utf8_dec(s + i, n - i, &cp) : 0;
 		int f = i < n ? face_for(cp == 0xa0 ? ' ' : cp, c.face) : -3;
 		if (i < n && f < 0) {
-			warn_at(0, 0, "no font has a glyph for U+%04X; it is left out", (unsigned)cp);
+			warn_at(cur_line, 0, "no font has a glyph for U+%04X; it is left out", (unsigned)cp);
 		}
 		if (f != run_face) {
 			if (run_face >= 0)
@@ -516,9 +518,8 @@ add_word(HList *hl, const char *w, Ctx c)
 	double h = c.size * 0.72, d = c.size * 0.22;
 
 	/* hyphenation points, by character index */
-	unsigned char pts[256];
 	int nchar = (int)utf8_len(w);
-	memset(pts, 0, sizeof pts);
+	unsigned char *pts = xcalloc((size_t)nchar + 2, 1);
 	int sp = -1;
 	if (!c.nohyph && nchar >= 5 && nchar < 250) {
 		/* strip leading and trailing punctuation */
@@ -541,7 +542,7 @@ add_word(HList *hl, const char *w, Ctx c)
 			if ((unsigned char)w[k] >= 0x80)
 				ascii_prefix = false;
 		if (ascii && ascii_prefix && !(w[a] >= 'A' && w[a] <= 'Z' && w[a + 1] >= 'A' && w[a + 1] <= 'Z')) {
-			unsigned char cp[256];
+			unsigned char *cp = xcalloc(b - a + 2, 1);
 			if (hyph_points(core, cp) > 0) {
 				for (size_t k = 0; k < b - a; k++)
 					if (cp[k])
@@ -1136,7 +1137,7 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 				r = MAX(-1, (lw - L) / Z);
 		}
 		if (L > lw + 0.5 && (L - lw) > 1 && Z * 1 < L - lw)
-			warn_at(0, 0, "overfull line by %.1fpt", L - lw);
+			warn_at(cur_line, 0, "line too long by %.1fpt (it could not be broken)", L - lw);
 		Ops ops = {0};
 		double x = li == 0 ? indent_first : 0, h = size * 0.72, d = size * 0.22;
 		for (int i = start; i < b; i++) {
@@ -1989,6 +1990,8 @@ blocks(Node *n, Box_ bx)
 		Node *k = n->kids.v[i];
 		const char *kd = k->kind;
 		bool text_now = streq(kd, "para") || streq(kd, "let");
+		if (k->line > 0)
+			cur_line = k->line;
 		if (!text_now && !streq(kd, "display"))
 			prev_was_text = false;
 		if (streq(kd, "para")) {

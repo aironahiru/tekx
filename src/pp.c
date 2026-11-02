@@ -545,6 +545,8 @@ pp_main(FILE *in, FILE *outf, const char *file)
 
 	diag_file = file;
 	while ((raw = read_line(in)) != NULL) {
+		if (no == 0 && startswith(raw, "\xef\xbb\xbf"))
+			raw += 3;	/* a byte order mark is not text */
 		Line l = {++no, expand_tabs(raw)};
 		size_t n = strlen(l.s);
 		while (n && l.s[n - 1] == ' ')
