@@ -9,7 +9,7 @@ syn case match
 syn match tekxComment "\(^\|\s\)\zs//.*$" contains=@Spell
 
 " settings at the start of a line
-syn match tekxSetting "^\(title\|subtitle\|author\|date\|language\|lang\|keywords\|subject\|paper\|size\|font\|msc\|numbering\|bibliography\|citations\|running\|linenumbers\|tekx\|document\)\>"
+syn match tekxSetting "^\(title\|subtitle\|author\|date\|language\|lang\|keywords\|subject\|paper\|size\|font\|msc\|numbering\|bibliography\|citations\|running\|linenumbers\|notation\|tekx\|document\)\>"
 syn match tekxKey "\<\(affiliation\|email\|orcid\|url\):" contained containedin=tekxString
 
 " blocks

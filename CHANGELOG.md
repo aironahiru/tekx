@@ -23,6 +23,12 @@ The release from which the compatibility promise holds.
   - Unnumbered `theorem*`.
   - `running "Short Title"` for running heads, and `linenumbers on` for
     referee copies.
+- **LaTeX both ways.**
+  - `tekx import paper.tex` converts an amsart or article paper, warning at
+    each line about anything it can't carry over.
+  - `tekx -o paper.tex` writes amsart for journals and the arXiv, which the
+    suite compiles with pdflatex and BibTeX.
+  - `notation tex` reads every formula as LaTeX.
 - **Packages.**
   - `use NAME [VERSION]`.
   - `tekx pkg` adds, installs and verifies packages, from directories, git

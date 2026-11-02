@@ -272,10 +272,28 @@ reduced by the discipline already in place:
 
 ## 5. Adoption
 
-**"Journals and arXiv want LaTeX source."**
-*Open.*
-- **Plan:** a LaTeX back end. It would read the same tree as the HTML back end
-  and write LaTeX for submission.
+**"Journals and arXiv want LaTeX source, and my old papers are in LaTeX."**
+*Fixed* (cb2e5dd; test/latex.sh, test/latex/).
+- **Export:** `tekx -o paper.tex paper.tekx` writes amsart, which the suite
+  compiles with pdflatex and BibTeX with no undefined references. It carries:
+  - theorems with a shared counter, and `\newtheorem*` for unnumbered ones;
+  - `equation` and `align` with labels;
+  - `\cite` and `\bibliography`, with amsplain, unsrt or amsalpha to match the
+    document's citation style;
+  - running heads and referee line numbers.
+
+  Formulas are written from their meaning, so `sum k^2 for k from 1 to n`
+  arrives as `\sum_{k = 1}^{n} k^{2}`.
+- **Import:** `tekx import paper.tex` converts an amsart or article paper:
+  - front matter, sections, theorems and proofs;
+  - every display environment, each equation keeping its number;
+  - citations, references, lists, tables, figures, footnotes and macros.
+
+  What can't be carried over is a warning at its file, line and column.
+- **Round trip:** tekx's own export imports again without a single warning.
+- **Open:** `\tag`, `\newenvironment`, subfigures and citation prenotes are
+  approximated. Imported formulas stay in LaTeX notation, under
+  `notation tex`, rather than being rewritten into tekx notation.
 
 **"My bibliography is a .bib file. I'm not retyping it."**
 *Fixed* (8616514, 86ca947; test/golden/journal.bib, fuzzed).
