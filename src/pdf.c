@@ -953,11 +953,13 @@ pdf_main(FILE *in, FILE *out, const char *file)
 	Buf *contents = xcalloc(pages.n, sizeof *contents);
 	VEC(int) *mcid_elem = xcalloc(pages.n, sizeof *mcid_elem);
 	VEC(int) *page_annots = xcalloc(pages.n, sizeof *page_annots);
+	Buf *page_props = xcalloc(pages.n, sizeof *page_props);	/* each page's /Properties entries */
 
 	for (size_t pi = 0; pi < pages.n; pi++) {
 		Page *pg = &pages.v[pi];
 		Buf *c = &contents[pi];
 		int stack[256], sp = 0, mcid = 0;	/* stack: 1 structural/artifact, 0 span */
+		int span_prop[256], nprop = 0;		/* a span's named property, /ATn */
 		for (size_t ii = 0; ii < pg->items.n; ii++) {
 			Item *it = &pg->items.v[ii];
 			bool marked = false;
@@ -971,11 +973,32 @@ pdf_main(FILE *in, FILE *out, const char *file)
 					break;
 				if (!marked)
 					bputs(c, "/Artifact BMC\n");	/* ISO 14289-2 8.2.2 safety net */
+				/*
+				 * Inside an ActualText span, each text object is also wrapped
+				 * in /Copy /ATn, a named property holding the same text, so
+				 * that a formula or a hyphenated word pastes once and whole in
+				 * every viewer.  Readers disagree about nested marked content:
+				 * poppler takes ActualText only from a Span and lets the
+				 * span apply to everything inside, so it reads the outer Span
+				 * and ignores /Copy; PDFium takes it from any tag but only from
+				 * the innermost dictionary, so it reads /Copy, and skips each
+				 * further text object whose innermost dictionary is the same
+				 * object, as a named property is.
+				 */
+				int inner = -1;
+				for (int s = sp - 1; s >= 0 && inner < 0 && marked; s--)
+					if (stack[s] == 0)
+						inner = span_prop[s];
+				if (inner >= 0)
+					bprintf(c, "/Copy /AT%d BDC\n", inner);
 				bprintf(c, "BT\n/F%d ", it->font);
 				bnum(c, it->size);
 				bputs(c, " Tf\n");
+				/* invisible helpers (the "(" and "^" of copy text) are drawn
+				 * at 2% width: each is a sliver at its place, so no viewer
+				 * thinks it overlaps the next word or widens the formula */
 				if (it->invisible)
-					bputs(c, "3 Tr\n");
+					bputs(c, "3 Tr 2 Tz\n");
 				bputs(c, "1 0 0 1 ");
 				bnum(c, it->x);
 				bputc(c, ' ');
@@ -995,8 +1018,10 @@ pdf_main(FILE *in, FILE *out, const char *file)
 				}
 				bputs(c, "] TJ\n");
 				if (it->invisible)
-					bputs(c, "0 Tr\n");
+					bputs(c, "0 Tr 100 Tz\n");
 				bputs(c, "ET\n");
+				if (inner >= 0)
+					bputs(c, "EMC\n");
 				if (!marked)
 					bputs(c, "EMC\n");
 				break;
@@ -1058,8 +1083,14 @@ pdf_main(FILE *in, FILE *out, const char *file)
 				bputs(c, "/Span <</ActualText <FEFF");
 				utf16hex(c, it->text);
 				bputs(c, ">>> BDC\n");
-				if (sp < 256)
+				bprintf(&page_props[pi], "/AT%d <</ActualText <FEFF", nprop);
+				utf16hex(&page_props[pi], it->text);
+				bputs(&page_props[pi], ">>> ");
+				if (sp < 256) {
+					span_prop[sp] = nprop;
 					stack[sp++] = 0;
+				}
+				nprop++;
 				break;
 			case I_END:
 				if (sp > 0) {
@@ -1139,8 +1170,10 @@ pdf_main(FILE *in, FILE *out, const char *file)
 		bnum(p, pages.v[pi].w);
 		bputc(p, ' ');
 		bnum(p, pages.v[pi].h);
-		bprintf(p, "] /Resources << /Font << %s>>%s%s%s >> /Contents %d 0 R /StructParents %zu /Tabs /S",
-		    fres.s ? fres.s : "", xres.s ? " /XObject << " : "", xres.s ? xres.s : "", xres.s ? ">>" : "", cref, pi);
+		bprintf(p, "] /Resources << /Font << %s>>%s%s%s%s%s%s >> /Contents %d 0 R /StructParents %zu /Tabs /S",
+		    fres.s ? fres.s : "", xres.s ? " /XObject << " : "", xres.s ? xres.s : "", xres.s ? ">>" : "",
+		    page_props[pi].n ? " /Properties << " : "", page_props[pi].n ? bstr(&page_props[pi]) : "", page_props[pi].n ? ">>" : "",
+		    cref, pi);
 		if (page_annots[pi].n) {
 			bputs(p, " /Annots [");
 			for (size_t k = 0; k < page_annots[pi].n; k++)

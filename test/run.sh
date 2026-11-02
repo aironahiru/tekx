@@ -157,5 +157,16 @@ echo "new: done"
 # 9. packages: lock, verify, refuse a changed package, filters, git registries
 TEKX=$T sh test/pkg.sh || status=1
 
+# 10. copy and paste in the viewers people use (test/paste.sh): poppler
+#    when pdftotext is installed, pdf.js with PDFJS=.../pdfjs-dist, PDFium
+#    with PDFIUM=.../directory holding pypdfium2
+if command -v pdftotext >/dev/null 2>&1 || [ -n "${PDFJS:-}" ] || [ -n "${PDFIUM:-}" ]; then
+	if $update; then
+		TEKX=$T sh test/paste.sh -u >/dev/null || status=1
+	else
+		TEKX=$T sh test/paste.sh || status=1
+	fi
+fi
+
 [ $status -eq 0 ] && echo "all tests passed"
 exit $status

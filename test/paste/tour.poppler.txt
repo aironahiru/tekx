@@ -1,0 +1,54 @@
+A Tour of tekx
+Mathematics that means something
+Ada Lovelace
+2 November 2026
+Abstract
+This document is written in tekx. It shows how prose, structure and
+mathematics
+read naturally in source form, and how one source yields typeset
+pages, MathML, spoken mathematics and clean copy text.
+1
+Prose and mathematics
+Let us begin with the golden ratio, φ = (1 + √5)/2. It satisfies
+φ² = φ + 1
+(1)
+which a screen reader speaks as “phi squared equals phi plus 1”, and which
+copies out of the PDF as φ² = φ + 1. Paste that back into a tekx file and you
+get the same formula.1 Long words such as incomprehensibilities are
+hyphenated
+and still copy as one word; see [1] and https://example.org.
+Theorem 1 (Pythagoras). For a right triangle with legs a, b and hypotenuse c,
+a² + b² = c²
+Proof. Arrange four copies of the triangle inside a square of side a + b.
+∎
+Principle 2 (Least surprise). A formula should read as it is spoken.
+Note. Equation (1) determines φ up to sign, and Theorem 1 is older
+than Pythagoras.
+2
+Structure
+Figures, like Figure 1, are numbered and referenced like everything else.
+• Lists, with x ∈ ℝ inside.
+• Items long enough to wrap across more than one line keep their hanging
+indentation.
+1. Nested and numbered.
+2. Like this.
+1 Copy and paste is checked with poppler, which honours ActualText, and with pdf.js, which
+does not.
+1
+Figure 1. The graph of y = x². A figure must say what it shows: tekx refuses
+one without alt text.
+Symbol Name Meaning
+ℕ
+NN
+natural numbers
+ℝ
+RR
+real numbers
+tekx tour.tekx
+# writes tour.pdf, silently
+f(x) = cases(x² if x ≥ 0; −x otherwise)
+(a + b)² = a² + 2ab + b²
+= b² + 2ab + a²
+References
+[1] N. N. Vorobiev, Fibonacci Numbers, Birkhäuser, 2002.
+2

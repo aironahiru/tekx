@@ -41,7 +41,7 @@ document test/golden/math.tekx
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a squared plus b squared equals c squared"><semantics><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo>=</mo><msup><mi>𝑐</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">a^2 + b^2 = c^2</annotation></semantics></math>
 speech a squared plus b squared equals c squared
 linear a² + b² = c²
-mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half x"><semantics><mrow><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow><mo>⁢</mo><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">1/2 x</annotation></semantics></math>
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half x"><semantics><mrow><mrow><mo fence="true">(</mo><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow><mo fence="true">)</mo></mrow><mo>⁢</mo><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">1/2 x</annotation></semantics></math>
 speech one half x
 linear 1/2 x
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator h and denominator 2 pi end fraction"><semantics><mrow><mi>ℎ</mi><mo lspace="0" rspace="0">/</mo><mrow><mo fence="true">(</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝜋</mi></mrow><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">h/2pi</annotation></semantics></math>

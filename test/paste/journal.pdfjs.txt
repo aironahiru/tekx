@@ -1,0 +1,45 @@
+Gaps Between Sums of Two Squares
+Ada Lovelace
+University of London, UK
+ada@example.org · ORCID 0000-0002-1825-0097
+Charles Babbage
+Cambridge
+https://example.org/cb
+Mary Somerville
+John Herschel
+Abstract
+We improve the exponent 1/2 of [2, Thm. 2; 5].
+2020 Mathematics Subject Classification. 11N36 (primary); 11E25 (secondary)
+Key words and phrases. sums of two squares, short intervals
+1 Introduction
+Landau [5] proved
+B(x) ∼ K x/
+(√(log x)) (1.1)
+By Theorem 1.1 and Lemmas 1.2 and 1.3, see (1.1) and Section 1; also [1, 3,
+4, 6–9] and [8, §2]. The paper [2] and the formula (1.1) are different things.
+Theorem 1.1 (Main). Every interval [x, x + x^(1/4+ε)] contains one.
+Lemma 1.2. First.
+Lemma 1.3. Second, by [5, p. 305].
+Appendix A Computations
+Lemma A.1. As in Appendix A, Lemma A.1 holds:
+g(x) ≤ 2x^(1/4) (A.1)
+References
+[1] Paul Erdős, Pál Turán, et al., On some problems of a statistical group-theory,
+Proceedings of a Colloquium (John Smith and Mary Jones, Jr., eds.),
+Springer, 1965, pp. 1–20.
+[2] Christopher Hooley, On the intervals between numbers that are sums of two
+squares, Acta Math. 127 (1971), 279–297, doi:10.1007/BF02392056.
+1 [3] Donald E. Knuth, Breaking paragraphs into lines, Proceedings of the Sym-
+posium on Typesetting (Michael F. Plass, ed.), ACM, 1981, pp. 1–10.
+[4] Leslie Lamport, A document preparation system, J. Typography 4 (1986),
+11–20.
+[5] Edmund Landau, Über die Einteilung der positiven ganzen Zahlen in vier
+Klassen, Arch. Math. Phys. 13 (1908), 305–312.
+[6] Jörg Müller, L-functions and the Selberg class, Ph.D. thesis, Universität
+Göttingen, 2001.
+[7] Ann Odd, A DOI with parentheses, J. Number Theory 17 (1983), no. 3, 250,
+doi:10.1016/0022-314X(83)90019-6.
+[8] Terence Tao, A remark on primes of the form n^2 + 1, 2024, arXiv:2401.01234.
+[9] Charles de la Vallée Poussin, Cours d’analyse infinitésimale, 2nd ed.,
+Gauthier-Villars, Paris, 1909.
+2

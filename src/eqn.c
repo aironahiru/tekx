@@ -945,6 +945,14 @@ mark_slashed(M *m, bool disp)
 		mark_slashed(m->c, disp);
 		for (size_t i = 0; i < m->kids.n; i++)
 			mark_slashed(m->kids.v[i], disp);
+		/* a/b followed by a factor is set (a/b)c: on the line, a/bc would
+		 * read as a over bc, in print and in pasted text alike */
+		if (m->kind == M_ROW && m->times)
+			for (size_t i = 0; i + 1 < m->kids.n; i++) {
+				M *k = m->kids.v[i];
+				if (k->kind == M_FRAC && k->slashed && k->slash->kind != M_FENCE)
+					k->slash = fence("(", k->slash, ")");
+			}
 	}
 }
 

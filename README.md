@@ -47,6 +47,15 @@ Copy and paste gives you real text:
 - formulas come back as linear text you can paste into a tekx file;
 - page numbers and decoration are marked as artifacts and stay out of the way.
 
+The test suite checks the paste in the engines behind the viewers people use
+(`test/paste.sh`):
+
+| pastes back as itself | poppler (Evince, Okular) | PDFium (Chrome, Edge) | pdf.js (Firefox) |
+|---|---|---|---|
+| 48 test formulas, inline | 48 | 48 | 45 |
+| 48 test formulas, displayed | 48 | 48 | 45 |
+| hyphenated words | whole | whole | split (pdf.js ignores ActualText) |
+
 ## The language
 
 The design takes after Ruby: it reads like prose, and it has a little structure

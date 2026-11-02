@@ -344,10 +344,81 @@ in one Aside, and that every link has a spoken name and the right target:
 pdf2:Link link="Equation 1" to=Formula
 pdf2:Link link="Footnote 1" to=FENote
 ```
- Copy and paste is checked with poppler (`pdftotext`, which
-honours ActualText) and pdf.js (which does not). With a `verapdf` at hand, run
-it from the suite:
+
+With a `verapdf` at hand, run it from the suite:
 
 ```bash
 VERAPDF=/path/to/verapdf make test
 ```
+
+### Copy and paste
+
+`test/paste.sh` (step 9 of the suite) checks what copy and paste gives in the
+viewers people use. It extracts the text of test PDFs with each engine at hand:
+
+| engine | viewers | how it is enabled |
+|---|---|---|
+| poppler | Evince, Okular, `pdftotext`, most tools | `pdftotext` on the PATH |
+| pdf.js | Firefox | `PDFJS=/path/to/pdfjs-dist` |
+| PDFium | Chrome, Edge | `PDFIUM=/path/to/dir` holding `pypdfium2` |
+
+For each engine it checks three things:
+- every formula in `test/formulas.txt`, inline and displayed, pastes back with
+  the same MathML as the original;
+- `test/paste/prose.tekx` pastes as written: words whole across hyphenated line
+  breaks, ligatures as letters, real spaces;
+- the text of `examples/tour.tekx` and `test/golden/journal.tekx` matches
+  `test/paste/*.ENGINE.txt`.
+
+Known engine limits are listed in `test/paste/limits` with their reasons. They
+are reported rather than failed, and the script says when one starts passing.
+
+The three engines read nested marked content differently, so the content
+stream is written for all of them at once:
+- **Poppler** takes ActualText only from a `Span`, and lets it replace
+  everything inside, nested marks included.
+- **PDFium** takes ActualText from any tag, but only from the innermost
+  dictionary. Around the per-glyph MathML marks of a formula, that dictionary is
+  the MCID's, so before this design PDFium copied formulas and hyphenated words
+  as nothing at all. It also skips a text object whose innermost dictionary is
+  the same object as the previous one's.
+- **pdf.js** ignores ActualText.
+
+So each ActualText span is written twice:
+
+```
+/Span <</ActualText (φ = (1 + √5)/2)>> BDC      poppler and Acrobat read this
+  /mi <</MCID 2>> BDC
+    /Copy /AT0 BDC  BT … ET  EMC               PDFium reads /AT0 once, skips the rest
+  EMC
+  …
+EMC
+```
+
+`/AT0` is a named property in the page's `/Properties` holding the same text,
+and every text object of the span shares it. `/Copy` is not a `Span`, so poppler
+ignores it.
+
+pdf.js reads the glyphs, plus the invisible helpers that layout places for it:
+- the `(`, `)` and `/` of a fraction;
+- `^` and `_` before scripts, and a blank after an unbracketed script;
+- `choose` in a binomial, `quad` in a wide space.
+
+The helpers are drawn in render mode 3 at 2% width, so none overlaps the next
+word or widens a formula, in any engine.
+
+The result:
+
+| | poppler | PDFium | pdf.js |
+|---|---|---|---|
+| formulas, inline (48) | 48 | 48 | 45 |
+| formulas, displayed (48) | 48 | 48 | 45 |
+| prose (hyphenated words whole) | yes | yes | split: `uncharacter- istically` |
+
+The pdf.js exceptions are drawn glyphs that no helper can undo:
+- the brace of `cases`;
+- the radical of `root 3 of x`;
+- one product whose copy text depends on a blank that the layout does not show.
+
+Before this design, PDFium copied 0 of 48 formulas, and poppler lost the
+blank after a radical.

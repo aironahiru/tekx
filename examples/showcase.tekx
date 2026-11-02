@@ -28,7 +28,7 @@ theorem "Mean value" #mvt
       f'(c) = (f(b) - f(a))/(b - a)
 
 proof
-  Apply Rolle's theorem to $g(x) = f(x) - (f(b) - f(a))/(b - a) (x - a)$.
+  The function $g(x) = f(x) - (f(b) - f(a))/(b - a) (x - a)$ vanishes at $a$ and at $b$, so Rolle's theorem applies to it.
 
 The limit
 

@@ -1,0 +1,12 @@
+# Checks an engine cannot pass for reasons outside tekx, one per line:
+#	ENGINE CHECK REASON
+# test/paste.sh reports these as limits rather than failures, and says so
+# when one starts passing.  A formula is named by its line in
+# test/formulas.txt:	ENGINE formula N REASON
+#
+# pdf.js (Firefox) reads only the glyphs and their invisible helpers: it
+# ignores ActualText (pdf.js 6.5), which poppler, PDFium and Acrobat honour.
+pdfjs prose a word hyphenated across lines pastes as its two halves, since only ActualText holds the whole word
+pdfjs formula 20 the brace of cases is a visible { glyph, so the paste reads {x, if x ≥ 0; −x, otherwise
+pdfjs formula 23 a root's radical is a visible √, so root 3 of x pastes as root(3, √x)
+pdfjs formula 34 −∂B⃗ has no visible gap where the copy text has (−∂ B⃗), so it reads back as −(∂B⃗): the same quantity, grouped differently

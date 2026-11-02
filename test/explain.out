@@ -2,7 +2,7 @@ formula    1/2 x
 reads as   (1/2)·x
 says       one half x
 copies as  1/2 x
-MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half x"><semantics><mrow><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow><mo>⁢</mo><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">1/2 x</annotation></semantics></math>
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half x"><semantics><mrow><mrow><mo fence="true">(</mo><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow><mo fence="true">)</mo></mrow><mo>⁢</mo><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">1/2 x</annotation></semantics></math>
 
 formula    1/2x
 reads as   1/(2·x)
@@ -20,7 +20,7 @@ formula    a/b c
 reads as   (a/b)·c
 says       the fraction a over b end fraction c
 copies as  a/b c
-MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction a over b end fraction c"><semantics><mrow><mrow><mi>𝑎</mi><mo lspace="0" rspace="0">/</mo><mi>𝑏</mi></mrow><mo>⁢</mo><mi>𝑐</mi></mrow><annotation encoding="application/x-tekx">a/b c</annotation></semantics></math>
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction a over b end fraction c"><semantics><mrow><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo lspace="0" rspace="0">/</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mo>⁢</mo><mi>𝑐</mi></mrow><annotation encoding="application/x-tekx">a/b c</annotation></semantics></math>
 
 formula    sin x/y
 reads as   sin(x/y)

@@ -460,6 +460,10 @@ add_atom(M *k, St s, int parent, Atoms *out)
 		a.space = true;
 		a.b = box_new();
 		a.b->w = k->num * scale(s);
+		/* quad and qquad, as the copy text says: a word in the middle of
+		 * the space, so that readers see blanks on both sides of it */
+		if (k->num >= 1000)
+			helper(a.b, k->num >= 2000 ? "qquad" : "quad", a.b->w * 0.4, 0, s);
 		VPUSH(*out, a);
 		return;
 	}
@@ -541,6 +545,7 @@ hlist(Atoms *at, St s)
 			continue;
 		}
 		if (a->space) {
+			put(b, a->b, x, 0);
 			x += a->b->w;
 			continue;
 		}
@@ -616,7 +621,10 @@ lay_frac(M *m, St s, int parent)
 	put(b, num, nx, -u);
 	if (pn)
 		helper(b, ")", nx + num->w, -u, num_style(s));
-	if (!m->thin)
+	/* a binomial reads (n choose k): the word stands clear of the numerator */
+	if (m->thin)
+		helper(b, "choose", nx + num->w + 300 * scale(s), -u, num_style(s));
+	else
 		helper(b, "/", pad + w / 2, -axis, s);
 	if (pd)
 		helper(b, "(", dx, v, den_style(s));
@@ -706,17 +714,17 @@ lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool 
 	b->h = base->h;
 	b->d = base->d;
 	double subx = base->w - (bigop ? italic : 0), supx = base->w + (bigop ? 0 : italic);
+	/* The helpers spell the script in copy text for readers that ignore
+	 * ActualText (pdf.js): x_2 even where the copy text says x₂, and a
+	 * blank after an unbracketed script, so that A^T A does not read
+	 * back as A^(TA). */
+	bool open_end = false;
 	if (bs) {
-		char *lt = eqn_linear(sub);
-		bool uni = true;
-		for (char *c = lt; *c; c++)
-			if (*c < '0' || *c > '9')
-				uni = false;
-		if (!uni)
-			helper(b, is_atom(sub) ? "_" : "_(", subx, v, sub_style(s));
+		helper(b, is_atom(sub) ? "_" : "_(", subx, v, sub_style(s));
 		put(b, bs, subx, v);
-		if (!uni && !is_atom(sub))
+		if (!is_atom(sub))
 			helper(b, ")", subx + bs->w, v, sub_style(s));
+		open_end = is_atom(sub);
 		w = MAX(w, subx + bs->w);
 		b->d = MAX(b->d, v + bs->d);
 		b->h = MAX(b->h, bs->h - v);
@@ -728,10 +736,13 @@ lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool 
 		put(b, bp, supx, -u);
 		if (!prime && !is_atom(sup))
 			helper(b, ")", supx + bp->w, -u, sup_style(s));
+		open_end = !prime && is_atom(sup);
 		w = MAX(w, supx + bp->w);
 		b->h = MAX(b->h, u + bp->h);
 		b->d = MAX(b->d, bp->d - u);
 	}
+	if (open_end)
+		helper(b, " ", w, 0, s);
 	b->w = w + after;
 	return b;
 }
