@@ -1,0 +1,22 @@
+{
+  "name": "tekx",
+  "displayName": "tekx",
+  "description": "Syntax highlighting for tekx: mathematics written the way it is spoken",
+  "version": "0.2.0",
+  "license": "Apache-2.0",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [{
+      "id": "tekx",
+      "aliases": ["tekx"],
+      "extensions": [".tekx"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "tekx",
+      "scopeName": "text.tekx",
+      "path": "./syntaxes/tekx.tmLanguage.json"
+    }]
+  }
+}

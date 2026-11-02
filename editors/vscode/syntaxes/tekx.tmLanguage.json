@@ -1,0 +1,189 @@
+{
+  "name": "tekx",
+  "scopeName": "text.tekx",
+  "fileTypes": [
+    "tekx"
+  ],
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#setting"
+    },
+    {
+      "include": "#heading"
+    },
+    {
+      "include": "#block"
+    },
+    {
+      "include": "#define"
+    },
+    {
+      "include": "#codeblock"
+    },
+    {
+      "include": "#display"
+    },
+    {
+      "include": "#inline"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "match": "(^|(?<=\\s))//.*$",
+      "name": "comment.line.double-slash.tekx"
+    },
+    "setting": {
+      "match": "^(title|subtitle|author|date|language|lang|keywords|subject|paper|size|font|msc|numbering|bibliography|citations|running|linenumbers|tekx|document)\\b(.*)$",
+      "captures": {
+        "1": {
+          "name": "keyword.other.setting.tekx"
+        },
+        "2": {
+          "patterns": [
+            {
+              "match": "\\b(affiliation|email|orcid|url):",
+              "name": "variable.parameter.tekx"
+            },
+            {
+              "match": "\"(?:[^\"\\\\]|\\\\.)*\"",
+              "name": "string.quoted.double.tekx"
+            }
+          ]
+        }
+      }
+    },
+    "heading": {
+      "match": "^((?:sub){0,2}section\\*?|#{1,3})\\s+(.*?)(\\s+#[A-Za-z0-9_:-]+)?$",
+      "captures": {
+        "1": {
+          "name": "keyword.control.heading.tekx"
+        },
+        "2": {
+          "name": "markup.heading.tekx",
+          "patterns": [
+            {
+              "include": "#inline"
+            }
+          ]
+        },
+        "3": {
+          "name": "entity.name.label.tekx"
+        }
+      }
+    },
+    "block": {
+      "match": "^\\s*(theorem|lemma|proposition|corollary|conjecture|claim|axiom|hypothesis|fact|definition|example|exercise|problem|solution|notation|assumption|remark|note|observation|proof|abstract|quote|figure|references|contents|newpage|appendix|let)(\\*?)\\b(.*?)(\\s+#[A-Za-z0-9_:-]+)?(\\s+do)?$",
+      "captures": {
+        "1": {
+          "name": "keyword.control.block.tekx"
+        },
+        "2": {
+          "name": "keyword.control.block.tekx"
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#inline"
+            },
+            {
+              "match": "\"(?:[^\"\\\\]|\\\\.)*\"",
+              "name": "string.quoted.double.tekx"
+            }
+          ]
+        },
+        "4": {
+          "name": "entity.name.label.tekx"
+        },
+        "5": {
+          "name": "keyword.control.tekx"
+        }
+      }
+    },
+    "define": {
+      "match": "^\\s*(define|use)\\b(.*)$",
+      "captures": {
+        "1": {
+          "name": "keyword.other.define.tekx"
+        },
+        "2": {
+          "patterns": [
+            {
+              "match": "\\b(like|titled|read as|as|block|function|operator)\\b",
+              "name": "keyword.other.tekx"
+            },
+            {
+              "match": "\"(?:[^\"\\\\]|\\\\.)*\"",
+              "name": "string.quoted.double.tekx"
+            }
+          ]
+        }
+      }
+    },
+    "codeblock": {
+      "begin": "^\\s*```.*$",
+      "end": "^\\s*```\\s*$",
+      "name": "markup.raw.block.tekx"
+    },
+    "display": {
+      "match": "^(\\s{4,})(?!-\\s|\\d+\\.\\s|\\|)(\\S.*?)(\\s+#[A-Za-z0-9_:-]+)?$",
+      "captures": {
+        "2": {
+          "name": "markup.math.display.tekx"
+        },
+        "3": {
+          "name": "entity.name.label.tekx"
+        }
+      }
+    },
+    "inline": {
+      "patterns": [
+        {
+          "begin": "\\$(?=[^ $])",
+          "end": "\\$",
+          "name": "markup.math.inline.tekx",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.math.tekx"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.math.tekx"
+            }
+          }
+        },
+        {
+          "match": "\\[@[^\\]]*\\]",
+          "name": "markup.underline.link.citation.tekx"
+        },
+        {
+          "match": "@[A-Za-z0-9_:-]+",
+          "name": "markup.underline.link.reference.tekx"
+        },
+        {
+          "match": "\\{[A-Za-z][A-Za-z0-9_-]*(?:[ }][^}]*)?\\}",
+          "name": "variable.other.macro.tekx"
+        },
+        {
+          "match": "\\*\\*[^*\\s][^*]*\\*\\*",
+          "name": "markup.bold.tekx"
+        },
+        {
+          "match": "\\*[^*\\s][^*]*\\*",
+          "name": "markup.italic.tekx"
+        },
+        {
+          "match": "`[^`]*`",
+          "name": "markup.inline.raw.tekx"
+        },
+        {
+          "match": "\\^\\[",
+          "name": "punctuation.definition.footnote.tekx"
+        }
+      ]
+    }
+  }
+}
