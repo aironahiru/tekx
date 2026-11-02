@@ -339,7 +339,59 @@ typedef struct {
 	char *s;
 	int pos;	/* byte offset in the source */
 	bool sp;	/* preceded by a blank */
+	bool tex;	/* a TeX command, \name */
 } Tok;
+
+/* ---- TeX commands ----
+ *
+ * A formula may be written in LaTeX's notation.  Commands that mean what a
+ * tekx word means become that word (\sum, \alpha, \leq); symbols become
+ * their tekx spelling (\rightarrow is ->); sizing and style commands that
+ * only steer TeX's layout are dropped (\left, \displaystyle); the rest
+ * (\frac, \sqrt, \text, \begin{pmatrix} ...) are parsed in word(). */
+
+static const struct {
+	const char *name, *as;
+} tex_symbols[] = {
+	{"rightarrow", "->"}, {"leftarrow", "<-"}, {"Rightarrow", "=>"}, {"Leftarrow", "\u21d0"},
+	{"Leftrightarrow", "<=>"}, {"leftrightarrow", "<->"}, {"longrightarrow", "\u27f6"},
+	{"Longrightarrow", "\u27f9"}, {"Longleftrightarrow", "\u27fa"}, {"hookrightarrow", "\u21aa"},
+	{"impliedby", "\u21d0"}, {"gets", "<-"},
+	{"langle", "\u27e8"}, {"rangle", "\u27e9"}, {"lfloor", "\u230a"}, {"rfloor", "\u230b"},
+	{"lceil", "\u2308"}, {"rceil", "\u2309"}, {"lvert", "|"}, {"rvert", "|"}, {"vert", "|"},
+	{"lVert", "\u2016"}, {"rVert", "\u2016"}, {"Vert", "\u2016"}, {"lbrace", "\\{"}, {"rbrace", "\\}"},
+	{"mid", "\u2223"}, {"colon", ":"}, {"dots", "..."}, {"dotsc", "\u2026"}, {"dotsb", "\u22ef"},
+	{"varnothing", "\u2205"}, {"leqslant", "\u2a7d"}, {"geqslant", "\u2a7e"}, {"cdotp", "\u22c5"},
+	{"dagger", "\u2020"}, {"ddagger", "\u2021"}, {"prime", "\u2032"}, {"backslash", "\u2216"},
+	{"vee", "\u2228"}, {"bullet", "\u2219"}, {"nexists", "\u2204"}, {"imath", "\u0131"},
+	{"jmath", "\u0237"}, {"neq", "\u2260"}, {"ne", "\u2260"},
+	/* TeX's epsilon and phi are the lunate and stroked forms; tekx's are the open ones */
+	{"epsilon", "varepsilon"}, {"varepsilon", "epsilon"}, {"phi", "varphi"}, {"varphi", "phi"},
+	{"to", "to"}, {"bmod", "mod"}, {"int", "int"},
+};
+
+static const char *
+tex_symbol(const char *name)
+{
+	for (size_t i = 0; i < NELEM(tex_symbols); i++)
+		if (streq(tex_symbols[i].name, name))
+			return tex_symbols[i].as;
+	return NULL;
+}
+
+/* commands that only steer TeX's own layout */
+static bool
+tex_dropped(const char *name)
+{
+	static const char *drop[] = {"left", "right", "middle", "big", "Big", "bigg", "Bigg", "bigl", "bigr",
+	    "Bigl", "Bigr", "biggl", "biggr", "Biggl", "Biggr", "displaystyle", "textstyle", "scriptstyle",
+	    "scriptscriptstyle", "limits", "nolimits", "nonumber", "notag", "allowbreak", "nobreak"};
+
+	for (size_t i = 0; i < NELEM(drop); i++)
+		if (streq(drop[i], name))
+			return true;
+	return false;
+}
 
 typedef VEC(Tok) TokVec;
 typedef VEC(char *) StrVec;
@@ -492,6 +544,36 @@ tokenize(const char *s, int line, int col)
 				v.v[v.n - 1].s = fmt("%s%s", v.v[v.n - 1].s, t.s);
 				continue;
 			}
+		} else if (c == '\\' && i + 1 < n && ((s[i + 1] | 32) >= 'a' && (s[i + 1] | 32) <= 'z')) {
+			size_t j = i + 1;
+			while (j < n && ((s[j] | 32) >= 'a' && (s[j] | 32) <= 'z'))
+				j++;
+			char *name = xstrndup(s + i + 1, j - i - 1);
+			i = j;
+			if (tex_dropped(name)) {
+				if ((startswith(name, "left") || startswith(name, "right") || startswith(name, "big") ||
+				    startswith(name, "Big") || streq(name, "middle")) && i < n && s[i] == '.')
+					i++;	/* \left. is an empty delimiter */
+				sp = t.sp;
+				continue;
+			}
+			const char *sym = tex_symbol(name);
+			if (sym) {
+				t.kind = ((sym[0] | 32) >= 'a' && (sym[0] | 32) <= 'z') ? T_WORD : T_SYM;
+				t.s = xstrdup(sym);
+			} else {
+				t.kind = T_WORD;
+				t.s = name;
+			}
+			t.tex = true;
+		} else if (c == '\\' && i + 1 < n && strchr(",;:!> {}|\\", s[i + 1])) {
+			char d = s[i + 1];
+			i += 2;
+			if (d == '\\')
+				continue;	/* a TeX line break means nothing on one line */
+			t.kind = T_SYM;
+			t.s = d == '{' ? "\\{" : d == '}' ? "\\}" : d == '|' ? "\u2016" : fmt("\\%c", d);
+			t.tex = true;
 		} else {
 			size_t k;
 			for (k = 0; k < NELEM(ascii_syms); k++)
@@ -508,7 +590,7 @@ tokenize(const char *s, int line, int col)
 		}
 		VPUSH(v, t);
 	}
-	Tok e = {T_EOF, "", (int)n, sp};
+	Tok e = {T_EOF, "", (int)n, sp, false};
 	VPUSH(v, e);
 	return v;
 }
@@ -540,6 +622,7 @@ typedef struct {
 	bool func_arg;
 	Bind *env;
 	int depth;
+	bool tex;	/* the formula uses TeX commands: TeX's brace and word rules apply */
 } P;
 
 static M *expr(P *p, int min_bp);
@@ -708,7 +791,7 @@ starts_operand(P *p, Tok *t)
 	}
 	case T_SYM: {
 		const char *s = t->s;
-		if (streq(s, "(") || streq(s, "[") || streq(s, "{") || streq(s, "⟨"))
+		if (streq(s, "(") || streq(s, "[") || streq(s, "{") || streq(s, "⟨") || streq(s, "\\{"))
 			return true;
 		if (streq(s, "|"))
 			return !(p->stop & STOP_BAR);
@@ -747,8 +830,10 @@ led_bp(P *p)
 		return 70;
 	if (t->kind == T_SYM) {
 		const char *s = t->s;
-		if (streq(s, ")") || streq(s, "]") || streq(s, "}") || streq(s, "⟩"))
+		if (streq(s, ")") || streq(s, "]") || streq(s, "}") || streq(s, "⟩") || streq(s, "\\}"))
 			return 0;
+		if (s[0] == '\\' && s[1] && strchr(",;:!> ", s[1]))
+			return t->sp ? 45 : 60;	/* TeX spacing joins its neighbours */
 		if (streq(s, "^") || streq(s, "_") || streq(s, "!") || streq(s, "'") || streq(s, "''") ||
 		    streq(s, "′") || streq(s, "″"))
 			return 70;
@@ -795,7 +880,8 @@ led_bp(P *p)
 			return 5;
 		if (streq(w, "dot"))
 			return 50;
-		if (streq(w, "not") && is(peek2(p), "in"))
+		if (streq(w, "not") && (is(peek2(p), "in") || is(peek2(p), "=") || is(peek2(p), "subset") ||
+		    is(peek2(p), "equiv")))
 			return 20;
 		if ((streq(w, "goes") || streq(w, "tends")) && is(peek2(p), "to"))
 			return 20;
@@ -937,7 +1023,7 @@ group_items(P *p, const char *open, const char **closer)
 		p->braces = 0;
 	for (;;) {
 		Tok *t = peek(p);
-		if (is(t, ")") || is(t, "]") || is(t, "}") || is(t, "⟩") || t->kind == T_EOF)
+		if (is(t, ")") || is(t, "]") || is(t, "}") || is(t, "⟩") || is(t, "\\}") || t->kind == T_EOF)
 			break;
 		M *e = expr(p, 3);
 		VPUSH(it.cells, e);
@@ -949,7 +1035,7 @@ group_items(P *p, const char *open, const char **closer)
 			VPUSH(it.seps, ';');
 		} else {
 			VPUSH(it.seps, 0);
-			if (!(is(peek(p), ")") || is(peek(p), "]") || is(peek(p), "}") || is(peek(p), "⟩") ||
+			if (!(is(peek(p), ")") || is(peek(p), "]") || is(peek(p), "}") || is(peek(p), "⟩") || is(peek(p), "\\}") ||
 			    peek(p)->kind == T_EOF)) {
 				perr(p, peek(p), fmt("unexpected '%s' in group", peek(p)->s));
 				advance(p);
@@ -1366,6 +1452,8 @@ bigop(P *p, const char *glyph, int kind)
 		body = expr(p, 41);	/* below a spaced / (42), above + (40) */
 	if (kind == 1) {
 		M *r = mrow();
+		if (body && body->kind == M_ROW && body->kids.n && body->kids.v[body->kids.n - 1]->kind == M_SPACE)
+			body->kids.n--;	/* \, dx: the differential brings its own space */
 		madd(r, body);
 		while (is_differential(p, peek(p))) {
 			Tok *d = advance(p);
@@ -1459,6 +1547,291 @@ static const struct {
 	{"tt", V_MONO}, {"upright", V_NORMAL}, {"rm", V_NORMAL}, {"italic", V_ITALIC},
 };
 
+/* ---- TeX commands with arguments ---- */
+
+/* the raw text of a {group}, the current token being its opening brace */
+static char *
+tex_raw_group(P *p, Tok *cmd)
+{
+	if (!is(peek(p), "{")) {
+		perr(p, peek(p), fmt("\\%s needs an argument in braces", cmd->s));
+		return NULL;
+	}
+	Tok *open = advance(p);
+	int depth = 1;
+	while (peek(p)->kind != T_EOF) {
+		Tok *t = peek(p);
+		if (is(t, "{"))
+			depth++;
+		else if (is(t, "}") && --depth == 0)
+			break;
+		advance(p);
+	}
+	if (peek(p)->kind == T_EOF) {
+		perr(p, open, "this '{' is never closed");
+		return NULL;
+	}
+	Tok *close = advance(p);
+	return xstrndup(p->src + open->pos + 1, (size_t)(close->pos - open->pos - 1));
+}
+
+/* a TeX argument: a {group}, or a single token as in \frac12 */
+static M *
+tex_arg(P *p)
+{
+	if (is(peek(p), "{")) {
+		advance(p);
+		const char *closer;
+		Items it = group_items(p, "{", &closer);
+		if (it.cells.n == 1)
+			return it.cells.v[0];
+		M *r = mrow();
+		for (size_t i = 0; i < it.cells.n; i++) {
+			madd(r, it.cells.v[i]);
+			if (it.seps.v[i])
+				madd(r, op(it.seps.v[i] == ',' ? "," : ";", PUNCT));
+		}
+		return r;
+	}
+	Tok *t = peek(p);
+	if (t->kind == T_NUM && strlen(t->s) > 1 && !strchr(t->s, '.')) {
+		/* \frac12: TeX takes one digit at a time */
+		M *d = num_node(xstrndup(t->s, 1));
+		t->s++;
+		t->pos++;
+		t->sp = false;
+		return d;
+	}
+	return nud(p);
+}
+
+/* split an environment's body into rows (\\) and cells (&) */
+typedef VEC(int) IntVec;
+
+static void
+tex_cells(const char *body, StrVec *cells, IntVec *row_ends)
+{
+	int depth = 0;
+	const char *start = body;
+
+	for (const char *q = body;; q++) {
+		if (*q == '\\' && q[1] && q[1] != '\\') {
+			q++;
+			continue;
+		}
+		if (*q == '{')
+			depth++;
+		else if (*q == '}')
+			depth--;
+		bool row = *q == '\\' && q[1] == '\\' && depth == 0;
+		if (*q == 0 || row || (*q == '&' && depth == 0)) {
+			char *cell = trim(xstrndup(start, (size_t)(q - start)));
+			if (*cell || *q == '&' || (row && cells->n))
+				VPUSH(*cells, cell);
+			if (row || *q == 0)
+				if (cells->n && (row_ends->n == 0 || row_ends->v[row_ends->n - 1] != (int)cells->n))
+					VPUSH(*row_ends, (int)cells->n);
+			if (*q == 0)
+				break;
+			if (row)
+				q++;
+			start = q + 1;
+		}
+	}
+}
+
+static M *
+tex_env(P *p, Tok *t)
+{
+	char *name = tex_raw_group(p, t);
+	if (name == NULL)
+		return mrow();
+	int bodystart = peek(p)->kind == T_EOF ? (int)strlen(p->src) : peek(p)->pos;
+	char *endtag = fmt("\\end{%s}", name), *begtag = fmt("\\begin{%s}", name);
+	const char *q = p->src + bodystart, *e = NULL;
+	int depth = 1;
+	while (*q) {
+		if (startswith(q, begtag)) {
+			depth++;
+			q += strlen(begtag);
+		} else if (startswith(q, endtag)) {
+			if (--depth == 0) {
+				e = q;
+				break;
+			}
+			q += strlen(endtag);
+		} else {
+			q++;
+		}
+	}
+	if (e == NULL) {
+		perr(p, t, fmt("\\begin{%s} without \\end{%s}", name, name));
+		return mrow();
+	}
+	char *body = xstrndup(p->src + bodystart, (size_t)(e - p->src - bodystart));
+	size_t after = (size_t)(e - p->src) + strlen(endtag);
+	while (peek(p)->kind != T_EOF && (size_t)peek(p)->pos < after)
+		advance(p);
+	if (streq(name, "array")) {
+		/* drop the column specification */
+		char *b = body;
+		while (*b == ' ')
+			b++;
+		if (*b == '{') {
+			char *c = strchr(b, '}');
+			body = c ? c + 1 : b;
+		}
+	}
+	StrVec cells = {0};
+	IntVec ends = {0};
+	tex_cells(body, &cells, &ends);
+	int col = bodystart;
+	if (streq(name, "cases") || streq(name, "dcases")) {
+		M *tb = mnew(M_TABLE);
+		int prev = 0;
+		for (size_t r = 0; r < ends.n; r++) {
+			M *v = prev < ends.v[r] ? sub_parse(p, cells.v[prev], 0, col) : mrow();
+			M *c = prev + 1 < ends.v[r] ? sub_parse(p, cells.v[prev + 1], 0, col) : mrow();
+			VPUSH(tb->kids, v);
+			VPUSH(tb->kids, c);
+			prev = ends.v[r];
+		}
+		tb->rows = (int)ends.n;
+		tb->cols = 2;
+		tb->sem = "cases";
+		tb->colalign = "ll";
+		M *f = fence("{", tb, "");
+		f->sem = "cases";
+		return f;
+	}
+	const char *o = NULL, *c = NULL;
+	if (streq(name, "pmatrix")) o = "(", c = ")";
+	else if (streq(name, "bmatrix")) o = "[", c = "]";
+	else if (streq(name, "Bmatrix")) o = "{", c = "}";
+	else if (streq(name, "vmatrix")) o = "|", c = "|";
+	else if (streq(name, "Vmatrix")) o = "‖", c = "‖";
+	else if (streq(name, "matrix") || streq(name, "smallmatrix") || streq(name, "array") ||
+	    streq(name, "aligned") || streq(name, "align") || streq(name, "align*") || streq(name, "gathered") ||
+	    streq(name, "split") || streq(name, "alignedat"))
+		o = "", c = "";
+	else {
+		perr(p, t, fmt("unknown environment {%s} (tekx knows pmatrix, bmatrix, Bmatrix, vmatrix, "
+		    "Vmatrix, matrix, cases, aligned, gathered, split and array)", name));
+		return mrow();
+	}
+	Items it = {0};
+	int prev = 0;
+	for (size_t r = 0; r < ends.n; r++) {
+		for (int k = prev; k < ends.v[r]; k++) {
+			VPUSH(it.cells, sub_parse(p, cells.v[k], 0, col));
+			VPUSH(it.seps, k + 1 == ends.v[r] ? ';' : ',');
+		}
+		prev = ends.v[r];
+	}
+	if (it.cells.n == 0)
+		return mrow();
+	M *m = table_from_items(&it, "matrix", o, c);
+	M *tb = m->kind == M_TABLE ? m : m->a;
+	if (!*o && (startswith(name, "align") || streq(name, "split")))
+		for (int k = 0; k < tb->cols; k++)
+			tb->colalign[k] = k % 2 ? 'l' : 'r';
+	return m;
+}
+
+static const char *tex_known[] = {"frac", "dfrac", "tfrac", "cfrac", "sqrt", "binom", "dbinom", "tbinom",
+    "text", "textrm", "textit", "textbf", "textup", "mbox", "mathrm", "mathup", "mathbb", "mathcal", "mathscr",
+    "mathfrak", "mathbf", "boldsymbol", "bm", "mathsf", "mathtt", "mathit", "operatorname", "begin", "end",
+    "pmod", "label", "not", "over", "choose"};
+
+/* \frac, \sqrt, \text ...; NULL when the command is an ordinary word */
+static M *
+tex_command(P *p, Tok *t)
+{
+	const char *w = t->s;
+
+	if (streq(w, "frac") || streq(w, "dfrac") || streq(w, "tfrac") || streq(w, "cfrac")) {
+		M *f = mnew(M_FRAC);
+		f->a = tex_arg(p);
+		f->b = tex_arg(p);
+		return f;
+	}
+	if (streq(w, "binom") || streq(w, "dbinom") || streq(w, "tbinom")) {
+		M *fr = mnew(M_FRAC);
+		fr->a = tex_arg(p);
+		fr->b = tex_arg(p);
+		fr->thin = true;
+		M *f = fence("(", fr, ")");
+		f->sem = "binom";
+		return f;
+	}
+	if (streq(w, "sqrt")) {
+		M *index = NULL;
+		if (is(peek(p), "[")) {
+			advance(p);
+			const char *closer;
+			Items it = group_items(p, "[", &closer);
+			index = it.cells.n ? it.cells.v[0] : NULL;
+		}
+		M *m = mnew(index ? M_ROOT : M_SQRT);
+		m->a = tex_arg(p);
+		m->b = index;
+		return m;
+	}
+	if (streq(w, "text") || streq(w, "textrm") || streq(w, "textit") || streq(w, "textbf") ||
+	    streq(w, "textup") || streq(w, "mbox")) {
+		char *raw = tex_raw_group(p, t);
+		return raw ? text_node(trim(raw)) : mrow();	/* tekx spaces words itself */
+	}
+	if (streq(w, "mathrm") || streq(w, "mathup") || streq(w, "operatorname")) {
+		char *raw = tex_raw_group(p, t);
+		if (raw == NULL)
+			return mrow();
+		raw = trim(raw);
+		M *id = ident(raw, V_NORMAL);
+		if (streq(w, "operatorname")) {
+			id->func = true;
+			return apply(p, func_scripts(p, id), true);
+		}
+		return id;
+	}
+	static const struct { const char *name; int v; } styles_tex[] = {
+		{"mathbb", V_BB}, {"mathcal", V_CAL}, {"mathscr", V_SCRIPT}, {"mathfrak", V_FRAK},
+		{"mathbf", V_BOLD}, {"boldsymbol", V_BOLDITALIC}, {"bm", V_BOLDITALIC}, {"mathsf", V_SANS},
+		{"mathtt", V_MONO}, {"mathit", V_ITALIC},
+	};
+	for (size_t i = 0; i < NELEM(styles_tex); i++)
+		if (streq(w, styles_tex[i].name)) {
+			p->tex = false;	/* \mathbb{R}: the letters are letters */
+			M *arg = tex_arg(p);
+			p->tex = true;
+			return apply_variant(p, arg, styles_tex[i].v, t);
+		}
+	if (streq(w, "begin"))
+		return tex_env(p, t);
+	if (streq(w, "end")) {
+		perr(p, t, "\\end without a matching \\begin");
+		tex_raw_group(p, t);
+		return mrow();
+	}
+	if (streq(w, "label")) {
+		tex_raw_group(p, t);	/* tekx labels lines with #name */
+		return mrow();
+	}
+	if (streq(w, "pmod")) {
+		/* a \pmod{n}: (mod n) after a quad */
+		M *r = mrow(), *in = mrow();
+		M *sp = mnew(M_SPACE);
+		sp->num = 1000;
+		madd(r, sp);
+		in->times = true;
+		madd(in, op("mod", OPC));	/* spaced like an operator name */
+		madd(in, tex_arg(p));
+		madd(r, fence("(", in, ")"));
+		return r;
+	}
+	return NULL;
+}
+
 static M *
 word(P *p, Tok *t)
 {
@@ -1511,6 +1884,9 @@ word(P *p, Tok *t)
 		q.i = 0;
 		q.env = env;
 		q.depth = p->depth + 1;
+		q.tex = false;
+		for (size_t k = 0; k < toks.n; k++)
+			q.tex |= toks.v[k].tex;
 		q.stop = 0;
 		q.rows = NULL;
 		q.nrows = 0;
@@ -1541,6 +1917,21 @@ word(P *p, Tok *t)
 			g->speech = bstr(&sp);
 		}
 		return g;
+	}
+
+	if (t->tex) {
+		M *m = tex_command(p, t);
+		if (m)
+			return m;
+	} else if (p->tex && strlen(w) > 1 && (unsigned char)w[0] < 0x80 && !is_user_function(w)) {
+		/* in TeX notation a run of letters is a product, as TeX reads it */
+		M *r = mrow();
+		r->times = true;
+		for (const char *c = w; *c; c++) {
+			char l[2] = {*c, 0};
+			madd(r, ident(l, V_ITALIC));
+		}
+		return r;
 	}
 
 	/* letters with digits: x1 -> x sub 1 */
@@ -1782,6 +2173,29 @@ word(P *p, Tok *t)
 			return apply(p, f, false);
 		return f;
 	}
+	const OpDef *od = find_op(w);
+	if (od && !streq(w, "in")) {
+		/* an operator where an operand belongs: (mod n), x^circ */
+		return op(od->uni, streq(w, "mod") ? OPC : ORD);
+	}
+	if (t->tex) {
+		/* an unknown command: suggest the nearest one tekx knows */
+		const char *best = NULL;
+		int bd = 3;
+		for (size_t i = 0; i < NELEM(tex_known) + NELEM(greek) + NELEM(ords) + NELEM(function_names); i++) {
+			size_t a = NELEM(tex_known), b = a + NELEM(greek), c = b + NELEM(ords);
+			const char *cand = i < a ? tex_known[i] : i < b ? greek[i - a].name : i < c ? ords[i - b].name :
+			    function_names[i - c];
+			int d = edit_distance(w, cand);
+			if (d < bd) {
+				bd = d;
+				best = cand;
+			}
+		}
+		perr(p, t, best ? fmt("unknown TeX command \\%s; did you mean \\%s?", w, best) :
+		    fmt("unknown TeX command \\%s", w));
+		return mrow();
+	}
 	if (strlen(w) >= 4 && (unsigned char)w[0] < 0x80) {
 		/* a longer unknown word is a name, set upright as one identifier:
 		 * velocity = distance/time */
@@ -1833,6 +2247,28 @@ nud(P *p)
 		return mrow();
 	}
 	const char *s = t->s;
+	if (streq(s, "{") && p->tex) {
+		/* in TeX notation braces group and leave no trace */
+		const char *closer;
+		Items it = group_items(p, "{", &closer);
+		M *g = mrow();
+		for (size_t i = 0; i < it.cells.n; i++) {
+			madd(g, it.cells.v[i]);
+			if (it.seps.v[i])
+				madd(g, op(it.seps.v[i] == ',' ? "," : ";", PUNCT));
+		}
+		if (g->kids.n == 1)
+			return g->kids.v[0];
+		g->group = true;
+		return g;
+	}
+	if (streq(s, "\\{"))
+		s = "{";	/* TeX's set braces */
+	if (s[0] == '\\' && s[1] && strchr(",;:!> ", s[1])) {
+		M *sp = mnew(M_SPACE);
+		sp->num = s[1] == ',' ? 167 : s[1] == ';' ? 278 : s[1] == '!' ? -167 : s[1] == ' ' ? 250 : 222;
+		return sp;
+	}
 	if (streq(s, "(") || streq(s, "[") || streq(s, "{") || streq(s, "⟨")) {
 		const char *closer;
 		Items it = group_items(p, s, &closer);
@@ -1840,6 +2276,8 @@ nud(P *p)
 		for (size_t i = 0; i < it.seps.n; i++)
 			semi |= it.seps.v[i] == ';';
 		const char *close = *closer ? closer : (streq(s, "(") ? ")" : streq(s, "[") ? "]" : streq(s, "{") ? "}" : "⟩");
+		if (streq(close, "\\}"))
+			close = "}";
 		if (semi && !streq(s, "{"))
 			return table_from_items(&it, "matrix", s, close);
 		M *body;
@@ -2092,10 +2530,11 @@ led(P *p, M *left, int bp)
 			madd(r, expr(p, bp));
 		return r;
 	}
-	if (is(t, "not") && is(peek2(p), "in")) {
+	if (is(t, "not") && (is(peek2(p), "in") || is(peek2(p), "=") || is(peek2(p), "subset") || is(peek2(p), "equiv"))) {
 		advance(p);
-		advance(p);
-		return infix(left, op("∉", REL), expr(p, 20));
+		Tok *r = advance(p);
+		const char *neg = is(r, "in") ? "∉" : is(r, "=") ? "≠" : is(r, "subset") ? "⊄" : "≢";
+		return infix(left, op(neg, REL), expr(p, 20));
 	}
 	if ((is(t, "goes") || is(t, "tends")) && is(peek2(p), "to")) {
 		advance(p);
@@ -2223,6 +2662,8 @@ eqn_parse(const char *src, int line, int col, bool display, char **rows, int nro
 	p.display = display;
 	p.rows = rows;
 	p.nrows = nrows;
+	for (int k = 0; k < p.n; k++)
+		p.tex |= p.t[k].tex;
 	scan_declarations(p.t, p.n);
 	if (p.t[0].kind == T_EOF)
 		return mrow();

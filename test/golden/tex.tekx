@@ -1,0 +1,11 @@
+// LaTeX notation inside tekx: same tree, same meanings.
+
+Inline: $\frac{a}{b} + \alpha$, $\sqrt[3]{x}$, $\{ x \in \mathbb{R} : x > 0 \}$, $a \not= b$.
+
+    \sum_{k=1}^{n} k = \frac{n(n+1)}{2} #tex-gauss
+    \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+    \lim_{x \to 0} \frac{\sin x}{x} = 1
+    f(x) = \begin{cases} x & \text{if } x \ge 0 \\ -x & \text{otherwise} \end{cases}
+    A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}
+    a \equiv b \pmod{n}
+    \left( \frac{a}{b} \right)^2 + \operatorname{Var}(X)

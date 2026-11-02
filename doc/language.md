@@ -231,6 +231,7 @@ the line.
 | `[text](https://…)` | a link |
 | `<https://…>` or a bare `https://…` | a link that shows its address |
 | `@label` | a cross-reference |
+| `$` | a dollar sign when no formula can close it: `$5 and $10` stays text |
 | `^[text]` | a footnote, numbered and set at the foot of the page |
 | `{name}` | a text macro |
 | `--`, `---`, `...` | – — … |
@@ -265,8 +266,9 @@ written the way a mathematician says it.
 - **Words:** in quotes are set as text, `"speed"`. The words `if`, `otherwise`,
   `and`, `or`, `when`, `where`, `unless`, `for all`, `prime`, `odd`, `even` are
   text without quotes.
-- **Unknown words:** other multi-letter words are products of letters, so
-  `abc` is a·b·c.
+- **Unknown words:** a word of four or more letters is one upright name, so
+  `velocity = distance/time` reads as you would expect. Shorter unknown words
+  are products of letters, so `abc` is a·b·c.
 - **Unicode:** any symbol can be typed directly, `∑ ≤ ∀ ∈ ℝ`, as can
   superscripts and subscripts, `x²`, `a₁`.
 
@@ -364,6 +366,46 @@ marks also work: `x̂`.
 `for all epsilon > 0, there exists delta > 0` is set as ∀ε > 0, ∃δ > 0. Also
 `forall`, `exists`, `exists unique`, `not`, `land`, `lor`, `implies`, `iff`,
 `therefore`, `because`.
+
+### LaTeX notation
+
+A formula may be written in LaTeX's notation instead, and it means the same:
+
+```
+    \sum_{k=1}^{n} k = \frac{n(n+1)}{2}
+    f(x) = \begin{cases} x & \text{if } x \ge 0 \\ -x & \text{otherwise} \end{cases}
+```
+
+The result is the same formula, with the same layout, MathML, speech and copy
+text. The copy text is written in tekx's own notation.
+
+As soon as a formula uses one TeX command, TeX's reading rules apply to that
+formula:
+- braces group without being drawn, and `\{ \}` are set braces;
+- a run of letters is a product, as in TeX (`\text{…}` or `\mathrm{…}` makes a
+  word).
+
+What is understood:
+- **Commands with arguments:** `\frac`, `\dfrac`, `\tfrac`, `\sqrt` and
+  `\sqrt[n]`, `\binom`, `\text` and `\mbox`, `\mathrm`, `\operatorname`,
+  `\pmod`.
+- **Styles:** `\mathbb`, `\mathcal`, `\mathfrak`, `\mathbf`, `\boldsymbol`,
+  `\mathsf`, `\mathtt`.
+- **Names:** every Greek letter, operator, relation, arrow, delimiter and
+  function name under its LaTeX name.
+- **Spacing:** `\,` `\:` `\;` `\!` `\quad` `\qquad`.
+- **Environments:** `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`,
+  `matrix`, `cases`, `aligned`, `gathered`, `split` and `array`.
+- **Dropped,** because tekx sizes delimiters and chooses styles itself:
+  `\left`, `\right`, `\big` and its relatives, `\displaystyle`, `\limits`.
+
+An unknown command is an error with a suggestion: *unknown TeX command \fracc;
+did you mean \frac?*
+
+### Spacing
+
+`quad` and `qquad` insert one and two ems of space, as in
+`f(x) = x^2 quad x > 0`. Screen readers hear a pause there.
 
 ### What each formula produces
 

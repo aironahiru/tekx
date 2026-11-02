@@ -1471,7 +1471,7 @@ display(Node *d, Box_ bx)
 			VPUSH(ops, o);
 		}
 		if (nums.v[i]) {
-			int lbl = el(div, "tekx", "equation-number");
+			int lbl = el(f->formula, "tekx", "equation-number");	/* a Lbl belongs to what it labels */
 			Ops no = {0};
 			double w = text_line(nums.v[i], FACE_REG, bx.size, lbl, &no, 0);
 			for (size_t k = 0; k < no.n; k++) {

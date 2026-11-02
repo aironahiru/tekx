@@ -1,0 +1,54 @@
+== tree
+document test/golden/tex.tekx
+  para@3 0
+    text Inline: 
+    math@3:10 \frac{a}{b} + \alpha
+    text , 
+    math@3:34 \sqrt[3]{x}
+    text , 
+    math@3:49 \{ x \in \mathbb{R} : x > 0 \}
+    text , 
+    math@3:83 a \not= b
+    text .
+  display@5
+    line@5:5 tex-gauss \sum_{k=1}^{n} k = \frac{n(n+1)}{2}
+    line@6:5 - \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+    line@7:5 - \lim_{x \to 0} \frac{\sin x}{x} = 1
+    line@8:5 - f(x) = \begin{cases} x & \text{if } x \ge 0 \\ -x & \text{otherwise} \end{cases}
+    line@9:5 - A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}
+    line@10:5 - a \equiv b \pmod{n}
+    line@11:5 - \left( \frac{a}{b} \right)^2 + \operatorname{Var}(X)
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a over b plus alpha"><semantics><mrow><mfrac><mi>𝑎</mi><mi>𝑏</mi></mfrac><mo>+</mo><mi>𝛼</mi></mrow><annotation encoding="application/x-tekx">\frac{a}{b} + \alpha</annotation></semantics></math>
+speech a over b plus alpha
+linear a/b + α
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the cube root of x"><semantics><mrow><mroot><mi>𝑥</mi><mn>3</mn></mroot></mrow><annotation encoding="application/x-tekx">\sqrt[3]{x}</annotation></semantics></math>
+speech the cube root of x
+linear ∛x
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the set of all x in the real numbers such that x is greater than 0"><semantics><mrow><mo fence="true">{</mo><mrow><mrow><mi>𝑥</mi><mo>∈</mo><mi>ℝ</mi></mrow><mo>:</mo><mrow><mi>𝑥</mi><mo>&gt;</mo><mn>0</mn></mrow></mrow><mo fence="true">}</mo></mrow><annotation encoding="application/x-tekx">\{ x \in \mathbb{R} : x &gt; 0 \}</annotation></semantics></math>
+speech the set of all x in the real numbers such that x is greater than 0
+linear {x ∈ ℝ : x > 0}
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a is not equal to b"><semantics><mrow><mi>𝑎</mi><mo>≠</mo><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">a \not= b</annotation></semantics></math>
+speech a is not equal to b
+linear a ≠ b
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the sum from k equals 1 to n of k equals the fraction with numerator n open paren n plus 1 close paren and denominator 2 end fraction"><semantics><mrow><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑘</mi><mo>=</mo><mn>1</mn></mrow><mi>𝑛</mi></munderover><mi>𝑘</mi></mrow><mo>=</mo><mfrac><mrow><mi>𝑛</mi><mo>⁢</mo><mrow><mo fence="true">(</mo><mrow><mi>𝑛</mi><mo>+</mo><mn>1</mn></mrow><mo fence="true">)</mo></mrow></mrow><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tekx">\sum_{k=1}^{n} k = \frac{n(n+1)}{2}</annotation></semantics></math>
+speech the sum from k equals 1 to n of k equals the fraction with numerator n open paren n plus 1 close paren and denominator 2 end fraction
+linear ∑_(k=1)^n k = n(n + 1)/2
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the integral from negative infinity to infinity of e raised to the power negative x squared, end power d x equals the square root of pi"><semantics><mrow><mrow><msubsup><mo largeop="true">∫</mo><mrow><mo form="prefix">−</mo><mi>∞</mi></mrow><mi>∞</mi></msubsup><mrow><mrow><msup><mi>𝑒</mi><mrow><mo form="prefix">−</mo><msup><mi>𝑥</mi><mn>2</mn></msup></mrow></msup></mrow><mspace width="0.167em"/><mi mathvariant="normal">d</mi><mi>𝑥</mi></mrow></mrow><mo>=</mo><msqrt><mi>𝜋</mi></msqrt></mrow><annotation encoding="application/x-tekx">\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}</annotation></semantics></math>
+speech the integral from negative infinity to infinity of e raised to the power negative x squared, end power d x equals the square root of pi
+linear ∫_(−∞)^∞ e^(−x²) dx = √π
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the limit as x approaches 0 of the fraction with numerator sine x and denominator x end fraction equals 1"><semantics><mrow><mrow><munder><mo>lim</mo><mrow><mi>𝑥</mi><mo>→</mo><mn>0</mn></mrow></munder><mfrac><mrow><mi>sin</mi><mo>⁡</mo><mi>𝑥</mi></mrow><mi>𝑥</mi></mfrac></mrow><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tekx">\lim_{x \to 0} \frac{\sin x}{x} = 1</annotation></semantics></math>
+speech the limit as x approaches 0 of the fraction with numerator sine x and denominator x end fraction equals 1
+linear lim_(x→0) (sin x)/x = 1
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="f of x equals x if x is greater than or equal to 0; negative x otherwise"><semantics><mrow><mrow><mi>𝑓</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow></mrow><mo>=</mo><mrow><mo fence="true">{</mo><mtable columnalign="left"><mtr><mtd><mi>𝑥</mi></mtd><mtd><mrow><mrow><mtext>if</mtext><mo>⁢</mo><mi>𝑥</mi></mrow><mo>≥</mo><mn>0</mn></mrow></mtd></mtr><mtr><mtd><mrow><mo form="prefix">−</mo><mi>𝑥</mi></mrow></mtd><mtd><mtext>otherwise</mtext></mtd></mtr></mtable></mrow></mrow><annotation encoding="application/x-tekx">f(x) = \begin{cases} x &amp; \text{if } x \ge 0 \\ -x &amp; \text{otherwise} \end{cases}</annotation></semantics></math>
+speech f of x equals x if x is greater than or equal to 0; negative x otherwise
+linear f(x) = cases(x if x ≥ 0; −x otherwise)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="capital A equals the 2 by 2 matrix; row 1: 1, 2; row 2: 3, 4"><semantics><mrow><mi>𝐴</mi><mo>=</mo><mrow><mo fence="true">(</mo><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">A = \begin{pmatrix} 1 &amp; 2 \\ 3 &amp; 4 \end{pmatrix}</annotation></semantics></math>
+speech capital A equals the 2 by 2 matrix; row 1: 1, 2; row 2: 3, 4
+linear A = (1, 2; 3, 4)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="a is equivalent to b, open paren modulo n close paren"><semantics><mrow><mi>𝑎</mi><mo>≡</mo><mrow><mi>𝑏</mi><mo>⁢</mo><mrow><mspace width="1em"/><mrow><mo fence="true">(</mo><mrow><mo>mod</mo><mo>⁢</mo><mi>𝑛</mi></mrow><mo fence="true">)</mo></mrow></mrow></mrow></mrow><annotation encoding="application/x-tekx">a \equiv b \pmod{n}</annotation></semantics></math>
+speech a is equivalent to b, open paren modulo n close paren
+linear a ≡ b quad (mod n)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="open paren a over b close paren squared plus Var of capital X"><semantics><mrow><msup><mrow><mo fence="true">(</mo><mfrac><mi>𝑎</mi><mi>𝑏</mi></mfrac><mo fence="true">)</mo></mrow><mn>2</mn></msup><mo>+</mo><mrow><mi>Var</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑋</mi><mo fence="true">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tekx">\left( \frac{a}{b} \right)^2 + \operatorname{Var}(X)</annotation></semantics></math>
+speech open paren a over b close paren squared plus Var of capital X
+linear (a/b)² + Var(X)

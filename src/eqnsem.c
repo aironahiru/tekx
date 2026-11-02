@@ -982,7 +982,7 @@ lin(Buf *b, M *m, bool compact)
 				    utf8_len(prev->text) == 1) || prev->kind == M_FENCE || prev->kind == M_SCRIPT);
 				bool tight_next = (k->kind == M_ID && !k->func && utf8_len(k->text) == 1) ||
 				    k->kind == M_FENCE || k->kind == M_SQRT || (k->kind == M_SCRIPT && k->a &&
-				    k->a->kind == M_ID && !k->a->func);
+				    ((k->a->kind == M_ID && !k->a->func) || k->a->kind == M_FENCE));
 				bool letters = prev->kind == M_ID && k->kind == M_ID && !prev->func && !k->func &&
 				    utf8_len(prev->text) == 1 && utf8_len(k->text) == 1;
 				if (letters || prev->differential)
