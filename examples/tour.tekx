@@ -1,0 +1,69 @@
+title "A Tour of tekx"
+subtitle "Mathematics that means something"
+author "Ada Lovelace"
+date today
+
+define block aside(title = "Aside")
+  quote
+    **{title}.** {body}
+
+define golden as "the golden ratio"
+define conjecture2 like theorem titled "Hypothesis"
+define norm2(v) as ||v||_2 read as "the two-norm of {v}"
+
+abstract
+  This document is written in tekx. It shows how prose, structure and
+  mathematics read naturally in source form, and how one source yields
+  typeset pages, MathML, speech and clean copy text. // a comment
+
+section Introduction #intro
+
+Let us begin with {golden}, $phi = (1 + sqrt 5)/2$. It satisfies
+
+    phi^2 = phi + 1 #golden
+
+and appears in @fib. See also <https://example.org> and [the docs](https://example.org/docs).
+
+theorem "Pythagoras" #pyth
+  For a right triangle with legs $a$, $b$ and hypotenuse $c$,
+
+      a^2 + b^2 = c^2
+
+  holds.
+
+proof
+  Rearrange four copies of the triangle inside a square of side $a + b$.
+
+aside "Note"
+  Equation @golden defines *phi* up to sign.
+
+section Lists and tables
+
+- First item with $x in RR$.
+- Second item, which is long enough to wrap across more than one line of text in the final document.
+  1. Nested ordered.
+  2. Another.
+
+| Symbol | Meaning |
+|:------:|---------|
+| $NN$   | natural numbers |
+| $RR$   | real numbers |
+
+```
+code block
+  indented
+```
+
+theorem do
+The sum of the first $n$ odd numbers is $n^2$.
+end
+
+    f(x) = cases
+      x    if x >= 0
+      -x   otherwise
+
+    (a + b)^2 = a^2 + 2 a b + b^2
+              = b^2 + 2 a b + a^2
+
+references
+  fib: N. N. Vorobiev, *Fibonacci Numbers*, Birkhäuser, 2002.
