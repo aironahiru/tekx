@@ -1,0 +1,122 @@
+pdf2:Document
+  tekx:title-block
+    tekx:title
+    tekx:subtitle
+    tekx:author
+    tekx:date
+  tekx:abstract
+    tekx:abstract-heading
+    pdf2:P
+  tekx:section
+    tekx:section-heading
+    pdf2:P
+      pdf2:Formula
+        mathml:math
+    tekx:equation
+      pdf2:Formula ident="golden"
+        mathml:math
+        tekx:equation-number
+    pdf2:P
+      pdf:Code
+      pdf2:Link link="Footnote 1" to=FENote
+      pdf2:FENote NoteType=Footnote
+        pdf2:Lbl
+        pdf2:P
+      pdf2:Link link="Reference 1" to=LI
+      pdf2:Link link="https://example.org" url=https%3A//example.org
+    tekx:theorem
+      pdf2:P
+        tekx:theorem-head
+        pdf2:Formula
+          mathml:math
+        pdf2:Formula
+          mathml:math
+        pdf2:Formula
+          mathml:math
+      tekx:equation
+        pdf2:Formula
+          mathml:math
+    tekx:proof
+      pdf2:P
+        tekx:proof-head
+        pdf2:Formula
+          mathml:math
+        tekx:qed
+    tekx:theorem
+      pdf2:P
+        tekx:theorem-head
+    pdf:BlockQuote
+      pdf2:P
+        pdf2:Strong
+        pdf2:Link link="Equation 1" to=Formula
+        pdf2:Formula
+          mathml:math
+        pdf2:Link link="Theorem 1" to=theorem
+  tekx:section
+    tekx:section-heading
+    pdf2:Aside
+      pdf2:Figure alt="The parabola y equals x squared: a red U-shaped curve through the origin, with axes."
+      pdf2:Caption
+        pdf2:P
+          pdf2:Strong
+          pdf2:Formula
+            mathml:math
+    pdf2:P
+      pdf2:Link link="Figure 1" to=Aside
+    pdf2:L ListNumbering=Disc
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Formula
+              mathml:math
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+          pdf2:L ListNumbering=Decimal
+            pdf2:LI
+              pdf2:Lbl
+              pdf2:LBody
+                pdf2:P
+            pdf2:LI
+              pdf2:Lbl
+              pdf2:LBody
+                pdf2:P
+    pdf2:Table
+      pdf2:TR
+        pdf2:TH Scope=Column
+        pdf2:TH Scope=Column
+        pdf2:TH Scope=Column
+      pdf2:TR
+        pdf2:TD
+          pdf2:Formula
+            mathml:math
+        pdf2:TD
+          pdf:Code
+        pdf2:TD
+      pdf2:TR
+        pdf2:TD
+          pdf2:Formula
+            mathml:math
+        pdf2:TD
+          pdf:Code
+        pdf2:TD
+    tekx:code-block
+      pdf:Code
+    tekx:equation
+      pdf2:Formula
+        mathml:math
+    tekx:equation
+      pdf2:Formula
+        mathml:math
+      pdf2:Formula
+        mathml:math
+    tekx:bibliography
+      tekx:bibliography-heading
+      pdf2:L ListNumbering=Decimal
+        pdf2:LI
+          pdf2:Lbl
+          pdf2:LBody
+            pdf2:P
+              pdf2:Em

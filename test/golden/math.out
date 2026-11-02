@@ -86,3 +86,44 @@ linear R(θ) = (cos θ, −sin θ; sin θ, cos θ)
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="x equals y plus z"><semantics><mrow><mrow><mi>𝑥</mi><mo>=</mo><mi>𝑦</mi></mrow><mrow><mo form="prefix">+</mo><mi>𝑧</mi></mrow></mrow><annotation encoding="application/x-tekx">x = y &amp; + z</annotation></semantics></math>
 speech x equals y plus z
 linear x = y+z
+== structure
+pdf2:Document
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  tekx:equation
+    pdf2:Formula ident="gauss"
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+      tekx:equation-number
+  tekx:equation
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  tekx:equation
+    pdf2:Formula
+      mathml:math
+  tekx:equation
+    pdf2:Formula
+      mathml:math
+  tekx:equation
+    pdf2:Formula
+      mathml:math

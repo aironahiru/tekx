@@ -64,6 +64,14 @@ test_deflate(void)
 	z = zlib_compress((u8 *)r.s, r.n, &n);
 	d = zlib_decompress(z, n, &m);
 	CHECK(d != NULL && m == r.n && memcmp(d, r.s, m) == 0);
+	/*
+	 * A dynamic block whose code-length code has one code, "0", followed
+	 * by the bit 1: not a code.  Found by fuzzing, where the failed
+	 * decode (-1) was stored as a code length of 255 and indexed past a
+	 * table.  A corrupt stream must be refused.
+	 */
+	static const u8 bad[] = {0x78, 0x01, 0x05, 0x00, 0x00, 0xE4, 0xFF, 0xFF};
+	CHECK(zlib_decompress(bad, sizeof bad, &m) == NULL);
 }
 
 static void

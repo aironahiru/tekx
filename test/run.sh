@@ -43,6 +43,8 @@ for f in test/golden/*.tekx; do
 		$T -P "$f"
 		echo "== mathematics"
 		$T -M "$f" | sed -n 's/^ *\(speech\|linear\|mathml\) /\1 /p'
+		echo "== structure"
+		$T -S "$f" | awk -f test/structure.awk
 	} >test/out/golden.txt 2>&1
 	if $update; then
 		cp test/out/golden.txt "$name.out"
@@ -51,6 +53,15 @@ for f in test/golden/*.tekx; do
 		diff "$name.out" test/out/golden.txt | head -20
 	fi
 done
+# 3c. the tag tree a screen reader is given, for the document that uses
+#     every feature: what veraPDF cannot judge, a person reviewed once
+$T -S examples/tour.tekx | awk -f test/structure.awk >test/out/tour.structure 2>&1
+if $update; then
+	cp test/out/tour.structure test/tour.structure
+elif ! cmp -s test/out/tour.structure test/tour.structure; then
+	fail "structure of examples/tour.tekx"
+	diff test/tour.structure test/out/tour.structure | head -20
+fi
 echo "golden: done"
 
 # 4. diagnostics: errors are reported where they are, with a suggestion
@@ -76,7 +87,10 @@ for f in examples/*.tekx; do
 	cmp -s "$base.pdf" "$base.opt.pdf" || fail "$f: debug and optimized builds differ"
 	$T -o "$base.again.pdf" "$f" && cmp -s "$base.pdf" "$base.again.pdf" || fail "$f: not reproducible"
 	if [ -n "${VERAPDF:-}" ]; then
-		for profile in ua2 wt1a wt1r; do
+		# PDF/A-4f when the document carries files (formulas' MathML), else PDF/A-4
+		pdfa=4
+		grep -q 'pdfaid:conformance>F' "$base.pdf" && pdfa=4f
+		for profile in ua2 wt1a wt1r $pdfa; do
 			"$VERAPDF" --flavour $profile --format text "$base.pdf" 2>/dev/null | grep -q '^PASS' ||
 			    fail "$f: not $profile conformant"
 		done
@@ -88,8 +102,31 @@ echo "examples: done"
 #    with and without alpha and row filters, and JPEG
 $T -o test/out/figures.pdf test/figures.tekx || fail "figures"
 if [ -n "${VERAPDF:-}" ]; then
-	"$VERAPDF" --flavour ua2 --format text test/out/figures.pdf 2>/dev/null | grep -q '^PASS' ||
-	    fail "figures: not ua2 conformant"
+	for profile in ua2 4f; do
+		"$VERAPDF" --flavour $profile --format text test/out/figures.pdf 2>/dev/null | grep -q '^PASS' ||
+		    fail "figures: not $profile conformant"
+	done
+	# a document without formulas carries no files: plain PDF/A-4
+	printf 'title "Words"\n\nOnly prose, no formulas.\n' >test/out/words.tekx
+	$T -o test/out/words.pdf test/out/words.tekx || fail "words"
+	for profile in ua2 4; do
+		"$VERAPDF" --flavour $profile --format text test/out/words.pdf 2>/dev/null | grep -q '^PASS' ||
+		    fail "words: not $profile conformant"
+	done
+fi
+# 600 formulas carry 1,200 files: the EmbeddedFiles name tree needs two leaves
+{
+	echo 'title "Many formulas"'
+	i=1
+	while [ $i -le 600 ]; do
+		printf '\nFormula %d is $x_%d^2 + %d$.\n' $i $i $i
+		i=$((i + 1))
+	done
+} >test/out/many.tekx
+$T -o test/out/many.pdf test/out/many.tekx || fail "many formulas"
+if [ -n "${VERAPDF:-}" ]; then
+	"$VERAPDF" --flavour 4f --format text test/out/many.pdf 2>/dev/null | grep -q '^PASS' ||
+	    fail "many formulas: not 4f conformant"
 fi
 echo "figures: done"
 

@@ -52,3 +52,30 @@ linear a ≡ b quad (mod n)
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="open paren a over b close paren squared plus Var of capital X"><semantics><mrow><msup><mrow><mo fence="true">(</mo><mfrac><mi>𝑎</mi><mi>𝑏</mi></mfrac><mo fence="true">)</mo></mrow><mn>2</mn></msup><mo>+</mo><mrow><mi>Var</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑋</mi><mo fence="true">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tekx">\left( \frac{a}{b} \right)^2 + \operatorname{Var}(X)</annotation></semantics></math>
 speech open paren a over b close paren squared plus Var of capital X
 linear (a/b)² + Var(X)
+== structure
+pdf2:Document
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  tekx:equation
+    pdf2:Formula ident="tex-gauss"
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+      tekx:equation-number

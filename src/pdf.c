@@ -28,6 +28,8 @@
 #include "font.h"
 #include "img.h"
 
+#include <math.h>
+
 #define TEKX_NS "https://github.com/aironahiru/tekx/ns/1"
 
 enum { NS_PDF2, NS_PDF, NS_MATHML, NS_TEKX };
@@ -587,6 +589,115 @@ xesc(Buf *b, const char *s)
 	}
 }
 
+/*
+ * Every embedded file (each formula's MathML and source), for the
+ * catalog's EmbeddedFiles name tree.  A document that carries files is
+ * PDF/A-4f, which asks that they be listed there as well as attached to
+ * the structure elements they describe; one that carries none is PDF/A-4.
+ */
+static VEC(int) embedded;
+
+/* ---- colour: an ICC profile for sRGB, the output intent PDF/A asks for ---- */
+
+static void
+be32(Buf *b, u32 v)
+{
+	u8 x[4] = {(u8)(v >> 24), (u8)(v >> 16), (u8)(v >> 8), (u8)v};
+	bput(b, x, 4);
+}
+
+static void
+xyz_tag(Buf *b, double x, double y, double z)
+{
+	bput(b, "XYZ \0\0\0\0", 8);
+	be32(b, (u32)lround(x * 65536));
+	be32(b, (u32)lround(y * 65536));
+	be32(b, (u32)lround(z * 65536));
+}
+
+/*
+ * An ICC version 2 display profile for sRGB (IEC 61966-2.1), written out
+ * rather than shipped as a binary: colorants adapted to D50 by the
+ * Bradford transform, D65 media white, and the sRGB tone curve sampled at
+ * 1024 points.  This is the profile every PDF viewer already assumes for
+ * DeviceRGB; declaring it makes the assumption a fact of the file.
+ */
+static void
+srgb_profile(Buf *out)
+{
+	enum { NTAG = 9, CURVE = 1024 };
+	static const char *const sig[NTAG] = {"desc", "cprt", "wtpt", "rXYZ", "gXYZ", "bXYZ", "rTRC", "gTRC", "bTRC"};
+	static const char name[] = "sRGB IEC61966-2.1";
+	size_t off[NTAG], len[NTAG];
+	Buf d = {0};
+	size_t base = 128 + 4 + 12 * NTAG;
+
+	for (int t = 0; t < NTAG; t++) {
+		while (d.n % 4)
+			bputc(&d, 0);
+		off[t] = base + d.n;
+		size_t start = d.n;
+		switch (t) {
+		case 0:	/* textDescriptionType: ASCII, then empty Unicode and ScriptCode parts */
+			bput(&d, "desc\0\0\0\0", 8);
+			be32(&d, sizeof name);
+			bput(&d, name, sizeof name);
+			be32(&d, 0);
+			be32(&d, 0);
+			for (int i = 0; i < 2 + 1 + 67; i++)
+				bputc(&d, 0);
+			break;
+		case 1:
+			bput(&d, "text\0\0\0\0", 8);
+			bput(&d, "Public domain", 14);
+			break;
+		case 2: xyz_tag(&d, 0.9505, 1.0, 1.0891); break;
+		case 3: xyz_tag(&d, 0.436066, 0.222488, 0.013916); break;
+		case 4: xyz_tag(&d, 0.385147, 0.716873, 0.097076); break;
+		case 5: xyz_tag(&d, 0.143066, 0.060608, 0.714096); break;
+		case 6:
+			bput(&d, "curv\0\0\0\0", 8);
+			be32(&d, CURVE);
+			for (int i = 0; i < CURVE; i++) {
+				double v = (double)i / (CURVE - 1);
+				v = v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4);
+				u8 x[2] = {(u8)(lround(v * 65535) >> 8), (u8)lround(v * 65535)};
+				bput(&d, x, 2);
+			}
+			break;
+		default:	/* the green and blue curves share the red one's data */
+			off[t] = off[6];
+			len[t] = len[6];
+			continue;
+		}
+		len[t] = d.n - start;
+	}
+	while (d.n % 4)
+		bputc(&d, 0);
+	be32(out, (u32)(base + d.n));
+	be32(out, 0);				/* preferred CMM */
+	be32(out, 0x02100000);			/* version 2.1 */
+	bput(out, "mntrRGB XYZ ", 12);		/* display class, RGB data, XYZ connection space */
+	static const u8 date[12] = {0x07, 0xEA, 0, 1, 0, 1};	/* 2026-01-01: fixed, so builds reproduce */
+	bput(out, date, 12);
+	bput(out, "acsp", 4);
+	for (int i = 0; i < 24; i++)		/* platform, flags, manufacturer, model, attributes */
+		bputc(out, 0);
+	be32(out, 0);				/* perceptual intent */
+	be32(out, 0x0000F6D6);			/* the D50 illuminant, exactly as the ICC writes it */
+	be32(out, 0x00010000);
+	be32(out, 0x0000D32D);
+	for (int i = 0; i < 48; i++)		/* creator, profile ID, reserved */
+		bputc(out, 0);
+	be32(out, NTAG);
+	for (int t = 0; t < NTAG; t++) {
+		bput(out, sig[t], 4);
+		be32(out, (u32)off[t]);
+		be32(out, (u32)len[t]);
+	}
+	bput(out, d.s, d.n);
+}
+
 static void
 xmp(Buf *b)
 {
@@ -604,6 +715,7 @@ xmp(Buf *b)
 	    "    xmlns:pdf=\"http://ns.adobe.com/pdf/1.3/\"\n"
 	    "    xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n"
 	    "    xmlns:pdfuaid=\"http://www.aiim.org/pdfua/ns/id/\"\n"
+	    "    xmlns:pdfaid=\"http://www.aiim.org/pdfa/ns/id/\"\n"
 	    "    xmlns:pdfd=\"http://pdfa.org/declarations/\">\n"
 	    "   <dc:format>application/pdf</dc:format>\n"
 	    "   <dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">");
@@ -638,7 +750,10 @@ xmp(Buf *b)
 	    "   <xmp:MetadataDate>%s</xmp:MetadataDate>\n"
 	    "   <pdfuaid:part>2</pdfuaid:part>\n"
 	    "   <pdfuaid:rev>2024</pdfuaid:rev>\n"
-	    "   <pdfd:declarations><rdf:Bag>\n", TEKX_VERSION, TEKX_VERSION, now, now, now);
+	    "   <pdfaid:part>4</pdfaid:part>\n"
+	    "   <pdfaid:rev>2020</pdfaid:rev>\n%s"
+	    "   <pdfd:declarations><rdf:Bag>\n", TEKX_VERSION, TEKX_VERSION, now, now, now,
+	    embedded.n ? "   <pdfaid:conformance>F</pdfaid:conformance>\n" : "");
 	const char *kinds[2] = {"accessibility", "reuse"};
 	for (int k = 0; k < 2; k++)
 		bprintf(b, "    <rdf:li rdf:parseType=\"Resource\">"
@@ -752,6 +867,7 @@ embed_file(const char *file, const char *mime, const char *rel, const char *desc
 	int st = alloc_obj(), spec = alloc_obj();
 	Buf d = {0};
 
+	VPUSH(embedded, spec);
 	bputs(&d, "/Type /EmbeddedFile /Subtype ");
 	pname(&d, mime);
 	bputs(&d, " /Params << /ModDate ");
@@ -767,6 +883,42 @@ embed_file(const char *file, const char *mime, const char *rel, const char *desc
 	textstr(s, desc);
 	bprintf(s, " /AFRelationship /%s /EF << /F %d 0 R /UF %d 0 R >> >>", rel, st, st);
 	return spec;
+}
+
+/*
+ * The EmbeddedFiles name tree, keyed by zero-padded sequence numbers so
+ * that the keys sort as strings: one leaf, or leaves of 1024 files under
+ * one root.  Returns the root, or 0 when the document carries no files.
+ */
+static int
+files_tree(void)
+{
+	enum { LEAF = 1024 };
+	size_t nleaf = (embedded.n + LEAF - 1) / LEAF;
+	Buf kids = {0};
+
+	if (embedded.n == 0)
+		return 0;
+	int root = alloc_obj();
+	for (size_t l = 0; l < nleaf; l++) {
+		size_t lo = l * LEAF, hi = lo + LEAF < embedded.n ? lo + LEAF : embedded.n;
+		int leaf = nleaf == 1 ? root : alloc_obj();
+		Buf *b = obj(leaf);	/* fetched after alloc_obj(), which may move it */
+		bputs(b, "<<");
+		if (nleaf > 1)
+			bprintf(b, " /Limits [(%07zu) (%07zu)]", lo + 1, hi);
+		bputs(b, " /Names [");
+		for (size_t i = lo; i < hi; i++)
+			bprintf(b, "(%07zu) %d 0 R ", i + 1, embedded.v[i]);
+		b->s[b->n - 1] = ']';
+		bputs(b, " >>");
+		bprintf(&kids, "%d 0 R ", leaf);
+	}
+	if (nleaf > 1) {
+		kids.s[kids.n - 1] = ']';
+		bprintf(obj(root), "<< /Kids [%s >>", kids.s);
+	}
+	return root;
 }
 
 int
@@ -1252,10 +1404,19 @@ pdf_main(FILE *in, FILE *out, const char *file)
 	Buf x = {0};
 	xmp(&x);
 	stream_obj(meta, "/Type /Metadata /Subtype /XML", (u8 *)x.s, x.n, false);
+	int icc = alloc_obj();
+	Buf prof = {0};
+	srgb_profile(&prof);
+	stream_obj(icc, "/N 3", (u8 *)prof.s, prof.n, true);
+	int files = files_tree();	/* before obj(catalog): allocating may move objs */
 	Buf *cat = obj(catalog);
 	bprintf(cat, "<< /Type /Catalog /Pages %d 0 R /StructTreeRoot %d 0 R /MarkInfo << /Marked true >> /Lang ", pages_ref, sroot);
 	textstr(cat, language);
 	bprintf(cat, " /Metadata %d 0 R /ViewerPreferences << /DisplayDocTitle true >>", meta);
+	bprintf(cat, " /OutputIntents [<< /Type /OutputIntent /S /GTS_PDFA1 /OutputConditionIdentifier (sRGB IEC61966-2.1)"
+	    " /RegistryName (http://www.color.org) /Info (sRGB IEC61966-2.1) /DestOutputProfile %d 0 R >>]", icc);
+	if (files)
+		bprintf(cat, " /Names << /EmbeddedFiles %d 0 R >>", files);
 	if (outlines)
 		bprintf(cat, " /Outlines %d 0 R /PageMode /UseOutlines", outlines);
 	bputs(cat, " >>");

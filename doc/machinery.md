@@ -5,14 +5,15 @@
 > universal interface. — Doug McIlroy
 
 tekx is one binary, but inside it is a Unix pipeline. This document describes
-the design, the five stages and the four text formats that join them. Everything
-here can be seen from the shell.
+the design, the five stages (and the web back end that can stand in for the last
+two) and the four text formats that join them. Everything here can be seen from
+the shell.
 
 ## Principles, and where they come from
 
 | principle | from | in tekx |
 |---|---|---|
-| filters joined by text streams | McIlroy, the Unix pipeline | five stages; each reads text and writes text |
+| filters joined by text streams | McIlroy, the Unix pipeline | five stages and a web back end; each reads text and writes text |
 | say mathematics as you speak it | Kernighan & Cherry, *eqn* (1975) | the `eqn` stage and its `define` |
 | a device-independent page description | Ossanna & Kernighan, *ditroff* | the page description (PDL) between `set` and `pdf` |
 | UTF-8 everywhere | Thompson & Pike | every stream, every file, the copy text |
@@ -280,7 +281,14 @@ through a fallback `/RoleMap` for readers that ignore namespaces.
   with a ParentTree, structure destinations, `/Ref` from contents entries,
   and an IDTree.
 - **Formulas:** MathML and source attached to each Formula as associated files.
-- **Metadata:** XMP declaring PDF/UA-2 and WTPDF accessibility and reuse.
+- **Metadata:** XMP declaring PDF/UA-2, WTPDF accessibility and reuse, and
+  PDF/A-4. A document that carries files is PDF/A-4f; those files are also
+  listed in the catalog's EmbeddedFiles name tree, so viewers show each
+  formula's MathML as an attachment.
+- **Colour:** an sRGB output intent. The ICC profile (version 2.1, 2.5 KB) is
+  written out by `srgb_profile()` from the sRGB primaries and tone curve,
+  not shipped as a binary blob. It is the colour space every viewer already
+  assumes for DeviceRGB, and declaring it is what PDF/A asks.
 - **Safety net:** any content outside marked content is wrapped as an artifact.
 
 Every object that is not itself a stream (structure elements, dictionaries)
@@ -308,8 +316,20 @@ output file ends in `.html`.
 
 ## Validation
 
-The PDFs are checked with veraPDF against the PDF/UA-2, WTPDF accessibility and
-WTPDF reuse profiles. Copy and paste is checked with poppler (`pdftotext`, which
+The PDFs are checked with veraPDF against the PDF/UA-2, WTPDF accessibility,
+WTPDF reuse and PDF/A-4 (or 4f) profiles. Passing a validator shows that a tag
+tree is well formed, not that it means the right thing, so the suite also pins
+the tree itself: `test/structure.awk` turns the page description's structure
+into an outline, and golden files hold it for every test document and for
+`examples/tour.tekx`. In that outline you can see that an equation's number
+is a label inside its Formula, that a figure's caption sits beside the figure
+in one Aside, and that every link has a spoken name and the right target:
+
+```
+pdf2:Link link="Equation 1" to=Formula
+pdf2:Link link="Footnote 1" to=FENote
+```
+ Copy and paste is checked with poppler (`pdftotext`, which
 honours ActualText) and pdf.js (which does not). With a `verapdf` at hand, run
 it from the suite:
 

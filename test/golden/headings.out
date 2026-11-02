@@ -26,3 +26,34 @@ linear μ = E(X)
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the sum from k equals 1 to n of a sub k"><semantics><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑘</mi><mo>=</mo><mn>1</mn></mrow><mi>𝑛</mi></munderover><msub><mi>𝑎</mi><mi>𝑘</mi></msub></mrow><annotation encoding="application/x-tekx">sum_(k=1)^n a_k</annotation></semantics></math>
 speech the sum from k equals 1 to n of a sub k
 linear ∑_(k=1)^n a_k
+== structure
+pdf2:Document
+  tekx:title-block
+    tekx:title
+  tekx:contents
+    tekx:contents-heading
+    pdf:TOC
+      pdf:TOCI
+        pdf2:P
+          pdf2:Link link="1 The variable X and its mean μ = E(X)" to=section
+            pdf2:Formula
+              mathml:math
+            pdf2:Formula
+              mathml:math
+      pdf:TOCI
+        pdf2:P
+          pdf2:Link link="1.1 Bounds on ∑_(k=1)^n a_k" to=subsection
+            pdf2:Formula
+              mathml:math
+  tekx:section
+    tekx:section-heading
+      pdf2:Formula
+        mathml:math
+      pdf2:Formula
+        mathml:math
+    pdf2:P
+    tekx:subsection
+      tekx:subsection-heading
+        pdf2:Formula
+          mathml:math
+      pdf2:P

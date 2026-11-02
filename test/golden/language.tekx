@@ -58,6 +58,8 @@ verbatim {brand} // not a comment
 
 let f: RR -> RR be smooth
 
+Prices such as $5 and $10 stay text, and so does a lone $ sign, while $x$ is mathematics.
+
 Links: <https://example.org>, [text](https://example.org/x), https://example.org/y, @choice, @h1.
 
 references

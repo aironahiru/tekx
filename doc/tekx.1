@@ -1,6 +1,6 @@
 .TH TEKX 1 "November 2026" "tekx 0.1.0" "User Commands"
 .SH NAME
-tekx \- typeset mathematics into accessible PDF
+tekx \- typeset mathematics into accessible PDF and HTML
 .SH SYNOPSIS
 .B tekx
 .RB [ \-E | \-P | \-M | \-S ]
@@ -9,7 +9,7 @@ tekx \- typeset mathematics into accessible PDF
 .I file.tekx
 .br
 .B tekx
-.BR pp | parse | eqn | set | pdf
+.BR pp | parse | eqn | set | pdf | html
 .RI [ file ]
 .br
 .B tekx explain
@@ -19,7 +19,7 @@ tekx \- typeset mathematics into accessible PDF
 .SH DESCRIPTION
 .B tekx
 reads a document written in the tekx language and writes a PDF 2.0 file that
-conforms to PDF/UA\-2 and WTPDF.
+conforms to PDF/UA\-2, WTPDF and PDF/A\-4 (PDF/A\-4f when it carries files).
 Mathematics is written the way it is spoken:
 .PP
 .RS
@@ -46,7 +46,7 @@ An output name ending in
 selects the web back end instead: the same document as HTML with MathML.
 Nothing is printed on success, and nothing is written when there are errors.
 .PP
-The work is done by five filters connected by text streams.
+The work is done by filters connected by text streams.
 Each can be run alone; with no
 .I file
 it reads the standard input.
@@ -202,7 +202,8 @@ echo \(aq$sum 1/k^2 for k from 1 to infinity$\(aq | tekx \-M \- | grep \-E \(aqs
 .BR troff (1),
 .BR tex (1)
 .SH STANDARDS
-ISO 32000\-2 (PDF 2.0), ISO 14289\-2 (PDF/UA\-2), WTPDF 1.0, MathML Core,
+ISO 32000\-2 (PDF 2.0), ISO 14289\-2 (PDF/UA\-2), ISO 19005\-4 (PDF/A\-4),
+WTPDF 1.0, MathML Core,
 OpenType 1.9 MATH.
 .SH AUTHORS
 The tekx authors.

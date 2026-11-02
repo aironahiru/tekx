@@ -37,8 +37,9 @@ writer are all in this repository and all in the binary. The STIX Two and
 Libertinus fonts are compiled in.
 
 **3. Accessible and copy-perfect by construction.** Every PDF that tekx writes is
-tagged PDF 2.0 and validates as **PDF/UA-2** and **WTPDF** (accessibility and
-reuse) with veraPDF. Each formula is tagged with MathML structure, has spoken
+tagged PDF 2.0 and validates with veraPDF as **PDF/UA-2**, **WTPDF**
+(accessibility and reuse) and **PDF/A-4** for archiving (PDF/A-4f when it carries
+files). Each formula is tagged with MathML structure, has spoken
 alternative text, and carries its MathML and tekx source as associated files.
 Copy and paste gives you real text:
 - spaces are real space characters;
@@ -154,8 +155,8 @@ AddressSanitizer/UBSan binary and runs the suite on it:
 - reproducible, identical debug and optimized builds;
 - the shell pipeline against the driver.
 
-Set `VERAPDF=/path/to/verapdf` to add PDF/UA-2, WTPDF accessibility and WTPDF
-reuse validation of every example.
+Set `VERAPDF=/path/to/verapdf` to add PDF/UA-2, WTPDF accessibility, WTPDF
+reuse and PDF/A-4 validation of every example.
 
 Output is reproducible: set `SOURCE_DATE_EPOCH` and the same input gives the same
 bytes.
@@ -177,7 +178,7 @@ of them with `font text|italic|bold|bolditalic|math|mono FILE`.
 | path | contents |
 |---|---|
 | `src/` | the compiler: one file per stage, plus the font engine (`font.c`, `cff.c`, `ttf.c`, `otl.c`, `mathtab.c`), images (`img.c`), `deflate.c`, `md5.c` and `hyph.c` |
-| `doc/` | language reference, machinery, manual page `tekx.1` |
+| `doc/` | language reference, machinery, manual page `tekx.1`, and [`review.md`](doc/review.md): the strongest criticisms of tekx, what was done about each, and the roadmap |
 | `examples/` | example documents with their PDFs |
 | `test/` | the test suite |
 | `assets/` | fonts (OFL) and hyphenation patterns, compiled into the binary |
