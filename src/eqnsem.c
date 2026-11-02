@@ -202,11 +202,22 @@ mml(Buf *b, M *m)
 		xml_escape(b, m->text);
 		bputs(b, "</mo>");
 		return;
-	case M_TEXT:
+	case M_TEXT: {
+		/* words such as "if" are spaced off, as the typeset formula is */
+		static const char *kw[] = {"if", "otherwise", "and", "or", "when", "where", "unless", "for all",
+		    "for every", "for each", "for some", "for any", "for", "prime", "odd", "even"};
+		bool spaced = false;
+		for (size_t i = 0; i < NELEM(kw); i++)
+			spaced |= streq(kw[i], m->text);
 		bputs(b, "<mtext>");
+		if (spaced)
+			bputs(b, "\u00a0");
 		xml_escape(b, m->text);
+		if (spaced)
+			bputs(b, "\u00a0");
 		bputs(b, "</mtext>");
 		return;
+	}
 	case M_FRAC:
 		bputs(b, m->thin ? "<mfrac linethickness=\"0\">" : "<mfrac>");
 		mml(b, m->a);
@@ -307,6 +318,49 @@ mml(Buf *b, M *m)
 	case M_ALIGN:
 		return;
 	}
+}
+
+/* the atoms of a formula's top level, through rows that only group by
+ * precedence: (a + b) = c gives a, +, b, =, c */
+static void
+top_atoms(M *m, MVec *out)
+{
+	if (m && m->kind == M_ROW && !m->group && !m->apply && !m->times) {
+		for (size_t i = 0; i < m->kids.n; i++)
+			top_atoms(m->kids.v[i], out);
+		return;
+	}
+	if (m)
+		VPUSH(*out, m);
+}
+
+/* MathML for the two sides of a display line's alignment point, just
+ * before its first relation (or at &): what a web page needs to align
+ * the lines of a display.  False when the line has no such point. */
+bool
+eqn_mathml_split(M *m, char **left, char **right)
+{
+	MVec at = {0};
+	size_t k;
+
+	top_atoms(m, &at);
+	for (k = 0; k < at.n; k++)
+		if (at.v[k]->kind == M_ALIGN || (at.v[k]->kind == M_OP && at.v[k]->cls == REL && !at.v[k]->unary))
+			break;
+	if (k == at.n)
+		return false;
+	Buf l = {0}, r = {0};
+	bputs(&l, "<mrow>");
+	for (size_t i = 0; i < k; i++)
+		mml(&l, at.v[i]);
+	bputs(&l, "</mrow>");
+	bputs(&r, "<mrow>");
+	for (size_t i = at.v[k]->kind == M_ALIGN ? k + 1 : k; i < at.n; i++)
+		mml(&r, at.v[i]);
+	bputs(&r, "</mrow>");
+	*left = bstr(&l);
+	*right = bstr(&r);
+	return true;
 }
 
 char *

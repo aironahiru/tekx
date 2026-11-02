@@ -100,6 +100,15 @@ The absolute value is a function defined by cases:
 
 The full reference is [doc/language.md](doc/language.md).
 
+## One source, two accessible outputs
+
+`tekx paper.tekx` writes the PDF; `tekx -o paper.html paper.tekx` writes a web
+page from the same source. The page uses semantic HTML, native MathML for every
+formula (which browsers render and screen readers can navigate), and the same
+numbers, cross-references and footnotes as the PDF. The HTML back end is one
+more filter reading the same tree as the typesetter:
+`tekx pp | tekx parse | tekx eqn | tekx html`.
+
 ## The hidden machinery
 
 Inside, tekx is a Unix pipeline of five small filters connected by text

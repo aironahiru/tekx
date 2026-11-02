@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Tour of tekx</title>
+<meta name="author" content="Ada Lovelace">
+<meta name="generator" content="tekx 0.1.0">
+<style>
+:root{color-scheme:light dark;--ink:#1b1f23;--paper:#fdfdfb;--muted:#5d6670;--rule:#d8dbd6;--link:#1d4f91}
+@media (prefers-color-scheme:dark){:root{--ink:#e6e7e3;--paper:#141719;--muted:#9aa3ab;--rule:#2c3339;--link:#8fb6ee}}
+body{margin:0;background:var(--paper);color:var(--ink);font:1.1rem/1.6 "STIX Two Text","STIX Two Math",Georgia,serif;padding:2rem max(1rem,env(safe-area-inset-left))}
+main,header{max-width:38rem;margin:0 auto}
+math{font-family:"STIX Two Math",math}
+a{color:var(--link)}
+header{text-align:center;margin-bottom:2.5rem}
+header h1{font-size:1.9rem;line-height:1.2;margin:0 0 .4rem}
+header p{margin:.2rem 0}.subtitle{font-style:italic}.author{font-size:1.1rem}.date{color:var(--muted)}
+h2,h3,h4{line-height:1.25;margin:2rem 0 .6rem}.num{margin-right:.6em}
+p{margin:.5rem 0;text-align:justify;hyphens:auto}
+.abstract{margin:0 2rem 2rem;font-size:.95rem}.abstract h2{text-align:center;font-size:1rem;margin:0}
+.display{margin:1rem 0;overflow-x:auto}
+.equation{display:flex;align-items:center;justify-content:center;gap:1rem;position:relative;min-height:2em}
+.eqno{position:absolute;right:0}
+.theorem,.proof{margin:1rem 0}.theorem .thead{font-weight:700}.theorem.remark .thead{font-weight:400;font-style:italic}
+.theorem.plain p{font-style:italic}.theorem.plain .tnote,.theorem.plain .thead{font-style:normal}
+.qed{float:right}
+.qedline{text-align:right}
+table{border-collapse:collapse;margin:1rem auto;border-top:2px solid;border-bottom:2px solid}
+th,td{padding:.3rem .7rem;text-align:left}thead th{border-bottom:1px solid}.c{text-align:center}.r{text-align:right}
+pre{font-size:.9rem;overflow-x:auto;padding-left:1.5rem}
+code{font-size:.92em}
+blockquote{margin:1rem 2rem}
+figure{margin:1.5rem 0;text-align:center}figure img{max-width:100%;height:auto}
+figcaption{font-size:.95rem;margin-top:.5rem}
+.references ol{list-style:none;padding:0}.references li{padding-left:2.5rem;text-indent:-2.5rem;margin:.3rem 0}.lbl{display:inline-block;width:2.5rem;text-indent:0}
+.contents ol{list-style:none;padding-left:1.5rem}.contents>ol{padding-left:0}
+.endnotes{margin-top:3rem;border-top:1px solid var(--rule);font-size:.92rem}
+sup.fn a{text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+<h1>A Tour of tekx</h1>
+<p class="subtitle">Mathematics that means something</p>
+<p class="author">Ada Lovelace</p>
+<p class="date">2 November 2026</p>
+</header>
+<main>
+<section class="abstract" aria-labelledby="tekx-abstract">
+<h2 id="tekx-abstract">Abstract</h2>
+<p>This document is written in tekx. It shows how prose, structure and mathematics read naturally in source form, and how one source yields typeset pages, MathML, spoken mathematics and clean copy text.</p>
+</section>
+<section id="intro">
+<h2><span class="num">1</span> Prose and mathematics</h2>
+<p>Let us begin with the golden ratio, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="phi equals the fraction with numerator 1 plus the square root of 5 and denominator 2 end fraction"><semantics><mrow><mi>𝜑</mi><mo>=</mo><mfrac><mrow><mn>1</mn><mo>+</mo><msqrt><mn>5</mn></msqrt></mrow><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tekx">phi = (1 + sqrt 5)/2</annotation></semantics></math>. It satisfies</p>
+<div class="display">
+<div class="equation" id="golden"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="phi squared equals phi plus 1"><semantics><mrow><msup><mi>𝜑</mi><mn>2</mn></msup><mo>=</mo><mrow><mi>𝜑</mi><mo>+</mo><mn>1</mn></mrow></mrow><annotation encoding="application/x-tekx">phi^2 = phi + 1</annotation></semantics></math><span class="eqno">(1)</span></div>
+</div>
+<p>which a screen reader speaks as “phi squared equals phi plus 1”, and which copies out of the PDF as <code>φ² = φ + 1</code>. Paste that back into a tekx file and you get the same formula.<sup class="fn"><a href="#fn-1" id="fnref-1" role="doc-noteref" aria-label="Footnote 1">1</a></sup> Long words such as incomprehensibilities are hyphenated and still copy as one word; see <a href="#fib" aria-label="Reference 1">[1]</a> and <a href="https://example.org">https://example.org</a>.</p>
+<div class="theorem plain" role="group" id="pyth" aria-label="Theorem 1">
+<p><span class="thead">Theorem 1</span> <span class="tnote">(Pythagoras)</span><span class="thead">.</span> For a right triangle with legs <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a"><semantics><mrow><mi>𝑎</mi></mrow><annotation encoding="application/x-tekx">a</annotation></semantics></math>, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="b"><semantics><mrow><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">b</annotation></semantics></math> and hypotenuse <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="c"><semantics><mrow><mi>𝑐</mi></mrow><annotation encoding="application/x-tekx">c</annotation></semantics></math>,</p>
+<div class="display">
+<div class="equation"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="a squared plus b squared equals c squared"><semantics><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo>=</mo><msup><mi>𝑐</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">a^2 + b^2 = c^2</annotation></semantics></math></div>
+</div>
+</div>
+<div class="proof">
+<p><em class="phead">Proof.</em> Arrange four copies of the triangle inside a square of side <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a plus b"><semantics><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">a + b</annotation></semantics></math>.<span class="qed" role="img" aria-label="End of proof">∎</span></p>
+</div>
+<div class="theorem plain" role="group" aria-label="Principle 2">
+<p><span class="thead">Principle 2</span> <span class="tnote">(Least surprise)</span><span class="thead">.</span> A formula should read as it is spoken.</p>
+</div>
+<blockquote>
+<p><strong>Note.</strong> Equation <a href="#golden" aria-label="Equation 1">(1)</a> determines <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="phi"><semantics><mrow><mi>𝜑</mi></mrow><annotation encoding="application/x-tekx">phi</annotation></semantics></math> up to sign, and <a href="#pyth">Theorem 1</a> is older than Pythagoras.</p>
+</blockquote>
+</section>
+<section id="tekx-section-46">
+<h2><span class="num">2</span> Structure</h2>
+<figure id="parabola"><img src="parabola.png" alt="The parabola y equals x squared: a red U-shaped curve through the origin, with axes." style="width: 55%"><figcaption><strong>Figure 1.</strong> The graph of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="y equals x squared"><semantics><mrow><mi>𝑦</mi><mo>=</mo><msup><mi>𝑥</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">y = x^2</annotation></semantics></math>. A figure must say what it shows: tekx refuses one without alt text.</figcaption></figure>
+<p>Figures, like <a href="#parabola">Figure 1</a>, are numbered and referenced like everything else.</p>
+<ul>
+<li>Lists, with <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x is in the real numbers"><semantics><mrow><mi>𝑥</mi><mo>∈</mo><mi>ℝ</mi></mrow><annotation encoding="application/x-tekx">x in RR</annotation></semantics></math> inside.</li>
+<li><p>Items long enough to wrap across more than one line keep their hanging indentation.</p>
+<ol>
+<li>Nested and numbered.</li>
+<li>Like this.</li>
+</ol>
+</li>
+</ul>
+<table>
+<thead>
+<tr><th scope="col" class="c">Symbol</th><th scope="col">Name</th><th scope="col">Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td class="c"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the natural numbers"><semantics><mrow><mi>ℕ</mi></mrow><annotation encoding="application/x-tekx">NN</annotation></semantics></math></td><td><code>NN</code></td><td>natural numbers</td></tr>
+<tr><td class="c"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the real numbers"><semantics><mrow><mi>ℝ</mi></mrow><annotation encoding="application/x-tekx">RR</annotation></semantics></math></td><td><code>RR</code></td><td>real numbers</td></tr>
+</tbody>
+</table>
+<pre><code>tekx tour.tekx      # writes tour.pdf, silently
+</code></pre>
+<div class="display">
+<div class="equation"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="f of x equals x squared if x is greater than or equal to 0; negative x otherwise"><semantics><mrow><mrow><mi>𝑓</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow></mrow><mo>=</mo><mrow><mo fence="true">{</mo><mtable columnalign="left"><mtr><mtd><msup><mi>𝑥</mi><mn>2</mn></msup></mtd><mtd><mrow><mrow><mtext> if </mtext><mo>⁢</mo><mi>𝑥</mi></mrow><mo>≥</mo><mn>0</mn></mrow></mtd></mtr><mtr><mtd><mrow><mo form="prefix">−</mo><mi>𝑥</mi></mrow></mtd><mtd><mtext> otherwise </mtext></mtd></mtr></mtable></mrow></mrow><annotation encoding="application/x-tekx">f(x) = cases&#10;x^2   if x &gt;= 0&#10;-x    otherwise</annotation></semantics></math></div>
+</div>
+<div class="display aligned">
+<math display="block"><mtable><mtr><mtd style="text-align:right"><mrow><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>2</mn></msup></mrow></mtd><mtd style="text-align:left"><mrow><mo>=</mo><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow></mtd></mtr><mtr><mtd style="text-align:right"><mrow><mrow/></mrow></mtd><mtd style="text-align:left"><mrow><mo>=</mo><msup><mi>𝑏</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow><mo>+</mo><msup><mi>𝑎</mi><mn>2</mn></msup></mrow></mtd></mtr></mtable></math>
+</div>
+<section class="references" aria-labelledby="tekx-references">
+<h2 id="tekx-references">References</h2>
+<ol>
+<li id="fib"><span class="lbl">[1]</span> N. N. Vorobiev, <em>Fibonacci Numbers</em>, Birkhäuser, 2002.</li>
+</ol>
+</section>
+</section>
+<section class="endnotes" role="doc-endnotes" aria-label="Footnotes">
+<ol>
+<li id="fn-1" role="doc-endnote">Copy and paste is checked with poppler, which honours ActualText, and with pdf.js, which does not. <a href="#fnref-1" role="doc-backlink" aria-label="Back to the text">↩</a></li>
+</ol>
+</section>
+</main>
+</body>
+</html>

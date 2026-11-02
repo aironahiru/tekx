@@ -8,6 +8,7 @@
  *	tekx eqn    mathematics		tree -> tree with laid-out formulas
  *	tekx set    typesetting		tree -> page description
  *	tekx pdf    device back end	page description -> PDF
+ *	tekx html   web back end	tree with mathematics -> HTML and MathML
  *
  * `tekx file.tekx` runs them in sequence, connected by in-memory text
  * streams, exactly as the shell pipeline
@@ -30,11 +31,14 @@ static const struct {
 	{"eqn", eqn_main},
 	{"set", set_main},
 	{"pdf", pdf_main},
+	{"html", html_main},
 };
+
+enum { PP, PARSE, EQN, SET, PDF, HTML };
 
 static const char usage_text[] =
     "usage: tekx [-E | -P | -M | -S] [-o output] file.tekx\n"
-    "       tekx pp | parse | eqn | set | pdf [file]\n"
+    "       tekx pp | parse | eqn | set | pdf | html [file]\n"
     "       tekx explain [formula ...]\n"
     "       tekx -v | -h\n";
 
@@ -93,32 +97,34 @@ default_output(const char *in)
 	return fmt("%s.pdf", in);
 }
 
-/* Run stages first..last on `in`; the result goes to `out`.  After an
+/* Run a sequence of stages on `in`; the result goes to `out`.  After an
  * error the later stages still run, so that one pass reports as much as
  * it can, but nothing is produced and the device stage is skipped. */
 static int
-pipeline(FILE *in, int first, int last, FILE *out, const char *file)
+pipeline(FILE *in, const int *seq, int n, FILE *out, const char *file)
 {
 	int failed = 0;
 
-	for (int i = first; i <= last; i++) {
-		if (failed && i == 4)
+	for (int k = 0; k < n; k++) {
+		int i = seq[k];
+		bool last = k == n - 1;
+		if (failed && (i == PDF || i == HTML))
 			break;
 		char *buf = NULL;
 		size_t len = 0;
-		FILE *o = i == last ? out : open_memstream(&buf, &len);
+		FILE *o = last ? out : open_memstream(&buf, &len);
 		if (o == NULL)
 			die("open_memstream: %s", strerror(errno));
 		int rc = stages[i].fn(in, o, file);
-		if (i != last)
+		if (!last)
 			fclose(o);
 		if (in != stdin)
 			fclose(in);
 		if (rc != 0 || nerrors)
 			failed = rc ? rc : 1;
-		if (i != last && (in = fmemopen(buf, len ? len : 1, "r")) == NULL)
+		if (!last && (in = fmemopen(buf, len ? len : 1, "r")) == NULL)
 			die("fmemopen: %s", strerror(errno));
-		if (i != last && len == 0)
+		if (!last && len == 0)
 			fseek(in, 0, SEEK_END);
 	}
 	return failed;
@@ -145,7 +151,8 @@ main(int argc, char **argv)
 				if ((in = fopen(name, "rb")) == NULL)
 					die("cannot open %s: %s", name, strerror(errno));
 			}
-			int rc = pipeline(in, (int)s, (int)s, stdout, name);
+			int one[] = {(int)s};
+			int rc = pipeline(in, one, 1, stdout, name);
 			fflush(stdout);
 			return rc;
 		}
@@ -190,11 +197,17 @@ main(int argc, char **argv)
 	if (output == NULL)
 		output = default_output(streq(file, "-") ? "stdin" : file);
 
+	/* paper.html: the same tree, through the web back end instead */
+	size_t olen = strlen(output);
+	bool html = last == PDF && olen > 5 && streq(output + olen - 5, ".html");
+	int seq[] = {PP, PARSE, EQN, html ? HTML : SET, PDF};
+	int nseq = html ? 4 : last + 1;
+
 	/* Build the result in memory; never leave a half-written file behind. */
 	char *buf = NULL;
 	size_t len = 0;
 	FILE *mem = open_memstream(&buf, &len);
-	int rc = pipeline(in, 0, last, mem, file);
+	int rc = pipeline(in, seq, nseq, mem, file);
 	fclose(mem);
 	if (rc != 0)
 		return rc;

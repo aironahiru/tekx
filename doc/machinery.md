@@ -166,6 +166,7 @@ math@21:38 phi = (1 + sqrt 5)/2
 | `i FONT SCALE X Y TEXT` | an invisible glyph that gives text extractors that ignore ActualText (pdf.js) a linear reading: `^`, `/`, parentheses |
 | `r X Y W H` | a rule: fraction bars, radical overbars, overlines |
 | `mathml`, `speech`, `linear` | the formula's three meanings |
+| `mleft`, `mright` | display lines only: the MathML on each side of the alignment point |
 
 Glyphs come in reading order, so the content stream reads in the same order as
 the copy text.
@@ -287,6 +288,23 @@ is packed into compressed object streams, and indexed by a compressed
 cross-reference stream. A 59-page, 1,080-formula document comes to 1.7 MB.
 Streams are compressed by tekx's own deflate, and output is reproducible under
 `SOURCE_DATE_EPOCH`.
+
+## The web back end
+
+`tekx html` reads the tree after `eqn`, the same input as `set`, and writes
+HTML5:
+- sections, theorems, proofs, lists, tables, figures and references become the
+  matching semantic elements;
+- every formula becomes the MathML that `eqn` produced;
+- a display whose lines share an alignment point becomes one MathML table
+  built from the `mleft` and `mright` halves `eqn` emits;
+- footnotes become linked endnotes (`doc-noteref`, `doc-endnote`);
+- references link to their targets with the same text as in the PDF, and with
+  the same spoken names ("Equation 1").
+
+Numbers come from the same numbering pass, `number.c`, that `set` uses, so the
+PDF and the page cannot disagree. The driver chooses this back end when the
+output file ends in `.html`.
 
 ## Validation
 

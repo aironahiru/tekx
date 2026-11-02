@@ -13,11 +13,11 @@ WARN     = -std=c17 -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
 DEFS     = -D_POSIX_C_SOURCE=200809L
 LDLIBS   = -lm
 
-SRC  = main.c util.c pp.c parse.c tree.c eqn.c eqnlayout.c eqnsem.c set.c hyph.c \
+SRC  = main.c util.c pp.c parse.c tree.c eqn.c eqnlayout.c eqnsem.c number.c set.c html.c hyph.c \
        pdf.c img.c font.c cff.c ttf.c otl.c mathtab.c deflate.c md5.c assets.c
 OBJ  = $(SRC:%.c=obj/%.o)
 DOBJ = $(SRC:%.c=obj-debug/%.o)
-HDR  = src/tekx.h src/font.h src/tree.h src/eqn.h src/img.h
+HDR  = src/tekx.h src/font.h src/tree.h src/eqn.h src/img.h src/number.h
 
 ASSETS = assets/fonts/STIXTwoText-Regular.otf assets/fonts/STIXTwoText-Italic.otf \
          assets/fonts/STIXTwoText-Bold.otf assets/fonts/STIXTwoText-BoldItalic.otf \
@@ -62,7 +62,8 @@ tools/mutate: tools/mutate.c
 
 # the example PDFs and the README picture, reproducibly
 examples: tekx
-	for f in examples/*.tekx; do SOURCE_DATE_EPOCH=1793616300 ./tekx $$f || exit 1; done
+	for f in examples/*.tekx; do SOURCE_DATE_EPOCH=1793616300 ./tekx $$f || exit 1; \
+	    SOURCE_DATE_EPOCH=1793616300 ./tekx -o $${f%.tekx}.html $$f || exit 1; done
 	pdftoppm -r 70 -png -f 1 -l 1 -singlefile examples/showcase.pdf examples/showcase
 
 install: tekx

@@ -12,6 +12,7 @@
  */
 #include "font.h"
 #include "img.h"
+#include "number.h"
 #include "tree.h"
 
 #include <math.h>
@@ -183,95 +184,6 @@ op_rule(Ops *ops, double x, double y, double w, double h, int sp)
 
 static int cur_line;	/* source line of the block being set, for warnings */
 
-/* ---- labels and numbering ---- */
-
-typedef struct {
-	char *name;
-	char *text;	/* how a reference reads: "Section 2", "(3)", "[1]" */
-	char *spoken;	/* what a link to it says to a screen reader: "Equation 3" */
-	int el;		/* destination element, -1 until laid out */
-	int line;
-} Label;
-
-static VEC(Label) labels;
-
-static Label *
-find_label(const char *name)
-{
-	for (size_t i = 0; i < labels.n; i++)
-		if (streq(labels.v[i].name, name))
-			return &labels.v[i];
-	return NULL;
-}
-
-static void
-add_label(const char *name, const char *text, int line)
-{
-	if (streq(name, "-"))
-		return;
-	Label *old = find_label(name);
-	if (old) {
-		error_at(line, 0, "label #%s is already used (line %d)", name, old->line);
-		return;
-	}
-	Label l = {xstrdup(name), xstrdup(text), xstrdup(text), -1, line};
-	if (text[0] == '(')
-		l.spoken = fmt("Equation %.*s", (int)strlen(text) - 2, text + 1);
-	else if (text[0] == '[')
-		l.spoken = fmt("Reference %.*s", (int)strlen(text) - 2, text + 1);
-	VPUSH(labels, l);
-}
-
-static void
-label_el(const char *name, int e)
-{
-	Label *l = name && !streq(name, "-") ? find_label(name) : NULL;
-
-	if (l)
-		l->el = e;
-}
-
-/* theorem-like environments */
-typedef struct {
-	char *name, *title;
-	int style;	/* 0 plain (italic body), 1 definition, 2 remark */
-} Env;
-
-static VEC(Env) envs;
-
-static void
-add_env(const char *name, const char *title, int style)
-{
-	Env e = {xstrdup(name), xstrdup(title), style};
-
-	VPUSH(envs, e);
-}
-
-static Env *
-find_env(const char *name)
-{
-	for (size_t i = envs.n; i-- > 0;)
-		if (streq(envs.v[i].name, name))
-			return &envs.v[i];
-	return NULL;
-}
-
-static void
-init_envs(void)
-{
-	static const struct { const char *n, *t; int s; } std[] = {
-		{"theorem", "Theorem", 0}, {"lemma", "Lemma", 0}, {"proposition", "Proposition", 0},
-		{"corollary", "Corollary", 0}, {"conjecture", "Conjecture", 0}, {"claim", "Claim", 0},
-		{"axiom", "Axiom", 0}, {"hypothesis", "Hypothesis", 0}, {"fact", "Fact", 0},
-		{"definition", "Definition", 1}, {"example", "Example", 1}, {"exercise", "Exercise", 1},
-		{"problem", "Problem", 1}, {"solution", "Solution", 1}, {"notation", "Notation", 1},
-		{"assumption", "Assumption", 1}, {"remark", "Remark", 2}, {"note", "Note", 2},
-		{"observation", "Observation", 2},
-	};
-	for (size_t i = 0; i < NELEM(std); i++)
-		add_env(std[i].n, std[i].t, std[i].s);
-}
-
 /* ---- metadata ---- */
 
 static char *meta_title, *meta_subtitle, *meta_date, *meta_keywords, *meta_subject;
@@ -287,33 +199,6 @@ format_date(i64 t)
 
 	gmtime_r(&tt, &tm);
 	return fmt("%d %s %d", tm.tm_mday, month[tm.tm_mon], tm.tm_year + 1900);
-}
-
-/* plain text of inline content, for bookmarks, link contents and alt text */
-static void
-plain(Buf *b, Node *n)
-{
-	if (streq(n->kind, "text") || streq(n->kind, "code") || streq(n->kind, "url"))
-		bputs(b, n->rest);
-	else if (streq(n->kind, "math")) {
-		Node *l = child(n, "linear");
-		bputs(b, l ? l->rest : n->rest);
-	} else if (streq(n->kind, "ref")) {
-		Label *l = find_label(n->rest);
-		bputs(b, l ? l->text : n->rest);
-	}
-	for (size_t i = 0; i < n->kids.n; i++)
-		if (!streq(n->kind, "math"))
-			plain(b, n->kids.v[i]);
-}
-
-static char *
-plain_text(Node *n)
-{
-	Buf b = {0};
-
-	plain(&b, n);
-	return bstr(&b);
 }
 
 /* ---- horizontal lists ---- */
@@ -1226,7 +1111,7 @@ add_note(HList *hl, Node *k, Ctx c)
 	char *name = fmt("tekx-note-%d", n);
 	char *num = fmt("%d", n);
 
-	add_label(name, num, k->line);
+	add_label(name, num, num, k->line);
 	int link = new_link(c.el, NULL, name, fmt("Footnote %d", n));
 	int fe = el(c.el, "pdf2", "FENote");
 	attr(fe, "PDF", "NoteType", 'n', "Footnote");
@@ -2069,7 +1954,6 @@ contents_block(Box_ bx)
 		Node *s = toc_sections.v[i];
 		int level = atoi(field(s, 0));
 		bool numbered = atoi(field(s, 1)) != 0;
-		char *label = field(s, 2);
 		Node *hd = child(s, "heading");
 		char *num = NULL;
 		if (numbered) {
@@ -2083,7 +1967,7 @@ contents_block(Box_ bx)
 		}
 		int ti = el(toc, "pdf", "TOCI");
 		int p = el(ti, "pdf2", "P");
-		char *target = streq(label, "-") ? fmt("tekx-section-%zu", (size_t)s->line) : label;
+		char *target = (char *)section_key(s);
 		char *text = fmt("%s%s%s", num ? num : "", num ? " " : "", hd ? plain_text(hd) : "");
 		int link = new_link(p, NULL, target, text);
 		int le = links.v[link].el;
@@ -2164,8 +2048,7 @@ blocks(Node *n, Box_ bx)
 			static const char *role[] = {"", "section", "subsection", "subsubsection"};
 			Box_ in = bx;
 			in.el = el(bx.el, "tekx", role[level < 1 || level > 3 ? 1 : level]);
-			if (streq(label, "-"))
-				label = fmt("tekx-section-%zu", (size_t)k->line);
+			label = (char *)section_key(k);
 			heading(k, in, level, numbered, label);
 			blocks(k, in);
 		} else if (streq(kd, "display")) {
@@ -2205,61 +2088,6 @@ blocks(Node *n, Box_ bx)
 		}
 		if (text_now)
 			prev_was_text = true;
-	}
-}
-
-/* ---- numbering pre-pass ---- */
-
-static int pre_sec[4], pre_thm, pre_eq, pre_bib, pre_fig;
-
-static void
-number(Node *n)
-{
-	for (size_t i = 0; i < n->kids.n; i++) {
-		Node *k = n->kids.v[i];
-		if (streq(k->kind, "env")) {
-			char *name = field(k, 0), *kind = field(k, 1), *title = field_rest(k, 2);
-			Env *base = find_env(kind);
-			add_env(name, *title ? title : name, base ? base->style : 0);
-		} else if (streq(k->kind, "section")) {
-			int level = atoi(field(k, 0));
-			bool numbered = atoi(field(k, 1)) != 0;
-			char *label = field(k, 2);
-			if (numbered && level >= 1 && level <= 3) {
-				pre_sec[level]++;
-				for (int j = level + 1; j < 4; j++)
-					pre_sec[j] = 0;
-			}
-			Buf b = {0};
-			for (int j = 1; j <= level; j++)
-				bprintf(&b, "%s%d", j > 1 ? "." : "", pre_sec[j]);
-			const char *word = level == 1 ? "Section" : level == 2 ? "Section" : "Section";
-			if (streq(label, "-"))
-				add_label(fmt("tekx-section-%zu", (size_t)k->line), numbered ? fmt("%s %s", word, bstr(&b)) :
-				    plain_text(child(k, "heading")), k->line);
-			else
-				add_label(label, numbered ? fmt("%s %s", word, bstr(&b)) : plain_text(child(k, "heading")), k->line);
-			number(k);
-		} else if (streq(k->kind, "theorem")) {
-			pre_thm++;
-			Env *e = find_env(field(k, 0));
-			add_label(field(k, 1), fmt("%s %d", e ? e->title : field(k, 0), pre_thm), k->line);
-			number(k);
-		} else if (streq(k->kind, "line")) {
-			char *label = field(k, 0);
-			if (!streq(label, "-")) {
-				pre_eq++;
-				add_label(label, fmt("(%d)", pre_eq), k->line);
-			}
-		} else if (streq(k->kind, "figure")) {
-			pre_fig++;
-			add_label(field(k, 2), fmt("Figure %d", pre_fig), k->line);
-		} else if (streq(k->kind, "entry")) {
-			pre_bib++;
-			add_label(k->rest, fmt("[%d]", pre_bib), k->line);
-		} else {
-			number(k);
-		}
 	}
 }
 
@@ -2941,8 +2769,7 @@ set_main(FILE *in, FILE *o, const char *file)
 		diag_file = doc->rest;	/* the source file, named by parse */
 	doc_root = doc;
 	read_meta(doc);
-	init_envs();
-	number(doc);
+	number_document(doc);
 	hyph_init();
 
 	TW = 32.7 * BS;

@@ -117,6 +117,7 @@ int parse_main(FILE *in, FILE *out, const char *file);
 int eqn_main(FILE *in, FILE *out, const char *file);
 int set_main(FILE *in, FILE *out, const char *file);
 int pdf_main(FILE *in, FILE *out, const char *file);
+int html_main(FILE *in, FILE *out, const char *file);	/* a second back end: HTML and MathML */
 
 /* hyphenation */
 void hyph_init(void);

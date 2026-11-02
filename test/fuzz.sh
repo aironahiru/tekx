@@ -33,6 +33,8 @@ one() {
 	fi
 	timeout 20 ./tekx-debug -o "$dir/out.pdf" "$dir/case.tekx" >/dev/null 2>"$dir/err.txt"
 	rc=$?
+	timeout 20 ./tekx-debug -o "$dir/out.html" "$dir/case.tekx" >/dev/null 2>>"$dir/err.txt"
+	[ $? -ge 124 ] && rc=124
 	if [ $rc -ge 124 ] || grep -q 'Sanitizer\|runtime error' "$dir/err.txt"; then
 		cp "$dir/case.tekx" "test/out/fuzz/fail-$i.tekx"
 		cp "$dir/x.png" "test/out/fuzz/fail-$i.png"

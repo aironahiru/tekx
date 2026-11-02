@@ -41,6 +41,9 @@ The output file is
 unless
 .B \-o
 says otherwise.
+An output name ending in
+.I .html
+selects the web back end instead: the same document as HTML with MathML.
 Nothing is printed on success, and nothing is written when there are errors.
 .PP
 The work is done by five filters connected by text streams.
@@ -67,6 +70,11 @@ writes a page description.
 .TP
 .B pdf
 device back end: subsets fonts and writes tagged PDF.
+.TP
+.B html
+web back end: reads the tree after
+.B eqn
+and writes HTML with MathML.
 .PP
 Thus
 .PP

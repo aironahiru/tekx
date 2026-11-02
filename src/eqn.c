@@ -1131,8 +1131,6 @@ case_cells(M *row, M **value, M **cond)
 	}
 }
 
-typedef VEC(M *) MVec;
-
 static M *
 cases_table(MVec *rows)
 {
@@ -2761,6 +2759,12 @@ emit_layout(Node *n, M *m, bool display, const char *source)
 		node_add(n, it->kind == 'g' ? "g" : "i", 0, 0, bstr(&a));
 	}
 	node_add(n, "mathml", 0, 0, eqn_mathml(m, display, source));
+	char *left, *right;
+	if (display && eqn_mathml_split(m, &left, &right)) {
+		/* the sides of the alignment point, for back ends that align lines */
+		node_add(n, "mleft", 0, 0, left);
+		node_add(n, "mright", 0, 0, right);
+	}
 	node_add(n, "speech", 0, 0, eqn_speech(m));
 	node_add(n, "linear", 0, 0, eqn_linear(m));
 }

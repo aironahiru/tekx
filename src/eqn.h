@@ -57,6 +57,8 @@ struct M {
 	char *sem;		/* semantic name: abs, norm, floor, ceil, binom, cases, matrix, set */
 };
 
+typedef VEC(M *) MVec;
+
 M *mnew(int kind);
 M *mrow(void);
 void madd(M *row, M *kid);
@@ -102,6 +104,7 @@ char *eqn_mathml(M *m, bool display, const char *source);
 char *eqn_speech(M *m);
 char *eqn_linear(M *m);
 char *eqn_grouping(M *m);	/* every grouping written out, for tekx explain */
+bool eqn_mathml_split(M *m, char **left, char **right);	/* the two sides of an alignment point */
 
 /* shared helpers */
 bool is_atom(M *m);

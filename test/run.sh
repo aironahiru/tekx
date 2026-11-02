@@ -93,7 +93,18 @@ if [ -n "${VERAPDF:-}" ]; then
 fi
 echo "figures: done"
 
-# 7. each stage is a filter: the pipeline by hand equals the driver
+# 7. the web back end: every document makes HTML with MathML, and the
+#    filters by hand give the same page as the driver
+for f in examples/*.tekx test/golden/*.tekx test/figures.tekx; do
+	$T -o test/out/page.html "$f" 2>/dev/null || { fail "html $f"; continue; }
+	grep -q '</html>' test/out/page.html || fail "html $f: truncated"
+done
+$T pp examples/tour.tekx | $T parse | $T eqn | $T html >test/out/byhand.html &&
+    $T -o test/out/driver.html examples/tour.tekx && cmp -s test/out/byhand.html test/out/driver.html ||
+    fail "the HTML pipeline by hand differs from the driver"
+echo "html: done"
+
+# 8. each stage is a filter: the pipeline by hand equals the driver
 f=examples/tour.tekx
 $T pp "$f" | $T parse | $T eqn | $T set | $T pdf >test/out/byhand.pdf &&
     $T -o test/out/driver.pdf "$f" && cmp -s test/out/byhand.pdf test/out/driver.pdf ||
