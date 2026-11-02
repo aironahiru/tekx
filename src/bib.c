@@ -30,13 +30,18 @@ typedef struct {
 
 static VEC(BibField) macros;
 
+/*
+ * Problems in a .bib file are warnings, as BibTeX makes them: a shared
+ * bibliography with one broken entry must not stop every paper that uses
+ * it.  A citation of an entry that could not be read is still an error.
+ */
 static void
 lex_error(Lex *x, const char *msg)
 {
 	const char *saved = diag_file;
 
 	diag_file = x->path;
-	error_at(x->line, 0, "%s", msg);
+	warn_at(x->line, 0, "%s", msg);
 	diag_file = saved;
 	x->bad = true;
 }
@@ -159,7 +164,7 @@ value(Lex *x)
 			} else {
 				const char *m = macro(w);
 				if (m == NULL)
-					lex_error(x, fmt("unknown @string macro '%s'", w));
+					lex_error(x, fmt("unknown @string macro '%s' (taken as empty, as BibTeX does)", w));
 				else
 					bputs(&b, m);
 			}

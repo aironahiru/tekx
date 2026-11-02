@@ -47,6 +47,10 @@ The release from which the compatibility promise holds.
   - A citation key that is also a label is an error.
   - So are an unknown author detail, a missing `.bib` file and a custom block
     no filter replaced.
+- **Problems in a `.bib` file are warnings.** As in BibTeX, an unclosed entry
+  or an undefined `@string` is a warning. Only a citation of an entry that
+  couldn't be read fails the build. This was checked against real `.bib`
+  files from TeX Live and TUGboat.
 - **BibTeX as the ecosystem writes it.** Entries inherit through `crossref`
   (as DBLP writes them), and biblatex's `journaltitle`, `date` and `location`
   are read (as Zotero writes them).

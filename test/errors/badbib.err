@@ -1,1 +1,3 @@
-test/errors/bad.bib:11:1: error: entry broken is never closed
+test/errors/bad.bib:5:1: warning: unknown @string macro 'undefinedmacro' (taken as empty, as BibTeX does)
+test/errors/bad.bib:12:1: warning: expected field = value in entry broken
+test/errors/badbib.tekx:3:18: error: unknown reference @after

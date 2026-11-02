@@ -541,6 +541,11 @@ entries are supported. DOIs and arXiv identifiers become links. The list is set
 where a `references` line stands, or at the end of the document. A `references`
 block may also give entries by hand (`key: text`), cited the same way.
 
+Problems in a `.bib` file (an unclosed entry, an undefined `@string`) are
+warnings with the file and line, as BibTeX makes them, so one broken entry in
+a shared bibliography doesn't stop every paper that uses it. Citing an entry
+that couldn't be read is an error.
+
 A citation key and a `#label` live apart: `[@landau]` is always the paper, even
 when an equation is labelled `#landau`. A bare `@landau` that could mean either
 is an error that says which to write. An unknown key is an error with a
