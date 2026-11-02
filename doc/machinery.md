@@ -131,7 +131,7 @@ document
 | `figure` | PATH (%-escaped) WIDTH LABEL; child `alt`, then caption blocks |
 | `refs` | children `entry` KEY with inline children |
 | `contents`, `newpage` | none |
-| inline | `text`, `emph`, `strong`, `code`, `math` SOURCE, `link` URL, `url`, `ref` LABEL |
+| inline | `text`, `emph`, `strong`, `code`, `math` SOURCE, `link` URL, `url`, `ref` LABEL, `note` (a footnote, with inline children) |
 
 Positions (`@line:col`) are carried so that later stages can report errors in
 the user's own coordinates.

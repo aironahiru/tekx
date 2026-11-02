@@ -23,8 +23,10 @@ Let us begin with {golden}, $phi = (1 + sqrt 5)/2$. It satisfies
 
 which a screen reader speaks as "phi squared equals phi plus 1", and which
 copies out of the PDF as `φ² = φ + 1`. Paste that back into a tekx file and you
-get the same formula. Long words such as incomprehensibilities are hyphenated
-and still copy as one word; see @fib and <https://example.org>.
+get the same formula.^[Copy and paste is checked with poppler, which honours
+ActualText, and with pdf.js, which does not.] Long words such as
+incomprehensibilities are hyphenated and still copy as one word; see @fib and
+<https://example.org>.
 
 theorem "Pythagoras" #pyth
   For a right triangle with legs $a$, $b$ and hypotenuse $c$,

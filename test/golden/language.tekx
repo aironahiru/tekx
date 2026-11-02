@@ -15,7 +15,7 @@ abstract
 
 # Headings with hashes #h1
 
-Paragraphs are separated by blank lines.
+Paragraphs are separated by blank lines.^[A footnote with *emphasis*, $x^2$ and [brackets].]
 A line break inside a paragraph is a space -- and dashes, quotes "like these",
 ellipses... and non~breaking spaces become real typography.
 See {cite(Knuth)} and {cite(Lamport, 1994)}.

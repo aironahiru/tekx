@@ -231,11 +231,16 @@ the line.
 | `[text](https://…)` | a link |
 | `<https://…>` or a bare `https://…` | a link that shows its address |
 | `@label` | a cross-reference |
+| `^[text]` | a footnote, numbered and set at the foot of the page |
 | `{name}` | a text macro |
 | `--`, `---`, `...` | – — … |
 | `"quotes"`, `'quotes'` | “quotes”, ‘quotes’ |
 | `~` | a non-breaking space |
 | `\*` | a literal character (`\` escapes the next one) |
+
+A footnote's text may hold any inline markup, mathematics included. Its mark is
+a link to the note, and the note is tagged as an `FENote` that follows its mark
+in the reading order.
 
 Long words are hyphenated (US English patterns). Lines are justified by the
 Knuth–Plass algorithm.

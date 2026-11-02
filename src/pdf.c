@@ -772,7 +772,8 @@ embed_file(const char *file, const char *mime, const char *rel, const char *desc
 int
 pdf_main(FILE *in, FILE *out, const char *file)
 {
-	diag_file = file;
+	/* errors here are about the page description, not the source */
+	diag_file = fmt("%s (page description)", file);
 	when = doc_time();
 	read_input(in);
 	if (nerrors)

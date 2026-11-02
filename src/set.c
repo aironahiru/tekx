@@ -328,6 +328,7 @@ typedef struct {
 	bool space;
 	int sface, sgid, sel, sspan, slink;
 	double ssize;
+	int note;	/* footnote whose mark this box holds, 1-based; 0 none */
 } H;
 
 typedef VEC(H) HList;
@@ -727,6 +728,7 @@ add_math(HList *hl, Node *n, Ctx c)
 }
 
 static void add_inlines(HList *hl, Node *n, Ctx c);
+static void add_note(HList *hl, Node *k, Ctx c);
 
 static int
 new_link(int parent, const char *url, const char *label, const char *contents)
@@ -787,6 +789,8 @@ add_inline(HList *hl, Node *k, Ctx c)
 			if (*p)
 				hpen(hl, 100, false, 0, NULL, -1);
 		}
+	} else if (streq(k->kind, "note")) {
+		add_note(hl, k, c);
 	} else if (streq(k->kind, "ref")) {
 		Label *l = find_label(k->rest);
 		if (l == NULL) {
@@ -1009,11 +1013,24 @@ typedef struct {
 	bool newpage;
 	VEC(int) dests;	/* elements whose destination is this line */
 	VEC(int) outline;	/* indices into outlines starting here */
+	VEC(int) notes;	/* footnotes marked on this line, 1-based */
+	int float_id;	/* lines of one figure share an id; 0 for text */
 	double y;	/* baseline, after pagination */
 	int page;
 } V;
 
-static VEC(V) vl;
+typedef VEC(V) VList;
+static VList vl;
+
+/* footnotes: laid out where they are met, placed at the foot of the page
+ * that carries their mark */
+typedef struct {
+	int el;		/* FENote */
+	VList lines;
+	double h;
+} Note;
+
+static VEC(Note) notes;
 static double pending_space;
 static VEC(int) pending_dests;
 static VEC(int) pending_outlines;
@@ -1139,6 +1156,7 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 		if (L > lw + 0.5 && (L - lw) > 1 && Z * 1 < L - lw)
 			warn_at(cur_line, 0, "line too long by %.1fpt (it could not be broken)", L - lw);
 		Ops ops = {0};
+		VEC(int) line_notes = {0};
 		double x = li == 0 ? indent_first : 0, h = size * 0.72, d = size * 0.22;
 		for (int i = start; i < b; i++) {
 			H *it = &hl->v[i];
@@ -1148,6 +1166,8 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 					o.x += x;
 					VPUSH(ops, o);
 				}
+				if (it->note)
+					VPUSH(line_notes, it->note);
 				x += it->w;
 				h = MAX(h, it->h);
 				d = MAX(d, it->d);
@@ -1170,7 +1190,10 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 			/* keep the real space at the end of the line for copy and paste */
 			op_glyph(&ops, bi->sface, bi->ssize, x, 0, bi->sgid, bi->w, " ", bi->sel, bi->sspan, bi->slink);
 		}
-		vline(h, d, lead, fr.x, &ops);
+		V *v = vline(h, d, lead, fr.x, &ops);
+		v->notes.v = line_notes.v;
+		v->notes.n = line_notes.n;
+		v->notes.cap = line_notes.cap;
 		prev = b;
 	}
 	/* widows and orphans: keep the first two and the last two lines together */
@@ -1180,6 +1203,71 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 		vl.v[vl.n - 2].keep = true;
 	}
 	return nb;
+}
+
+/* ---- footnotes ---- */
+
+#define NOTE_SIZE (BS * 0.82)
+#define NOTE_GAP (BS * 0.15)
+#define NOTE_RULE_SPACE (BS * 1.0)
+
+/* A footnote: the mark is a link to the note; the note is an FENote placed
+ * right after its mark in the logical order, laid out now and placed at the
+ * foot of the page when the page is made. */
+static void
+add_note(HList *hl, Node *k, Ctx c)
+{
+	int n = (int)notes.n + 1;
+	char *name = fmt("tekx-note-%d", n);
+	char *num = fmt("%d", n);
+
+	add_label(name, num, k->line);
+	int link = new_link(c.el, NULL, name, fmt("Footnote %d", n));
+	int fe = el(c.el, "pdf2", "FENote");
+	attr(fe, "PDF", "NoteType", 'n', "Footnote");
+	label_el(name, fe);
+
+	/* the mark: a small raised number */
+	Font *f = face_font(FACE_REG);
+	double ms = c.size * 0.68, x = 0;
+	Ops o = {0};
+	for (const char *d = num; *d; d++) {
+		int g = font_glyph(f, (u32)*d);
+		double adv = font_adv(f, g) * ms / f->upem;
+		op_glyph(&o, FACE_REG, ms, x, -c.size * 0.36, g, adv, xstrndup(d, 1), links.v[link].el, -1, link);
+		x += adv;
+	}
+	hbox(hl, &o, x, c.size * 0.82, 0);
+	hl->v[hl->n - 1].note = n;
+
+	/* the note itself, set into a list of its own */
+	VList saved = vl;
+	double saved_space = pending_space;
+	memset(&vl, 0, sizeof vl);
+	pending_space = 0;
+	int lbl = el(fe, "pdf2", "Lbl"), p = el(fe, "pdf2", "P");
+	HList nh = {0};
+	Ctx lc = {FACE_REG, NOTE_SIZE, lbl, -1, true};
+	Ops lo = {0};
+	double w = 0;
+	for (const char *d = num; *d; d++) {
+		int g = font_glyph(f, (u32)*d);
+		double adv = font_adv(f, g) * NOTE_SIZE / f->upem;
+		op_glyph(&lo, FACE_REG, NOTE_SIZE * 0.75, w, -NOTE_SIZE * 0.3, g, adv * 0.75, xstrndup(d, 1), lbl, -1, -1);
+		w += adv * 0.75;
+	}
+	(void)lc;
+	hbox(&nh, &lo, w + NOTE_SIZE * 0.3, NOTE_SIZE * 0.72, 0);
+	Ctx pc = {FACE_REG, NOTE_SIZE, p, -1, false};
+	add_inlines(&nh, k, pc);
+	Fr fr = {0, TW};
+	set_par(&nh, fr, NOTE_SIZE, 0, true, false);
+	Note note = {fe, vl, 0};
+	for (size_t i = 0; i < vl.n; i++)
+		note.h += i ? vl.v[i].lead : vl.v[i].h + vl.v[i].d;
+	VPUSH(notes, note);
+	vl = saved;
+	pending_space = saved_space;
 }
 
 /* ---- block layout ---- */
@@ -1776,6 +1864,7 @@ figure(Node *f, Box_ bx)
 	label_el(label, wrap);
 	dest(wrap);
 	vspace(0.8 * bx.size);
+	size_t first_line = vl.n;
 	Ops ops = {0};
 	Op o;
 	memset(&o, 0, sizeof o);
@@ -1814,6 +1903,9 @@ figure(Node *f, Box_ bx)
 		for (size_t k = 0; k < line->ops.n; k++)
 			line->ops.v[k].x += (fr.w - right) / 2;
 	}
+	/* the image and its caption float together */
+	for (size_t k = first_line; k < vl.n; k++)
+		vl.v[k].float_id = fig_num;
 	vspace(0.8 * bx.size);
 }
 
@@ -2258,57 +2350,176 @@ title_block(Box_ bx)
 
 /* ---- pages ---- */
 
+static double
+notes_height(V *v)
+{
+	double h = 0;
+
+	for (size_t k = 0; k < v->notes.n; k++)
+		h += notes.v[v->notes.v[k] - 1].h + NOTE_GAP;
+	return h;
+}
+
 typedef struct {
-	size_t first, last;	/* vl range [first, last) */
+	VEC(int) lines;	/* indices into vl, in the order they are set */
 } Page;
 
 static VEC(Page) pages;
 
+/* The page builder.  Lines are set top to bottom; a line that does not fit
+ * starts a new page, taking with it the lines that must stay with it.  A
+ * figure that does not fit floats to the top of the next page while the
+ * text goes on, as in TeX. */
+typedef struct {
+	Page cur;
+	double prev_base, prev_d, notes_h;
+} Builder;
+
+static bool
+empty_page(Builder *pb)
+{
+	return pb->cur.lines.n == 0;
+}
+
+static double
+baseline_for(Builder *pb, V *v)
+{
+	if (empty_page(pb))
+		return TOP + v->h;
+	return pb->prev_base + MAX(v->lead, pb->prev_d + v->h + 0.1 * BS) + v->before;
+}
+
+static void
+place(Builder *pb, size_t i)
+{
+	V *v = &vl.v[i];
+	double need = notes_height(v);
+	double sep = need > 0 && pb->notes_h == 0 ? NOTE_RULE_SPACE : 0;
+
+	v->y = baseline_for(pb, v);
+	v->page = (int)pages.n;
+	pb->notes_h += need + sep;
+	pb->prev_base = v->y;
+	pb->prev_d = v->d;
+	VPUSH(pb->cur.lines, (int)i);
+}
+
+static bool
+fits(Builder *pb, size_t i)
+{
+	V *v = &vl.v[i];
+	double need = notes_height(v);
+	double sep = need > 0 && pb->notes_h == 0 ? NOTE_RULE_SPACE : 0;
+
+	return baseline_for(pb, v) + v->d <= BOT - pb->notes_h - need - sep + 0.5;
+}
+
+static void
+new_page(Builder *pb)
+{
+	VPUSH(pages, pb->cur);
+	memset(&pb->cur, 0, sizeof pb->cur);
+	pb->notes_h = 0;
+}
+
+/* lines [i, end) of a float, or end == i when line i starts none */
+static size_t
+float_end(size_t i)
+{
+	size_t e = i;
+
+	if (vl.v[i].float_id == 0)
+		return i;
+	while (e < vl.n && vl.v[e].float_id == vl.v[i].float_id)
+		e++;
+	return e;
+}
+
+/* would the whole float fit on the current page? */
+static bool
+float_fits(Builder *pb, size_t i, size_t e)
+{
+	Builder trial = *pb;
+
+	memset(&trial.cur, 0, sizeof trial.cur);
+	for (size_t k = 0; k < pb->cur.lines.n; k++)
+		VPUSH(trial.cur.lines, pb->cur.lines.v[k]);
+	for (size_t k = i; k < e; k++) {
+		if (!fits(&trial, k))
+			return false;
+		V saved = vl.v[k];
+		place(&trial, k);
+		vl.v[k] = saved;
+	}
+	return true;
+}
+
 static void
 paginate(void)
 {
-	size_t i = 0, start = 0;
-	double prev_base = 0, prev_d = 0;
-	bool empty = true;
+	Builder pb;
+	VEC(size_t) pending = {0};	/* floats waiting for the next page */
+	size_t i = 0;
 
-	while (i < vl.n) {
+	memset(&pb, 0, sizeof pb);
+	while (i < vl.n || pending.n) {
+		/* a fresh page takes the floats that waited for it */
+		if (empty_page(&pb) && pending.n) {
+			size_t f = pending.v[0], e = float_end(f);
+			for (size_t k = f; k < e; k++)
+				place(&pb, k);
+			memmove(pending.v, pending.v + 1, (pending.n - 1) * sizeof *pending.v);
+			pending.n--;
+			while (pending.n && float_fits(&pb, pending.v[0], float_end(pending.v[0]))) {
+				f = pending.v[0];
+				e = float_end(f);
+				for (size_t k = f; k < e; k++)
+					place(&pb, k);
+				memmove(pending.v, pending.v + 1, (pending.n - 1) * sizeof *pending.v);
+				pending.n--;
+			}
+			continue;
+		}
+		if (i >= vl.n) {
+			new_page(&pb);
+			continue;
+		}
 		V *v = &vl.v[i];
 		if (v->newpage) {
-			if (!empty) {
-				Page p = {start, i};
-				VPUSH(pages, p);
-			}
-			start = i + 1;
-			empty = true;
+			if (!empty_page(&pb))
+				new_page(&pb);
 			i++;
 			continue;
 		}
-		double base = empty ? TOP + v->h : prev_base + MAX(v->lead, prev_d + v->h + 0.1 * BS) + v->before;
-		if (!empty && base + v->d > BOT + 0.5) {
-			/* break: back up over lines that must stay with their successors */
-			size_t b = i;
-			while (b > start + 1 && vl.v[b - 1].keep)
-				b--;
-			if (b == start + 1 && vl.v[b - 1].keep)
-				b = i;	/* everything is glued: break anyway */
-			Page p = {start, b};
-			VPUSH(pages, p);
-			start = b;
-			i = b;
-			empty = true;
+		size_t e = float_end(i);
+		if (e > i) {
+			if (pending.n == 0 && (empty_page(&pb) || float_fits(&pb, i, e))) {
+				for (size_t k = i; k < e; k++)
+					place(&pb, k);
+			} else {
+				VPUSH(pending, i);
+			}
+			i = e;
 			continue;
 		}
-		v->y = base;
-		v->page = (int)pages.n;
-		prev_base = base;
-		prev_d = v->d;
-		empty = false;
+		if (!empty_page(&pb) && !fits(&pb, i)) {
+			/* back up over lines that must stay with their successors */
+			size_t n = pb.cur.lines.n, b = n;
+			while (b > 1 && vl.v[pb.cur.lines.v[b - 1]].keep && vl.v[pb.cur.lines.v[b - 1]].float_id == 0)
+				b--;
+			if (b == 1 && vl.v[pb.cur.lines.v[0]].keep)
+				b = n;	/* everything is glued: break anyway */
+			size_t resume = b < n ? (size_t)pb.cur.lines.v[b] : i;
+			pb.cur.lines.n = b;
+			new_page(&pb);
+			i = resume;
+			continue;
+		}
+		place(&pb, i);
 		i++;
 	}
-	if (!empty || pages.n == 0) {
-		Page p = {start, vl.n};
-		VPUSH(pages, p);
-	}
+	if (!empty_page(&pb) || pages.n == 0)
+		new_page(&pb);
 }
 
 /* ---- output ---- */
@@ -2511,6 +2722,53 @@ emit_pageref(Op *o, double x0, double y, LinkRects *lr)
 	}
 }
 
+/* the footnotes of a page, above its foot, under a short rule */
+static void
+emit_notes(size_t pi, LinkRects *lr)
+{
+	double total = 0;
+	VEC(int) here = {0};
+
+	for (size_t li = 0; li < pages.v[pi].lines.n; li++)
+		for (size_t k = 0, i = (size_t)pages.v[pi].lines.v[li]; k < vl.v[i].notes.n; k++) {
+			VPUSH(here, vl.v[i].notes.v[k]);
+			total += notes.v[vl.v[i].notes.v[k] - 1].h + NOTE_GAP;
+		}
+	if (here.n == 0)
+		return;
+	double y = BOT - total;
+	context(ART_LAYOUT, -1);
+	flush_run();
+	Buf r = {0};
+	bputs(&r, "r ");
+	bnum(&r, LM);
+	bputc(&r, ' ');
+	bnum(&r, y - NOTE_RULE_SPACE * 0.6);
+	bputc(&r, ' ');
+	bnum(&r, TW / 3);
+	bputs(&r, " 0.4");
+	fprintf(out, "%s\n", bstr(&r));
+	for (size_t k = 0; k < here.n; k++) {
+		Note *nt = &notes.v[here.v[k] - 1];
+		if (nt->el < el_page_cache_n) {
+			el_page[nt->el] = (int)pi;
+			el_y[nt->el] = MAX(0, y - BS);
+		}
+		for (size_t i = 0; i < nt->lines.n; i++) {
+			V *v = &nt->lines.v[i];
+			y += i ? v->lead : v->h;
+			for (size_t q = 0; q < v->ops.n; q++) {
+				Op *o = &v->ops.v[q];
+				context(o->el, o->span);
+				glyph_out(o, LM + v->x + o->x, y + o->y);
+			}
+		}
+		y += (nt->lines.n ? nt->lines.v[nt->lines.n - 1].d : 0) + NOTE_GAP;
+	}
+	close_span();
+	(void)lr;
+}
+
 static void
 emit(void)
 {
@@ -2526,12 +2784,15 @@ emit(void)
 		fprintf(out, "m keywords %s\n", meta_keywords);
 	fprintf(out, "m date %lld\n", (long long)doc_time());
 
-	/* make sure every face that will be drawn is declared */
-	for (size_t i = 0; i < vl.n; i++)
-		for (size_t k = 0; k < vl.v[i].ops.n; k++)
-			if (vl.v[i].ops.v[k].kind == O_GLYPH || vl.v[i].ops.v[k].kind == O_INVIS ||
-			    vl.v[i].ops.v[k].kind == O_PAGEREF)
-				pdl_font(vl.v[i].ops.v[k].face);
+	/* make sure every face that will be drawn, in the text or its notes, is declared */
+	for (size_t n = 0; n <= notes.n; n++) {
+		VList *l = n < notes.n ? &notes.v[n].lines : &vl;
+		for (size_t i = 0; i < l->n; i++)
+			for (size_t k = 0; k < l->v[i].ops.n; k++)
+				if (l->v[i].ops.v[k].kind == O_GLYPH || l->v[i].ops.v[k].kind == O_INVIS ||
+				    l->v[i].ops.v[k].kind == O_PAGEREF)
+					pdl_font(l->v[i].ops.v[k].face);
+	}
 	pdl_font(FACE_REG);
 	for (size_t i = 0; i < font_order.n; i++)
 		fprintf(out, "f %zu %s\n", i, logical_font_source(face_name[font_order.v[i]]));
@@ -2595,8 +2856,8 @@ emit(void)
 		bputc(&pb, ' ');
 		bnum(&pb, PH);
 		fprintf(out, "%s\n", bstr(&pb));
-		for (size_t i = pages.v[pi].first; i < pages.v[pi].last; i++) {
-			V *v = &vl.v[i];
+		for (size_t li = 0; li < pages.v[pi].lines.n; li++) {
+			V *v = &vl.v[pages.v[pi].lines.v[li]];
 			if (v->newpage)
 				continue;
 			double x0 = LM + v->x, y = v->y;
@@ -2658,6 +2919,7 @@ emit(void)
 			}
 		}
 		close_span();
+		emit_notes(pi, &lr);
 		emit_page_number((int)pi);
 		emit_link_rects(&lr);
 	}

@@ -187,6 +187,34 @@ inlines(Node *parent, Src *src, size_t a, size_t b)
 				continue;
 			}
 		}
+		if (c == '^' && i + 1 < b && s[i + 1] == '[') {
+			/* a footnote, ^[text]: brackets nest, mathematics is skipped */
+			size_t e = i + 2;
+			int depth = 1;
+			bool math = false;
+			for (; e < b; e++) {
+				if (s[e] == '\\') {
+					e++;
+					continue;
+				}
+				if (s[e] == '$')
+					math = !math;
+				else if (!math && s[e] == '[')
+					depth++;
+				else if (!math && s[e] == ']' && --depth == 0)
+					break;
+			}
+			if (e >= b) {
+				error_at(src->line[i], src->col[i], "unterminated footnote: missing closing ]");
+				bputc(&t, c);
+				i++;
+				continue;
+			}
+			flush(parent, &t);
+			inlines(node_add(parent, "note", src->line[i], src->col[i], ""), src, i + 2, e);
+			i = e + 1;
+			continue;
+		}
 		if (c == '[') {
 			size_t e = find_close(s, i + 1, b, "](");
 			if (e != (size_t)-1) {

@@ -20,7 +20,15 @@ document test/golden/language.tekx
     heading
       text Headings with hashes
     para@18 0
-      text Paragraphs are separated by blank lines. A line break inside a paragraph is a space – and dashes, quotes “like these”, ellipses… and non breaking spaces become real typography. See Knuth (2026) and Lamport (1994).
+      text Paragraphs are separated by blank lines.
+      note@18:41
+        text A footnote with 
+        emph
+          text emphasis
+        text , 
+        math@18:72 x^2
+        text  and [brackets].
+      text  A line break inside a paragraph is a space – and dashes, quotes “like these”, ellipses… and non breaking spaces become real typography. See Knuth (2026) and Lamport (1994).
     section@23 2 1 -
       heading
         text A subsection
@@ -120,6 +128,9 @@ document test/golden/language.tekx
           text LaTeX
         text , 1994.
 == mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x squared"><semantics><mrow><msup><mi>𝑥</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">x^2</annotation></semantics></math>
+speech x squared
+linear x²
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x"><semantics><mrow><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">x</annotation></semantics></math>
 speech x
 linear x

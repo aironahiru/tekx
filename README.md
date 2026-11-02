@@ -155,8 +155,7 @@ bytes.
 
 tekx 0.1 typesets articles: titles, abstracts, sections, theorems and proofs,
 lists, tables, figures, code, displayed and inline mathematics,
-cross-references, contents and references. It does not yet do:
-- footnotes;
+cross-references, footnotes, contents and references. It does not yet do:
 - multiple columns;
 - bibliography databases;
 - hyphenation for languages other than English.
