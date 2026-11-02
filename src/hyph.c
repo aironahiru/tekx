@@ -52,7 +52,7 @@ hyph_init(void)
 		}
 		s++;
 	}
-	qsort(v.v, v.n, sizeof *v.v, cmp_pat);
+	sort(v.v, v.n, sizeof *v.v, cmp_pat);
 	pats = v.v;
 	npats = v.n;
 	if (e) {

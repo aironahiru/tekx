@@ -108,11 +108,24 @@ bprintf(Buf *b, const char *f, ...)
 }
 
 void
+internal_error(const char *file, int line, const char *what)
+{
+	fflush(stdout);
+	fprintf(stderr, "tekx: internal error at %s:%d: %s\n"
+	    "tekx: this is a bug in tekx, not in your document; please report it with the document\n",
+	    file, line, what);
+	exit(70);
+}
+
+void
 bnum(Buf *b, double v)
 {
 	char tmp[64];
 	int n;
 
+	/* every number in a page description or PDF passes here: nan or inf
+	 * would make the file invalid, so it is a bug to let one through */
+	INVARIANT(v == v && v < 1e15 && v > -1e15);
 	if (v > -0.0005 && v < 0.0005)
 		v = 0;
 	n = snprintf(tmp, sizeof tmp, "%.3f", v);

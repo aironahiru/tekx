@@ -500,7 +500,7 @@ define(Line *ls, size_t n, size_t *i)
 				break;
 			if (base < 0)
 				base = k;
-			Line t = {ls[j].no, xstrdup(ls[j].s + MIN(k, base) - (k < base ? 0 : 0)), ls[j].file};
+			Line t = {ls[j].no, xstrdup(ls[j].s + MIN(k, base)), ls[j].file};
 			if (k >= base)
 				t.s = fmt("%*s%s", k - base, "", ls[j].s + k);
 			VPUSH(m.body, t);

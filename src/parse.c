@@ -1543,7 +1543,7 @@ bibliography(Node *doc, const char *source)
 				if (streq(cited.v[k], list.v[i].e->key))
 					list.v[i].sort = fmt("%08zu", k);
 	}
-	qsort(list.v, list.n, sizeof *list.v, by_sort_key);
+	sort(list.v, list.n, sizeof *list.v, by_sort_key);
 	Node *refs = find_kind(doc, "refs");
 	if (refs == NULL)
 		refs = node_add(doc, "refs", 0, 0, "");

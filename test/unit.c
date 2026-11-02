@@ -2,6 +2,7 @@
  * unit.c -- unit tests for the libc-only building blocks.
  */
 #include "../src/font.h"
+#include "../src/sha256.h"
 
 #include <math.h>
 
@@ -72,6 +73,39 @@ test_deflate(void)
 	 */
 	static const u8 bad[] = {0x78, 0x01, 0x05, 0x00, 0x00, 0xE4, 0xFF, 0xFF};
 	CHECK(zlib_decompress(bad, sizeof bad, &m) == NULL);
+}
+
+/* the package lock trusts SHA-256: check it against the FIPS 180 vectors */
+static void
+test_sha256(void)
+{
+	static const struct { const char *in, *hex; } kat[] = {
+		{"", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+		{"abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},
+		{"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+		    "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"},
+	};
+	for (size_t i = 0; i < NELEM(kat); i++) {
+		Sha256 c;
+		u8 d[32];
+		sha256_init(&c);
+		sha256_update(&c, kat[i].in, strlen(kat[i].in));
+		sha256_final(&c, d);
+		CHECK(streq(sha256_hex(d), kat[i].hex));
+	}
+	/* a million a's, fed in uneven pieces, crosses every block boundary */
+	Sha256 c;
+	u8 d[32];
+	char a[997];
+	memset(a, 'a', sizeof a);
+	sha256_init(&c);
+	for (size_t left = 1000000; left > 0;) {
+		size_t k = left < sizeof a ? left : sizeof a;
+		sha256_update(&c, a, k);
+		left -= k;
+	}
+	sha256_final(&c, d);
+	CHECK(streq(sha256_hex(d), "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0"));
 }
 
 static void
@@ -145,6 +179,7 @@ main(void)
 	test_bnum();
 	test_deflate();
 	test_md5();
+	test_sha256();
 	test_fonts();
 	if (failed) {
 		fprintf(stderr, "unit: %d check(s) failed\n", failed);

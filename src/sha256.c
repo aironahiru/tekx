@@ -15,6 +15,8 @@ static const u32 K[64] = {
 	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 };
 
+_Static_assert(NELEM(K) == 64, "SHA-256 has 64 rounds");
+
 #define ROR(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
 
 static void

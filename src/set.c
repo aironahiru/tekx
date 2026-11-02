@@ -34,7 +34,8 @@ lead_for(double size)
 /* ---- fonts ---- */
 
 enum { FACE_REG, FACE_IT, FACE_BF, FACE_BI, FACE_MONO, FACE_MATH, NFACE };
-static const char *face_name[NFACE] = {"text", "italic", "bold", "bolditalic", "mono", "math"};
+static const char *face_name[] = {"text", "italic", "bold", "bolditalic", "mono", "math"};
+_Static_assert(NELEM(face_name) == NFACE, "one logical font name per face");
 static int face_id[NFACE] = {-1, -1, -1, -1, -1, -1};
 static VEC(int) font_order;
 
@@ -778,7 +779,7 @@ add_cite(HList *hl, Node *k, Ctx c)
 	if (!numeric)
 		notes = true;
 	if (!notes)
-		qsort(v.v, v.n, sizeof *v.v, by_number);
+		sort(v.v, v.n, sizeof *v.v, by_number);
 	/* a citation stays on the line of the word before it: Landau [4] */
 	if (hl->n && hl->v[hl->n - 1].kind == H_GLUE) {
 		H g = hl->v[--hl->n];

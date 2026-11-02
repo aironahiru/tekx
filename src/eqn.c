@@ -2931,7 +2931,7 @@ walk(Node *n)
 				VPUSH(rows, n->kids.v[i]->rest);
 				bprintf(&full, "\n%s", n->kids.v[i]->rest);
 			}
-		int col = n->col + (streq(label, "-") ? 0 : 0);
+		int col = n->col;	/* the label ends the line, so the formula starts here */
 		M *m = eqn_parse(src, n->line, col, true, rows.v, (int)rows.n);
 		emit_layout(n, m, true, bstr(&full));
 		return;

@@ -9,6 +9,7 @@
 
 /* TeX's atom classes, which decide the spacing between neighbours */
 enum { ORD, OPC, BIN, REL, OPEN, CLOSE, PUNCT, INNER };
+_Static_assert(INNER == 7, "TeX's eight atom classes index the spacing table");
 
 enum {
 	M_ROW,		/* sequence of kids */

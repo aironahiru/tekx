@@ -401,6 +401,8 @@ static const int spacing[8][8] = {
 	/* PUNCT */{-1, -1, 0,  -1, -1,  -1,   -1,   -1},
 	/* INNER */{-1, 1,  -2, -3, -1,  0,    -1,   -1},
 };
+_Static_assert(NELEM(spacing) == INNER + 1 && NELEM(spacing[0]) == INNER + 1,
+    "one row and one column of TeX's spacing table per atom class");
 
 static double
 space_between(int l, int r, St s)

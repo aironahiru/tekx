@@ -41,6 +41,7 @@ static const struct {
 };
 
 enum { PP, PARSE, EQN, SET, PDF, HTML, TEX };
+_Static_assert(NELEM(stages) == TEX + 1, "one entry in stages[] per stage, in enum order");
 
 static const char usage_text[] =
     "usage: tekx [-E | -P | -M | -S] [-w] [-o output] file.tekx\n"

@@ -284,7 +284,7 @@ list_files(const char *root, const char *rel, Paths *out, char **err)
 			VPUSH(names, xstrdup(e->d_name));
 	closedir(d);
 	if (names.n)
-		qsort(names.v, names.n, sizeof *names.v, by_str);
+		sort(names.v, names.n, sizeof *names.v, by_str);
 	for (size_t i = 0; i < names.n; i++) {
 		char *r = *rel ? path_join(rel, names.v[i]) : names.v[i];
 		char *full = path_join(root, r);
@@ -317,7 +317,7 @@ tree_hash(const char *root, char **err)
 	if (!list_files(root, "", &files, err))
 		return NULL;
 	if (files.n)
-		qsort(files.v, files.n, sizeof *files.v, by_str);
+		sort(files.v, files.n, sizeof *files.v, by_str);
 	sha256_init(&c);
 	for (size_t i = 0; i < files.n; i++) {
 		char *full = path_join(root, files.v[i]);
@@ -585,7 +585,7 @@ write_lock(Lock *L)
 	for (size_t i = 0; i < L->r.n; i++)
 		fprintf(f, "registry %s %s %s\n", L->r.v[i].name, L->r.v[i].kind, field_esc(L->r.v[i].where));
 	if (L->e.n)
-		qsort(L->e.v, L->e.n, sizeof *L->e.v, by_entry);
+		sort(L->e.v, L->e.n, sizeof *L->e.v, by_entry);
 	for (size_t i = 0; i < L->e.n; i++) {
 		Entry *e = &L->e.v[i];
 		fprintf(f, "package %s %s %s %s", e->name, e->version, e->hash, e->kind);
@@ -1135,7 +1135,7 @@ cmd_search(Lock *L, const char *word)
 		if (d)
 			closedir(d);
 		if (names.n)
-			qsort(names.v, names.n, sizeof *names.v, by_str);
+			sort(names.v, names.n, sizeof *names.v, by_str);
 		for (size_t k = 0; k < names.n; k++) {
 			Package *p = read_manifest(path_join(base, names.v[k]), &err);
 			if (p == NULL)

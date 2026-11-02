@@ -58,6 +58,7 @@ enum {
 	RadicalKernAfterDegree, RadicalDegreeBottomRaisePercent,
 	MathConstCount
 };
+_Static_assert(MathConstCount == 56, "the OpenType MATH table has 56 constants, in this order");
 
 typedef struct {
 	u16 glyph, start, end, full;

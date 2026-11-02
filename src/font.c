@@ -252,7 +252,7 @@ parse_cmap(Font *f, const u8 *t, size_t n)
 	if (m.n == 0)
 		return false;
 	/* stable sort keeps later (better) entries after earlier ones; dedupe keeping the last */
-	qsort(m.v, m.n, sizeof *m.v, cmp_cmap);
+	sort(m.v, m.n, sizeof *m.v, cmp_cmap);
 	size_t w = 0;
 	for (size_t i = 0; i < m.n; i++) {
 		if (w > 0 && m.v[w - 1].c == m.v[i].c)

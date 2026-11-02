@@ -56,7 +56,7 @@ one() {
 	[ $? -ge 124 ] && rc=124
 	[ -e "$dir/import.txt" ] && cat "$dir/import.txt" >>"$dir/err.txt"
 	grep -q '^timeout$' "$dir/err.txt" && rc=124
-	if [ $rc -ge 124 ] || grep -q 'Sanitizer\|runtime error' "$dir/err.txt"; then
+	if [ $rc -ge 124 ] || grep -q 'Sanitizer\|runtime error\|internal error' "$dir/err.txt"; then
 		cp "$dir/case.tekx" "test/out/fuzz/fail-$i.tekx"
 		cp "$dir/x.png" "test/out/fuzz/fail-$i.png"
 		cp "$dir/err.txt" "test/out/fuzz/fail-$i.txt"

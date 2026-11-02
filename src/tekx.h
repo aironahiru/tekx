@@ -77,6 +77,14 @@ void utf8_enc(Buf *b, u32 cp);
 size_t utf8_len(const char *s);	/* number of code points */
 u32 utf8_first(const char *s);
 
+/* sorting: qsort, but defined for an empty array (whose pointer may be NULL) */
+static inline void
+sort(void *base, size_t n, size_t size, int (*cmp)(const void *, const void *))
+{
+	if (n > 1)
+		qsort(base, n, size, cmp);
+}
+
 /* strings */
 bool streq(const char *a, const char *b);
 bool startswith(const char *s, const char *prefix);
@@ -95,6 +103,17 @@ void error_at(int line, int col, const char *fmt, ...) PRINTF(3, 4);
 void warn_at(int line, int col, const char *fmt, ...) PRINTF(3, 4);
 void note(const char *fmt, ...) PRINTF(1, 2);
 _Noreturn void die(const char *fmt, ...) PRINTF(1, 2);
+
+/*
+ * Internal invariants, checked in every build.  A broken invariant is a
+ * bug in tekx, never in the document: tekx stops with exit status 70 and
+ * writes nothing, rather than a file that is subtly wrong.
+ */
+_Noreturn void internal_error(const char *file, int line, const char *what);
+#define INVARIANT(c) ((c) ? (void)0 : internal_error(__FILE__, __LINE__, #c))
+
+_Static_assert(sizeof(u8) == 1 && sizeof(u16) == 2 && sizeof(u32) == 4 && sizeof(u64) == 8,
+    "fixed-width types");
 
 /* I/O */
 char *read_file(const char *path, size_t *len);

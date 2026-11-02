@@ -163,7 +163,7 @@ cite(Buf *b, Node *k)
 	if (!numeric)
 		notes = true;
 	if (!notes)
-		qsort(v.v, v.n, sizeof *v.v, by_number);
+		sort(v.v, v.n, sizeof *v.v, by_number);
 	bputc(b, '[');
 	for (size_t i = 0; i < v.n; i++) {
 		if (i > 0)

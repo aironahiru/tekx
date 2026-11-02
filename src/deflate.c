@@ -9,6 +9,8 @@
 
 /* zlib's level-6 search: chains of 128, enough at 128 bytes, no lazy look past 16 */
 enum { WSIZE = 32768, MINM = 3, MAXM = 258, HBITS = 15, CHAIN = 128, NICE = 128, LAZY = 16, BLOCK = 1 << 16 };
+_Static_assert(WSIZE <= 32768 && MINM == 3 && MAXM == 258, "RFC 1951: a 32 KiB window, matches of 3 to 258");
+_Static_assert(NICE <= MAXM && LAZY <= NICE && HBITS <= 24, "search parameters within the format");
 
 static const u16 lbase[29] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
 static const u8 lextra[29] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0};
