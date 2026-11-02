@@ -18,6 +18,7 @@ struct Node {
 	char *kind;
 	int line, col;
 	char *rest;		/* text after the kind token */
+	char *num;		/* the number the numbering pass gave it ("2.3", "A"), or NULL */
 	Node *parent;
 	VEC(Node *) kids;
 };

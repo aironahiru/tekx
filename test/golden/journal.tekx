@@ -1,0 +1,41 @@
+// Journal features: authors with details, classification, numbering by
+// section, an appendix, citations and a BibTeX bibliography.
+title "Gaps Between Sums of Two Squares"
+author "Ada Lovelace", affiliation: "University of London, UK", email: "ada@example.org", orcid: "0000-0002-1825-0097"
+author "Charles Babbage", affiliation: "Cambridge", url: "https://example.org/cb"
+author "Mary Somerville and John Herschel"
+msc "11N36 (primary); 11E25 (secondary)"
+keywords "sums of two squares, short intervals"
+numbering by section
+bibliography "journal.bib"
+
+abstract
+  We improve the exponent $1/2$ of [@hooley, Thm. 2; @landau].
+
+section Introduction #intro
+
+Landau [@landau] proved
+
+    B(x) ~ K x/sqrt(log x)   #asym
+
+By Theorem @main and Lemmas @a and @b, see (@asym) and Section @intro;
+also [@vallee; @erdos; @thesis; @arxiv; @parens] and [@arxiv, §2].
+The paper @hooley and the formula (@asym) are different things.
+
+theorem "Main" #main
+  Every interval $[x, x + x^(1/4 + epsilon)]$ contains one.
+
+lemma #a
+  First.
+
+lemma #b
+  Second, by [@landau, p. $305$].
+
+appendix
+
+section Computations #comp
+
+lemma #c
+  As in Appendix @comp, Lemma @c holds.
+
+    g(x) <= 2 x^(1/4)   #bound

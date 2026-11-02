@@ -897,6 +897,63 @@ led_bp(P *p)
 }
 
 /* superscript, subscript and limit arguments: one atom, grouping removed */
+/*
+ * A fraction written a/b is set as a stacked fraction in display style
+ * and on the line, a/b, everywhere else: in running text, in scripts, and
+ * inside a stacked fraction's numerator and denominator.  That is how
+ * print sets them (and what LaTeX's / and \\frac mean); frac(a, b),
+ * a over b and \\frac always stack.  A slashed fraction keeps its meaning
+ * (speech, copy text) and is laid out, and written as MathML, from a row
+ * with real parentheses around compound parts: (1 + √5)/2.
+ */
+static void
+mark_slashed(M *m, bool disp)
+{
+	if (m == NULL)
+		return;
+	switch (m->kind) {
+	case M_FRAC:
+		m->slashed = m->solidus && !m->thin && !disp;
+		if (m->slashed && m->slash == NULL) {
+			M *r = mrow();
+			VPUSH(r->kids, is_atom(m->a) ? m->a : fence("(", m->a, ")"));
+			VPUSH(r->kids, op("/", ORD));
+			VPUSH(r->kids, is_atom(m->b) ? m->b : fence("(", m->b, ")"));
+			r->group = true;
+			m->slash = r;
+		}
+		mark_slashed(m->a, false);
+		mark_slashed(m->b, false);
+		return;
+	case M_SCRIPT:
+	case M_BIGOP:
+		mark_slashed(m->a, disp);
+		mark_slashed(m->b, false);
+		mark_slashed(m->c, false);
+		return;
+	case M_ROOT:
+		mark_slashed(m->a, disp);
+		mark_slashed(m->b, false);
+		return;
+	case M_TABLE:
+		for (size_t i = 0; i < m->kids.n; i++)
+			mark_slashed(m->kids.v[i], false);
+		return;
+	default:
+		mark_slashed(m->a, disp);
+		mark_slashed(m->b, disp);
+		mark_slashed(m->c, disp);
+		for (size_t i = 0; i < m->kids.n; i++)
+			mark_slashed(m->kids.v[i], disp);
+	}
+}
+
+void
+eqn_mark_slashed(M *m, bool display)
+{
+	mark_slashed(m, display);
+}
+
 static M *
 script_arg(P *p)
 {
@@ -2458,6 +2515,7 @@ led(P *p, M *left, int bp)
 		M *f = mnew(M_FRAC);
 		f->a = strip(left);
 		f->b = strip(right);
+		f->solidus = true;
 		return f;
 	}
 	if (is(t, "over")) {

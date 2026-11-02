@@ -5,7 +5,10 @@
  * indentation.  Inside a block, lines indented further than the block's
  * text are display mathematics: math is a first-class citizen.
  */
+#include "bib.h"
 #include "tree.h"
+
+#include <ctype.h>
 
 typedef struct {
 	int no, indent;
@@ -25,6 +28,68 @@ static const char *theorem_kinds[] = {
 static VEC(char *) env_names;
 /* text macros known to pp, for suggestions */
 static VEC(char *) macro_names;
+
+/* ---- Ruby-style arguments: "Ada Lovelace", affiliation: "Dept, Univ" ---- */
+
+typedef struct {
+	char *key;	/* NULL for a positional value */
+	char *val;
+} KV;
+typedef VEC(KV) KVs;
+
+/* split at top-level commas; "key: value" items have keys; quotes are
+ * removed and protect commas: "London, UK" is one value */
+static KVs
+kwargs(const char *s)
+{
+	KVs v = {0};
+
+	while (*s) {
+		while (*s == ' ' || *s == ',')
+			s++;
+		if (!*s)
+			break;
+		KV kv = {NULL, NULL};
+		const char *k = s;
+		while (isalnum((unsigned char)*k) || *k == '_' || *k == '-')
+			k++;
+		if (k > s && *k == ':' && (k[1] == ' ' || k[1] == '"')) {
+			kv.key = xstrndup(s, (size_t)(k - s));
+			s = k + 1;
+			while (*s == ' ')
+				s++;
+		}
+		Buf b = {0};
+		if (*s == '"') {
+			for (s++; *s && *s != '"'; s++) {
+				if (*s == '\\' && s[1])
+					s++;
+				bputc(&b, *s);
+			}
+			if (*s == '"')
+				s++;
+			while (*s && *s != ',')
+				s++;
+		} else {
+			while (*s && *s != ',')
+				bputc(&b, *s++);
+		}
+		kv.val = trim(bstr(&b));
+		VPUSH(v, kv);
+	}
+	return v;
+}
+
+static bool
+has_kwargs(const char *s)
+{
+	KVs v = kwargs(s);
+
+	for (size_t i = 0; i < v.n; i++)
+		if (v.v[i].key)
+			return true;
+	return false;
+}
 
 static bool
 is_blank(int i)
@@ -99,6 +164,8 @@ typedef struct {
 } Src;
 
 static void inlines(Node *parent, Src *src, size_t a, size_t b);
+static bool is_citation(const char *s, size_t i, size_t b);
+static size_t citation(Node *parent, Src *src, size_t i, size_t b);
 
 static void
 flush(Node *parent, Buf *t)
@@ -230,6 +297,11 @@ inlines(Node *parent, Src *src, size_t a, size_t b)
 			i = e + 1;
 			continue;
 		}
+		if (c == '[' && is_citation(s, i, b)) {
+			flush(parent, &t);
+			i = citation(parent, src, i, b);
+			continue;
+		}
 		if (c == '[') {
 			size_t e = find_close(s, i + 1, b, "](");
 			if (e != (size_t)-1) {
@@ -335,6 +407,90 @@ inlines(Node *parent, Src *src, size_t a, size_t b)
 		i++;
 	}
 	flush(parent, &t);
+}
+
+/*
+ * Citations, Pandoc's way: [@key], [@a; @b], [@key, Thm. 2].  Every item
+ * starts with @ and items are separated by semicolons; whatever follows
+ * the key is a note, and may hold any inline text, mathematics included.
+ */
+static size_t
+citation_end(const char *s, size_t i, size_t b)
+{
+	bool math = false;
+
+	for (size_t e = i + 1; e < b; e++) {
+		if (s[e] == '\\') {
+			e++;
+			continue;
+		}
+		if (s[e] == '$')
+			math = !math;
+		else if (!math && s[e] == '[')
+			return (size_t)-1;
+		else if (!math && s[e] == ']')
+			return e;
+	}
+	return (size_t)-1;
+}
+
+static bool
+is_citation(const char *s, size_t i, size_t b)
+{
+	size_t e = citation_end(s, i, b), k = i + 1;
+
+	if (e == (size_t)-1 || (e + 1 < b && s[e + 1] == '('))
+		return false;
+	/* every item must start with @key */
+	for (;;) {
+		while (k < e && s[k] == ' ')
+			k++;
+		if (k >= e || s[k] != '@' || k + 1 >= e || !is_label_char(s[k + 1]))
+			return false;
+		bool math = false;
+		while (k < e && (math || s[k] != ';')) {
+			if (s[k] == '$')
+				math = !math;
+			k++;
+		}
+		if (k >= e)
+			return true;
+		k++;
+	}
+}
+
+static size_t
+citation(Node *parent, Src *src, size_t i, size_t b)
+{
+	const char *s = src->s;
+	size_t e = citation_end(s, i, b), k = i + 1;
+	Node *c = node_add(parent, "cite", src->line[i], src->col[i], "");
+
+	while (k < e) {
+		while (k < e && s[k] == ' ')
+			k++;
+		size_t a = k + 1, z = a;
+		while (z < e && is_label_char(s[z]))
+			z++;
+		while (z > a && (s[z - 1] == ':' || s[z - 1] == '-'))
+			z--;
+		Node *it = node_add(c, "item", src->line[k], src->col[k], xstrndup(s + a, z - a));
+		/* the note: after the key, an optional comma, to the semicolon */
+		size_t n = z, m;
+		bool math = false;
+		for (m = n; m < e && (math || s[m] != ';'); m++)
+			if (s[m] == '$')
+				math = !math;
+		while (n < m && (s[n] == ' ' || s[n] == ','))
+			n++;
+		size_t q = m;
+		while (q > n && s[q - 1] == ' ')
+			q--;
+		if (q > n)
+			inlines(it, src, n, q);
+		k = m < e ? m + 1 : m;
+	}
+	return e + 1;
 }
 
 /* Join lines a..b-1 (each from column `from` of its text) and parse inlines. */
@@ -690,6 +846,94 @@ references(Node *parent, int i, int base)
 
 static Node *section_stack[4];
 
+/* the settings a document may open with; anything else that looks like one
+ * (a word followed by a quoted value) is an error, not silently prose */
+static const char *settings[] = {"title", "subtitle", "author", "date", "language", "lang",
+    "keywords", "subject", "paper", "size", "font", "msc", "numbering", "bibliography"};
+
+static bool
+is_setting(const char *w)
+{
+	for (size_t i = 0; i < NELEM(settings); i++)
+		if (streq(w, settings[i]))
+			return true;
+	return false;
+}
+
+/* a lowercase word followed by a quoted value and nothing else */
+static bool
+looks_like_setting(int i)
+{
+	const char *s = L[i].s, *rest;
+	char *w = first_word(s, &rest);
+	size_t n = strlen(rest);
+
+	return w[0] >= 'a' && w[0] <= 'z' && n >= 2 && rest[0] == '"' && rest[n - 1] == '"';
+}
+
+/* a line that starts with a known setting and a value */
+static bool
+setting_line(int i)
+{
+	const char *rest;
+	char *w = first_word(L[i].s, &rest);
+
+	return is_setting(w) && *rest;
+}
+
+static const char *
+closest(const char *w, const char *const *list, size_t n)
+{
+	const char *best = NULL;
+	int bd = w[0] && w[1] && w[2] ? 3 : 2;
+
+	for (size_t k = 0; k < n; k++) {
+		int d = edit_distance(w, list[k]);
+		if (d < bd) {
+			bd = d;
+			best = list[k];
+		}
+	}
+	return best;
+}
+
+/* author "Ada Lovelace", affiliation: "...", email: "...", orcid: "..." */
+static void
+author_line(const char *rest, int line, int col)
+{
+	static const char *const keys[] = {"affiliation", "email", "orcid", "url"};
+	KVs v = kwargs(rest);
+	Node *a = NULL;
+
+	for (size_t i = 0; i < v.n; i++) {
+		KV *kv = &v.v[i];
+		if (kv->key == NULL) {
+			if (a)
+				error_at(line, col, "one author per line when details are given: "
+				    "author \"Name\", affiliation: \"...\"");
+			a = node_add(section_stack[0], "meta", line, 0,
+			    fmt("author %s", typography(kv->val, line, col)));
+			continue;
+		}
+		if (a == NULL) {
+			error_at(line, col, "the author's name comes first: author \"Name\", %s: \"...\"", kv->key);
+			a = node_add(section_stack[0], "meta", line, 0, "author ?");
+		}
+		bool known = false;
+		for (size_t k = 0; k < NELEM(keys); k++)
+			known |= streq(kv->key, keys[k]);
+		if (!known) {
+			const char *best = closest(kv->key, keys, NELEM(keys));
+			if (best)
+				error_at(line, col, "unknown author detail '%s:'; did you mean '%s:'?", kv->key, best);
+			else
+				error_at(line, col, "unknown author detail '%s:' (expected affiliation, email, orcid or url)", kv->key);
+			continue;
+		}
+		node_add(a, kv->key, 0, 0, streq(kv->key, "affiliation") ? typography(kv->val, line, col) : kv->val);
+	}
+}
+
 static int
 blocks(Node *parent, int i, int base, bool top)
 {
@@ -757,28 +1001,53 @@ blocks(Node *parent, int i, int base, bool top)
 			after_display = false;
 			continue;
 		}
-		if (top && (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||
-		    streq(w, "language") || streq(w, "lang") || streq(w, "keywords") || streq(w, "subject") ||
-		    streq(w, "paper") || streq(w, "size") || streq(w, "font")) && *rest) {
-			char *v = unquote(rest);
-			if (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||
-			    streq(w, "keywords") || streq(w, "subject"))
-				v = typography(v, ln->no, (int)(rest - s) + 1);
-			node_add(section_stack[0], "meta", ln->no, 0,
-			    fmt("%s %s", streq(w, "lang") ? "language" : w, v));
+		if (top && is_setting(w) && *rest) {
+			int col = (int)(rest - s) + ln->indent + 1;
+			if (streq(w, "author") && has_kwargs(rest)) {
+				author_line(rest, ln->no, col);
+			} else if (streq(w, "bibliography")) {
+				/* bibliography "refs.bib" [, "more.bib"]: read BibTeX */
+				KVs v = kwargs(rest);
+				for (size_t k = 0; k < v.n; k++)
+					node_add(section_stack[0], "bibfile", ln->no, col, v.v[k].val);
+			} else if (streq(w, "numbering") && !streq(unquote(rest), "by section") &&
+			    !streq(unquote(rest), "continuous")) {
+				error_at(ln->no, col, "unknown numbering '%s' (expected: numbering by section, or "
+				    "numbering continuous)", unquote(rest));
+			} else {
+				char *v = unquote(rest);
+				if (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||
+				    streq(w, "keywords") || streq(w, "subject") || streq(w, "msc"))
+					v = typography(v, ln->no, col);
+				node_add(section_stack[0], "meta", ln->no, 0,
+				    fmt("%s %s", streq(w, "lang") ? "language" : w, v));
+			}
 			i++;
 			continue;
 		}
 		if (top && streq(w, "document") && *rest) {
 			/* Ruby style: document title: "X", author: "Y" */
-			char *kv = xstrdup(rest);
-			for (char *tok = strtok(kv, ","); tok; tok = strtok(NULL, ",")) {
-				char *c = strchr(tok, ':');
-				if (!c)
+			KVs v = kwargs(rest);
+			for (size_t k = 0; k < v.n; k++) {
+				if (v.v[k].key == NULL || !is_setting(v.v[k].key)) {
+					const char *best = v.v[k].key ? closest(v.v[k].key, settings, NELEM(settings)) : NULL;
+					if (best)
+						error_at(ln->no, ln->indent + 1, "unknown setting '%s:'; did you mean '%s:'?", v.v[k].key, best);
+					else
+						error_at(ln->no, ln->indent + 1, "expected setting: \"value\" pairs after document");
 					continue;
-				*c = 0;
-				node_add(parent, "meta", ln->no, 0, fmt("%s %s", trim(tok), unquote(trim(c + 1))));
+				}
+				node_add(section_stack[0], "meta", ln->no, 0, fmt("%s %s", v.v[k].key, v.v[k].val));
 			}
+			i++;
+			continue;
+		}
+		if (top && streq(w, "appendix") && !*rest) {
+			/* the sections after this line are appendices: A, B, ... */
+			node_add(section_stack[0], "appendix", ln->no, 0, "");
+			for (int k = 1; k < 4; k++)
+				section_stack[k] = NULL;
+			parent = section_stack[0];
 			i++;
 			continue;
 		}
@@ -971,6 +1240,32 @@ blocks(Node *parent, int i, int base, bool top)
 				}
 			}
 		}
+		if (top && looks_like_setting(i) && (i + 1 >= NL || is_blank(i + 1) || L[i + 1].indent != base ||
+		    looks_like_setting(i + 1) || setting_line(i + 1))) {
+			/* `word "value"` on a line of its own reads as a setting: say so,
+			 * rather than quietly setting it as a paragraph */
+			const char *best = closest(w, settings, NELEM(settings));
+			if (streq(w, "affiliation") || streq(w, "email") || streq(w, "orcid"))
+				error_at(ln->no, ln->indent + 1, "%s belongs to an author: author \"Name\", %s: %s",
+				    w, w, rest);
+			else if (best)
+				error_at(ln->no, ln->indent + 1, "unknown setting '%s'; did you mean '%s'?", w, best);
+			else
+				error_at(ln->no, ln->indent + 1, "'%s' is not a setting (settings: title, subtitle, author, "
+				    "date, language, keywords, msc, numbering, bibliography, paper, size, font); "
+				    "write \\%s to start a paragraph with it", w, w);
+			i++;
+			continue;
+		}
+		if (!*rest && w[0] >= 'a' && w[0] <= 'z' && (i + 1 >= NL || is_blank(i + 1))) {
+			static const char *const lone[] = {"appendix", "contents", "newpage", "references"};
+			const char *best = closest(w, lone, NELEM(lone));
+			if (best && !streq(best, w)) {
+				error_at(ln->no, ln->indent + 1, "unknown line '%s'; did you mean '%s'?", w, best);
+				i++;
+				continue;
+			}
+		}
 		if (*s == '\\')
 			ln->s++;
 		bool cont = prev_display && !(ln->s[0] >= 'A' && ln->s[0] <= 'Z');
@@ -978,6 +1273,182 @@ blocks(Node *parent, int i, int base, bool top)
 		after_display = false;
 	}
 	return i;
+}
+
+/* ---- citations and the bibliography ---- */
+
+typedef VEC(char *) Names;
+
+static bool
+has(const Names *v, const char *s)
+{
+	for (size_t i = 0; i < v->n; i++)
+		if (streq(v->v[i], s))
+			return true;
+	return false;
+}
+
+/* every #label the document defines */
+static void
+labels_in(Node *n, Names *out)
+{
+	for (size_t i = 0; i < n->kids.n; i++) {
+		Node *k = n->kids.v[i];
+		const char *l = streq(k->kind, "section") || streq(k->kind, "figure") ? field(k, 2) :
+		    streq(k->kind, "theorem") ? field(k, 1) : streq(k->kind, "line") ? field(k, 0) : NULL;
+		if (l && *l && !streq(l, "-"))
+			VPUSH(*out, xstrdup(l));
+		labels_in(k, out);
+	}
+}
+
+static Node *
+find_kind(Node *n, const char *kind)
+{
+	for (size_t i = 0; i < n->kids.n; i++) {
+		Node *k = n->kids.v[i];
+		if (streq(k->kind, kind))
+			return k;
+		Node *r = find_kind(k, kind);
+		if (r)
+			return r;
+	}
+	return NULL;
+}
+
+typedef VEC(Node *) NodeList;
+
+static void
+nodes_of(Node *n, const char *kind, NodeList *out)
+{
+	for (size_t i = 0; i < n->kids.n; i++) {
+		if (streq(n->kids.v[i]->kind, kind))
+			VPUSH(*out, n->kids.v[i]);
+		nodes_of(n->kids.v[i], kind, out);
+	}
+}
+
+/*
+ * A bare @key is a cross-reference when the document has #key, and a
+ * citation when a reference entry has that key; [@key] is always a
+ * citation.  A key that is both is an error, because guessing is how a
+ * reader ends up at equation (1) instead of the paper by Landau.
+ */
+static void
+resolve_refs(Node *n, const Names *labels, const Names *keys, Names *cited)
+{
+	for (size_t i = 0; i < n->kids.n; i++) {
+		Node *k = n->kids.v[i];
+		if (streq(k->kind, "ref")) {
+			char *key = k->rest;
+			bool is_label = has(labels, key), is_key = has(keys, key);
+			if (is_label && is_key) {
+				error_at(k->line, k->col, "@%s names both the target #%s and a reference; write [@%s] "
+				    "to cite the reference, or rename #%s", key, key, key, key);
+			} else if (is_key) {
+				k->kind = xstrdup("cite");
+				k->rest = xstrdup("");
+				node_add(k, "item", k->line, k->col, key);
+			}
+		}
+		if (streq(k->kind, "cite")) {
+			for (size_t j = 0; j < k->kids.n; j++) {
+				Node *it = k->kids.v[j];
+				if (!streq(it->kind, "item"))
+					continue;
+				if (has(keys, it->rest)) {
+					if (!has(cited, it->rest))
+						VPUSH(*cited, it->rest);
+					continue;
+				}
+				const char *best = closest(it->rest, (const char *const *)keys->v, keys->n);
+				if (best)
+					error_at(it->line, it->col, "unknown reference @%s; did you mean @%s?", it->rest, best);
+				else if (keys->n == 0)
+					error_at(it->line, it->col, "unknown reference @%s (no bibliography: add "
+					    "bibliography \"refs.bib\", or a references block)", it->rest);
+				else
+					error_at(it->line, it->col, "unknown reference @%s", it->rest);
+			}
+		}
+		resolve_refs(k, labels, keys, cited);
+	}
+}
+
+typedef struct {
+	BibEntry *e;
+	char *sort;
+} Sorted;
+
+static int
+by_sort_key(const void *a, const void *b)
+{
+	const Sorted *x = a, *y = b;
+	int c = strcmp(x->sort, y->sort);
+
+	return c ? c : strcmp(x->e->key, y->e->key);
+}
+
+static void
+bibliography(Node *doc, const char *source)
+{
+	Names labels = {0}, keys = {0}, cited = {0};
+	BibEntries db = {0};
+	NodeList files = {0}, entries = {0};
+
+	labels_in(doc, &labels);
+	nodes_of(doc, "entry", &entries);
+	for (size_t i = 0; i < entries.n; i++)
+		VPUSH(keys, entries.v[i]->rest);
+	size_t nmanual = keys.n;
+
+	/* BibTeX files, found next to the source */
+	nodes_of(doc, "bibfile", &files);
+	const char *slash = strrchr(source, '/');
+	char *dir = slash ? xstrndup(source, (size_t)(slash - source + 1)) : "";
+	for (size_t i = 0; i < files.n; i++) {
+		Node *f = files.v[i];
+		char *path = f->rest[0] == '/' ? f->rest : fmt("%s%s", dir, f->rest);
+		size_t before = db.n;
+		if (!bib_read(path, &db)) {
+			error_at(f->line, f->col, "cannot read the bibliography '%s'", f->rest);
+			continue;
+		}
+		for (size_t k = before; k < db.n; k++) {
+			if (has(&keys, db.v[k].key)) {
+				const char *saved = diag_file;
+				diag_file = path;
+				warn_at(db.v[k].line, 0, "duplicate key '%s' (the first one is used)", db.v[k].key);
+				diag_file = saved;
+				db.v[k].key = "";
+				continue;
+			}
+			VPUSH(keys, db.v[k].key);
+		}
+	}
+	resolve_refs(doc, &labels, &keys, &cited);
+
+	/* the cited BibTeX entries, in alphabetical order by author, year, title */
+	VEC(Sorted) list = {0};
+	for (size_t i = 0; i < db.n; i++) {
+		bool manual = false;
+		for (size_t k = 0; k < nmanual; k++)
+			manual |= streq(keys.v[k], db.v[i].key);
+		if (*db.v[i].key && !manual && has(&cited, db.v[i].key)) {
+			Sorted so = {&db.v[i], bib_sort_key(&db.v[i])};
+			VPUSH(list, so);
+		}
+	}
+	if (list.n == 0)
+		return;
+	qsort(list.v, list.n, sizeof *list.v, by_sort_key);
+	Node *refs = find_kind(doc, "refs");
+	if (refs == NULL)
+		refs = node_add(doc, "refs", 0, 0, "");
+	for (size_t i = 0; i < list.n; i++) {
+		Node *e = node_add(refs, "entry", 0, 0, list.v[i].e->key);
+		inline_text(e, bib_format(list.v[i].e), 0, 0);
+	}
 }
 
 int
@@ -1032,6 +1503,7 @@ parse_main(FILE *in, FILE *out, const char *file)
 	Node *doc = node_new("document", 0, 0, first_file ? first_file : file);
 	section_stack[0] = doc;
 	blocks(doc, 0, 0, true);
+	bibliography(doc, first_file ? first_file : file);
 	tree_write(out, doc, 0);
 	return nerrors ? 1 : 0;
 }

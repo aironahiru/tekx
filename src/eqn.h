@@ -44,7 +44,9 @@ struct M {
 	double num;
 	bool limits;		/* scripts drawn under/over */
 	bool thin;		/* fraction without rule */
-	bool slashed;		/* inline fraction a/b */
+	bool solidus;		/* fraction written a/b (not frac or over) */
+	bool slashed;		/* set on the line as a/b: a solidus fraction outside display style */
+	M *slash;		/* the row a slashed fraction is set as: (a)/b */
 	bool func;		/* function name, upright */
 	bool apply;		/* row is a function application */
 	bool group;		/* row is an explicit group (laid out as one box) */
@@ -108,6 +110,7 @@ bool eqn_mathml_split(M *m, char **left, char **right);	/* the two sides of an a
 
 /* shared helpers */
 bool is_atom(M *m);
+void eqn_mark_slashed(M *m, bool display);	/* decide which a/b are set on the line */
 const char *op_speech(const char *op);
 
 #endif

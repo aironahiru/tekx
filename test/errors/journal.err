@@ -1,0 +1,9 @@
+test/errors/journal.tekx:2:8: error: unknown author detail 'afiliation:'; did you mean 'affiliation:'?
+test/errors/journal.tekx:3:1: error: affiliation belongs to an author: author "Name", affiliation: "London"
+test/errors/journal.tekx:4:11: error: unknown numbering 'by chapter' (expected: numbering by section, or numbering continuous)
+test/errors/journal.tekx:6:1: error: unknown line 'appendx'; did you mean 'appendix'?
+test/errors/journal.tekx:5:14: error: cannot read the bibliography 'missing.bib'
+test/errors/journal.tekx:10:7: error: unknown reference @landua; did you mean @landau?
+test/errors/journal.tekx:10:18: error: unknown reference @nosuchkey
+test/errors/journal.tekx:10:31: error: @landau names both the target #landau and a reference; write [@landau] to cite the reference, or rename #landau
+test/errors/journal.tekx:10:53: error: unknown reference @nonsense

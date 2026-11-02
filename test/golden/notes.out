@@ -11,7 +11,7 @@ document test/golden/notes.tekx
       text .
     text  in it.
 == mathematics
-mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a over b plus the square root of 2"><semantics><mrow><mfrac><mi>𝑎</mi><mi>𝑏</mi></mfrac><mo>+</mo><msqrt><mn>2</mn></msqrt></mrow><annotation encoding="application/x-tekx">a/b + sqrt 2</annotation></semantics></math>
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a over b plus the square root of 2"><semantics><mrow><mrow><mi>𝑎</mi><mo lspace="0" rspace="0">/</mo><mi>𝑏</mi></mrow><mo>+</mo><msqrt><mn>2</mn></msqrt></mrow><annotation encoding="application/x-tekx">a/b + sqrt 2</annotation></semantics></math>
 speech a over b plus the square root of 2
 linear a/b + √2
 == structure

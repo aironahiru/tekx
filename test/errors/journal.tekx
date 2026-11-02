@@ -1,0 +1,10 @@
+title "Errors in front matter and citations"
+author "Ada Lovelace", afiliation: "London"
+affiliation "London"
+numbering by chapter
+bibliography "missing.bib", "../golden/journal.bib"
+appendx
+
+    E = m c^2   #landau
+
+Cite [@landua], [@nosuchkey], @landau and [@hooley; @nonsense, p. 3].

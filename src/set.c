@@ -186,8 +186,9 @@ static int cur_line;	/* source line of the block being set, for warnings */
 
 /* ---- metadata ---- */
 
-static char *meta_title, *meta_subtitle, *meta_date, *meta_keywords, *meta_subject;
+static char *meta_title, *meta_subtitle, *meta_date, *meta_keywords, *meta_subject, *meta_msc;
 static VEC(char *) authors;
+static VEC(Node *) author_nodes;	/* parallel to authors: the meta node, with details */
 
 static char *
 format_date(i64 t)
@@ -619,6 +620,7 @@ add_math(HList *hl, Node *n, Ctx c)
 
 static void add_inlines(HList *hl, Node *n, Ctx c);
 static void add_note(HList *hl, Node *k, Ctx c);
+static void add_cite(HList *hl, Node *k, Ctx c);
 
 static int
 new_link(int parent, const char *url, const char *label, const char *contents)
@@ -681,7 +683,9 @@ add_inline(HList *hl, Node *k, Ctx c)
 		}
 	} else if (streq(k->kind, "note")) {
 		add_note(hl, k, c);
-	} else if (streq(k->kind, "ref")) {
+	} else if (streq(k->kind, "cite")) {
+		add_cite(hl, k, c);
+	} else if (streq(k->kind, "ref") || streq(k->kind, "refnum")) {
 		Label *l = find_label(k->rest);
 		if (l == NULL) {
 			const char *best = NULL;
@@ -705,7 +709,7 @@ add_inline(HList *hl, Node *k, Ctx c)
 		e.el = links.v[e.link].el;
 		e.nohyph = true;
 		/* keep "Theorem 3" together */
-		const char *t = l->text, *spc = strchr(t, ' ');
+		const char *t = streq(k->kind, "refnum") ? l->number : l->text, *spc = strchr(t, ' ');
 		if (spc) {
 			add_word(hl, xstrndup(t, (size_t)(spc - t)), e);
 			Font *f = face_font(e.face);
@@ -719,6 +723,79 @@ add_inline(HList *hl, Node *k, Ctx c)
 			add_word(hl, t, e);
 		}
 	}
+}
+
+/*
+ * A citation: [3], [1, 2], [1–4], [2, Thm. 2], [1; 2, Thm. 2].  Without
+ * notes the numbers are sorted and runs of three or more become ranges.
+ * Each number is a link to its entry that says "Reference 2".
+ */
+typedef struct {
+	Label *l;
+	Node *item;
+	int n;
+} CiteItem;
+
+static int
+by_number(const void *a, const void *b)
+{
+	return ((const CiteItem *)a)->n - ((const CiteItem *)b)->n;
+}
+
+static void
+cite_number(HList *hl, CiteItem *ci, Ctx c)
+{
+	Ctx e = c;
+	e.link = new_link(c.el, NULL, ci->l->name, ci->l->spoken);
+	e.el = links.v[e.link].el;
+	e.nohyph = true;
+	add_word(hl, ci->l->number, e);
+}
+
+static void
+add_cite(HList *hl, Node *k, Ctx c)
+{
+	VEC(CiteItem) v = {0};
+	bool notes = false;
+
+	for (size_t i = 0; i < k->kids.n; i++) {
+		Node *it = k->kids.v[i];
+		if (!streq(it->kind, "item"))
+			continue;
+		Label *l = find_label(cite_label(it->rest));
+		if (l == NULL)
+			continue;	/* parse has said so */
+		CiteItem ci = {l, it, atoi(l->number)};
+		VPUSH(v, ci);
+		notes |= it->kids.n > 0;
+	}
+	if (v.n == 0)
+		return;
+	if (!notes)
+		qsort(v.v, v.n, sizeof *v.v, by_number);
+	add_word(hl, "[", c);
+	for (size_t i = 0; i < v.n; i++) {
+		if (i > 0) {
+			add_word(hl, notes ? ";" : ",", c);
+			space_glue(hl, c);
+		}
+		size_t j = i;
+		while (!notes && j + 1 < v.n && v.v[j + 1].n == v.v[j].n + 1)
+			j++;
+		cite_number(hl, &v.v[i], c);
+		if (j >= i + 2) {
+			add_word(hl, "–", c);
+			cite_number(hl, &v.v[j], c);
+			i = j;
+			continue;
+		}
+		if (v.v[i].item->kids.n) {
+			add_word(hl, ",", c);
+			space_glue(hl, c);
+			add_inlines(hl, v.v[i].item, c);
+		}
+	}
+	add_word(hl, "]", c);
 }
 
 static void
@@ -1163,8 +1240,6 @@ add_note(HList *hl, Node *k, Ctx c)
 /* ---- block layout ---- */
 
 static bool prev_was_text;	/* the block before was running text */
-static int sec_num[4];
-static int thm_num;
 static int doc_el;
 static bool after_heading;
 
@@ -1174,6 +1249,8 @@ typedef struct {
 	double size;
 	int face;	/* body face (theorem bodies are italic) */
 } Box_;
+
+static void classification(Box_ bx);
 
 static void blocks(Node *n, Box_ bx);
 
@@ -1263,17 +1340,8 @@ heading(Node *sec, Box_ bx, int level, bool numbered, const char *label)
 	double size = sizes[level] * BS / 11;
 	Node *h = child(sec, "heading");
 	int hel = el(bx.el, "tekx", fmt("%s-heading", sect_role[level]));
-	char *num = NULL;
+	const char *num = numbered ? heading_number(sec) : NULL;
 
-	if (numbered) {
-		sec_num[level]++;
-		for (int k = level + 1; k < 4; k++)
-			sec_num[k] = 0;
-		Buf b = {0};
-		for (int k = 1; k <= level; k++)
-			bprintf(&b, "%s%d", k > 1 ? "." : "", sec_num[k]);
-		num = bstr(&b);
-	}
 	vspace(level == 1 ? 1.6 * BS : 1.2 * BS);
 	HList hl = {0};
 	Ctx c = {FACE_BF, size, hel, -1, true};
@@ -1592,7 +1660,6 @@ theorem(Node *t, Box_ bx)
 	Node *h = child(t, "heading"), *first = first_block(t);
 	bool runin = first && streq(first->kind, "para");
 
-	thm_num++;
 	label_el(label, div);
 	dest(div);
 	vspace(0.6 * bx.size);
@@ -1601,7 +1668,7 @@ theorem(Node *t, Box_ bx)
 	int he = el(p, "tekx", "theorem-head");
 	HList hl = {0};
 	Ctx c = {style == 2 ? FACE_IT : FACE_BF, bx.size, he, -1, true};
-	add_text(&hl, fmt("%s %d", title, thm_num), c);
+	add_text(&hl, fmt("%s %s", title, t->num ? t->num : "?"), c);
 	if (h) {
 		Ctx n = c;
 		n.face = FACE_REG;
@@ -1775,7 +1842,7 @@ figure(Node *f, Box_ bx)
 	double size = bx.size * 0.92;
 	HList hl = {0};
 	Ctx c = {FACE_BF, size, el(p, "pdf2", "Strong"), -1, true};
-	add_text(&hl, fmt("Figure %d.", fig_num), c);
+	add_text(&hl, fmt("Figure %s.", f->num ? f->num : "?"), c);
 	Ctx body = {FACE_REG, size, p, -1, false};
 	space_glue(&hl, body);
 	for (size_t i = 0; i < f->kids.n; i++)
@@ -1882,17 +1949,17 @@ references_block(Node *r, Box_ bx)
 	/* widest label */
 	double lw = 0;
 	for (size_t i = 0; i < r->kids.n; i++) {
-		Label *l = find_label(r->kids.v[i]->rest);
+		Label *l = find_label(cite_label(r->kids.v[i]->rest));
 		Ops tmp = {0};
 		lw = MAX(lw, text_line(l ? l->text : "[?]", FACE_REG, bx.size, -1, &tmp, 0));
 	}
 	for (size_t i = 0; i < r->kids.n; i++) {
 		Node *e = r->kids.v[i];
-		Label *l = find_label(e->rest);
+		Label *l = find_label(cite_label(e->rest));
 		int li = el(L, "pdf2", "LI");
 		int lbl = el(li, "pdf2", "Lbl");
 		int body = el(li, "pdf2", "LBody");
-		label_el(e->rest, li);
+		label_el(cite_label(e->rest), li);
 		dest(li);
 		Ops lops = {0};
 		double w = text_line(l ? l->text : "[?]", FACE_REG, bx.size, lbl, &lops, 0);
@@ -1949,22 +2016,12 @@ contents_block(Box_ bx)
 	vline(size * 0.72, size * 0.22, lead_for(size), bx.fr.x, &ops)->keep = true;
 	vspace(0.4 * BS);
 	int toc = el(sect, "pdf", "TOC");
-	int nums[4] = {0};
 	for (size_t i = 0; i < toc_sections.n; i++) {
 		Node *s = toc_sections.v[i];
 		int level = atoi(field(s, 0));
 		bool numbered = atoi(field(s, 1)) != 0;
 		Node *hd = child(s, "heading");
-		char *num = NULL;
-		if (numbered) {
-			nums[level]++;
-			for (int k = level + 1; k < 4; k++)
-				nums[k] = 0;
-			Buf b = {0};
-			for (int k = 1; k <= level; k++)
-				bprintf(&b, "%s%d", k > 1 ? "." : "", nums[k]);
-			num = bstr(&b);
-		}
+		const char *num = numbered ? heading_number(s) : NULL;
 		int ti = el(toc, "pdf", "TOCI");
 		int p = el(ti, "pdf2", "P");
 		char *target = (char *)section_key(s);
@@ -2070,6 +2127,7 @@ blocks(Node *n, Box_ bx)
 			quote_block(k, bx);
 		} else if (streq(kd, "abstract")) {
 			abstract_block(k, bx);
+			classification(bx);
 		} else if (streq(kd, "let")) {
 			let_block(k, bx, !after_heading);
 			after_heading = false;
@@ -2107,13 +2165,17 @@ read_meta(Node *n)
 			meta_subtitle = val;
 		else if (streq(key, "author")) {
 			char *a = xstrdup(val), *s;
-			while ((s = strstr(a, " and ")) != NULL) {
+			while (k->kids.n == 0 && (s = strstr(a, " and ")) != NULL) {
 				*s = 0;
 				VPUSH(authors, trim(a));
+				VPUSH(author_nodes, (Node *)NULL);
 				a = s + 5;
 			}
 			VPUSH(authors, trim(a));
-		} else if (streq(key, "date"))
+			VPUSH(author_nodes, k);
+		} else if (streq(key, "msc"))
+			meta_msc = val;
+		else if (streq(key, "date"))
 			meta_date = streq(val, "today") ? format_date(doc_time()) : val;
 		else if (streq(key, "language"))
 			language = val;
@@ -2144,11 +2206,84 @@ read_meta(Node *n)
 	}
 }
 
-typedef struct {
-	const char *text, *role;
-	int face;
-	double size, before;
-} TitlePart;
+/* centre every line set since `first` in the frame */
+static void
+centre_lines(size_t first, Fr fr)
+{
+	for (size_t i = first; i < vl.n; i++) {
+		V *line = &vl.v[i];
+		double right = 0;
+		for (size_t k = 0; k < line->ops.n; k++)
+			right = MAX(right, line->ops.v[k].x + line->ops.v[k].adv);
+		for (size_t k = 0; k < line->ops.n; k++)
+			line->ops.v[k].x += MAX(0, (fr.w - right) / 2);
+	}
+}
+
+static void
+title_line(int tb, const char *text, const char *role, int face, double size, double before, Box_ bx)
+{
+	int e = el(tb, "tekx", role);
+	Ops ops = {0};
+	double w = text_line(text, face, size, e, &ops, 0);
+
+	for (size_t k = 0; k < ops.n; k++)
+		ops.v[k].x += MAX(0, (bx.fr.w - w) / 2);
+	vspace(before);
+	vline(size * 0.72, size * 0.22, lead_for(size), bx.fr.x, &ops)->keep = true;
+}
+
+/* a centred paragraph in the title block, wrapped if it is long */
+static void
+title_par(HList *hl, double size, Box_ bx)
+{
+	Fr fr = {bx.fr.x + 2 * BS, bx.fr.w - 4 * BS};
+	size_t first = vl.n;
+
+	set_par(hl, fr, size, 0, false, false);
+	centre_lines(first, fr);
+	for (size_t i = first; i < vl.n; i++)
+		vl.v[i].keep = true;
+}
+
+/* under an author's name: affiliations, then email, ORCID and web page as links */
+static void
+author_details(int tb, Node *a, Box_ bx)
+{
+	double size = BS * 9 / 11;
+	HList contact = {0};
+	int ce = -1;
+
+	for (size_t i = 0; i < a->kids.n; i++) {
+		Node *k = a->kids.v[i];
+		if (streq(k->kind, "affiliation")) {
+			HList hl = {0};
+			Ctx c = {FACE_IT, size, el(tb, "tekx", "affiliation"), -1, true};
+			add_text(&hl, k->rest, c);
+			vspace(0.1 * BS);
+			title_par(&hl, size, bx);
+			continue;
+		}
+		const char *url = streq(k->kind, "email") ? fmt("mailto:%s", k->rest) :
+		    streq(k->kind, "orcid") ? fmt("https://orcid.org/%s", k->rest) : k->rest;
+		const char *shown = streq(k->kind, "orcid") ? fmt("ORCID %s", k->rest) : k->rest;
+		const char *spoken = streq(k->kind, "email") ? fmt("Email %s", k->rest) : shown;
+		if (ce < 0)
+			ce = el(tb, "tekx", "contact");
+		Ctx c = {FACE_REG, size, ce, -1, true};
+		if (contact.n) {
+			space_glue(&contact, c);
+			add_word(&contact, "·", c);
+			space_glue(&contact, c);
+		}
+		Ctx e = c;
+		e.link = new_link(ce, url, NULL, spoken);
+		e.el = links.v[e.link].el;
+		add_word(&contact, shown, e);
+	}
+	if (contact.n)
+		title_par(&contact, size, bx);
+}
 
 static void
 title_block(Box_ bx)
@@ -2156,29 +2291,61 @@ title_block(Box_ bx)
 	if (!meta_title)
 		return;
 	int tb = el(bx.el, "tekx", "title-block");
-	TitlePart parts[8];
-	int n = 0;
 
-	parts[n++] = (TitlePart){meta_title, "title", FACE_BF, 17.28 * BS / 11, 0};
+	title_line(tb, meta_title, "title", FACE_BF, 17.28 * BS / 11, 0, bx);
 	if (meta_subtitle)
-		parts[n++] = (TitlePart){meta_subtitle, "subtitle", FACE_IT, 12 * BS / 11, 0.5 * BS};
-	for (size_t i = 0; i < authors.n && n < 7; i++)
-		parts[n++] = (TitlePart){authors.v[i], "author", FACE_REG, 12 * BS / 11, i ? 0.2 * BS : 1.2 * BS};
-	if (meta_date && n < 8)
-		parts[n++] = (TitlePart){meta_date, "date", FACE_REG, BS, 0.6 * BS};
-	for (int i = 0; i < n; i++) {
-		int e = el(tb, "tekx", parts[i].role);
-		Ops ops = {0};
-		double w = text_line(parts[i].text, parts[i].face, parts[i].size, e, &ops, 0);
-		for (size_t k = 0; k < ops.n; k++)
-			ops.v[k].x += MAX(0, (bx.fr.w - w) / 2);
-		vspace(parts[i].before);
-		V *v = vline(parts[i].size * 0.72, parts[i].size * 0.22, lead_for(parts[i].size), bx.fr.x, &ops);
-		v->keep = true;
+		title_line(tb, meta_subtitle, "subtitle", FACE_IT, 12 * BS / 11, 0.5 * BS, bx);
+	for (size_t i = 0; i < authors.n; i++) {
+		Node *a = author_nodes.v[i];
+		bool details = a && a->kids.n;
+		bool prev_details = i > 0 && author_nodes.v[i - 1] && author_nodes.v[i - 1]->kids.n;
+		title_line(tb, authors.v[i], "author", FACE_REG, 12 * BS / 11,
+		    i == 0 ? 1.2 * BS : details || prev_details ? 0.8 * BS : 0.2 * BS, bx);
+		if (details)
+			author_details(tb, a, bx);
 	}
+	if (meta_date)
+		title_line(tb, meta_date, "date", FACE_REG, BS, 0.6 * BS, bx);
 	vl.v[vl.n - 1].keep = false;
 	vspace(1.5 * BS);
 	after_heading = true;
+}
+
+/*
+ * The subject classification and key words, as the AMS sets them: after
+ * the abstract (or the title, if there is no abstract), small, with an
+ * italic label.
+ */
+static bool classification_done;
+
+static void
+classification(Box_ bx)
+{
+	double size = BS * 9 / 11;
+	const char *what[2][3] = {
+		{meta_msc, "msc", "2020 Mathematics Subject Classification."},
+		{meta_keywords, "keywords", "Key words and phrases."},
+	};
+
+	if (classification_done)
+		return;
+	classification_done = true;
+	for (int i = 0; i < 2; i++) {
+		if (what[i][0] == NULL)
+			continue;
+		int p = el(bx.el, "tekx", what[i][1]);
+		HList hl = {0};
+		Ctx lab = {FACE_IT, size, el(p, "pdf2", "Em"), -1, true};
+		Ctx c = {FACE_REG, size, p, -1, true};
+		add_text(&hl, what[i][2], lab);
+		space_glue(&hl, c);
+		add_text(&hl, what[i][0], c);
+		Fr fr = {bx.fr.x + 2.5 * BS, bx.fr.w - 5 * BS};
+		vspace(0.15 * BS);
+		set_par(&hl, fr, size, 0, false, false);
+	}
+	if (meta_msc || meta_keywords)
+		vspace(0.8 * BS);
 }
 
 /* ---- pages ---- */
@@ -2785,6 +2952,8 @@ set_main(FILE *in, FILE *o, const char *file)
 	Box_ bx = {doc_el, {0, TW}, BS, FACE_REG};
 	collect_sections(doc);
 	title_block(bx);
+	if (child(doc, "abstract") == NULL)
+		classification(bx);
 	after_heading = true;
 	blocks(doc, bx);
 	if (vl.n == 0)

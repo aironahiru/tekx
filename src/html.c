@@ -17,8 +17,10 @@
 static FILE *out;
 static Buf endnotes;
 static int nnotes;
-static char *title, *subtitle, *date, *language = "en";
+static char *title, *subtitle, *date, *language = "en", *msc, *keywords;
 static VEC(char *) authors;
+static VEC(Node *) author_nodes;	/* parallel to authors: the meta node, with details */
+static bool classification_done;
 
 static void
 esc(FILE *f, const char *s)
@@ -51,6 +53,7 @@ besc(Buf *b, const char *s)
 /* ---- inline content, into a buffer (footnotes are written elsewhere) ---- */
 
 static void inlines(Buf *b, Node *n);
+static void cite(Buf *b, Node *k);
 
 static void
 inline_node(Buf *b, Node *k)
@@ -82,7 +85,9 @@ inline_node(Buf *b, Node *k)
 		else
 			inlines(b, k);
 		bputs(b, "</a>");
-	} else if (streq(kd, "ref")) {
+	} else if (streq(kd, "cite")) {
+		cite(b, k);
+	} else if (streq(kd, "ref") || streq(kd, "refnum")) {
 		Label *l = find_label(k->rest);
 		if (l == NULL) {
 			error_at(k->line, k->col, "unknown label @%s", k->rest);
@@ -97,7 +102,7 @@ inline_node(Buf *b, Node *k)
 			bputc(b, '"');
 		}
 		bputc(b, '>');
-		besc(b, l->text);
+		besc(b, streq(kd, "refnum") ? l->number : l->text);
 		bputs(b, "</a>");
 	} else if (streq(kd, "note")) {
 		int n = ++nnotes;
@@ -108,6 +113,72 @@ inline_node(Buf *b, Node *k)
 		bprintf(&endnotes, "<li id=\"fn-%d\" role=\"doc-endnote\">%s <a href=\"#fnref-%d\" "
 		    "role=\"doc-backlink\" aria-label=\"Back to the text\">↩</a></li>\n", n, bstr(&note), n);
 	}
+}
+
+/* [1, 2], [1–3], [1; 2, Thm. 2]: as in the PDF (see set.c) */
+typedef struct {
+	Label *l;
+	Node *item;
+	int n;
+} CiteItem;
+
+static int
+by_number(const void *a, const void *b)
+{
+	return ((const CiteItem *)a)->n - ((const CiteItem *)b)->n;
+}
+
+static void
+cite_link(Buf *b, Label *l)
+{
+	bputs(b, "<a href=\"#");
+	besc(b, l->name);
+	bputs(b, "\" role=\"doc-biblioref\" aria-label=\"");
+	besc(b, l->spoken);
+	bputs(b, "\">");
+	besc(b, l->number);
+	bputs(b, "</a>");
+}
+
+static void
+cite(Buf *b, Node *k)
+{
+	VEC(CiteItem) v = {0};
+	bool notes = false;
+
+	for (size_t i = 0; i < k->kids.n; i++) {
+		Node *it = k->kids.v[i];
+		Label *l = streq(it->kind, "item") ? find_label(cite_label(it->rest)) : NULL;
+		if (l == NULL)
+			continue;
+		CiteItem ci = {l, it, atoi(l->number)};
+		VPUSH(v, ci);
+		notes |= it->kids.n > 0;
+	}
+	if (v.n == 0)
+		return;
+	if (!notes)
+		qsort(v.v, v.n, sizeof *v.v, by_number);
+	bputc(b, '[');
+	for (size_t i = 0; i < v.n; i++) {
+		if (i > 0)
+			bputs(b, notes ? "; " : ", ");
+		size_t j = i;
+		while (!notes && j + 1 < v.n && v.v[j + 1].n == v.v[j].n + 1)
+			j++;
+		cite_link(b, v.v[i].l);
+		if (j >= i + 2) {
+			bputs(b, "–");
+			cite_link(b, v.v[j].l);
+			i = j;
+			continue;
+		}
+		if (v.v[i].item->kids.n) {
+			bputs(b, ", ");
+			inlines(b, v.v[i].item);
+		}
+	}
+	bputc(b, ']');
 }
 
 static void
@@ -129,6 +200,8 @@ write_inlines(Node *n)
 /* ---- blocks ---- */
 
 static void blocks(Node *n, int depth);
+static void classification(void);
+static void author_details(Node *a);
 
 /* a display whose lines all have an alignment point: one MathML table,
  * right-aligned left sides against left-aligned right sides */
@@ -211,20 +284,19 @@ theorem(Node *t)
 	Env *env = find_env(kind);
 	Label *l = streq(label, "-") ? NULL : find_label(label);
 	Node *h = child(t, "heading");
-	static int count;
 	int style = env ? env->style : 0;
 	const char *styles[] = {"plain", "definition", "remark"};
+	const char *num = t->num ? t->num : "?";
 
-	count++;
 	fprintf(out, "<div class=\"theorem %s\" role=\"group\"", styles[style]);
 	if (l) {
 		fputs(" id=\"", out);
 		esc(out, l->name);
 		fputc('"', out);
 	}
-	fprintf(out, " aria-label=\"%s %d\">\n", env ? env->title : kind, count);
+	fprintf(out, " aria-label=\"%s %s\">\n", env ? env->title : kind, num);
 	Buf head = {0};
-	bprintf(&head, "<span class=\"thead\">%s %d</span>", env ? env->title : kind, count);
+	bprintf(&head, "<span class=\"thead\">%s %s</span>", env ? env->title : kind, num);
 	if (h) {
 		bputs(&head, " <span class=\"tnote\">(");
 		inlines(&head, h);
@@ -361,9 +433,7 @@ figure(Node *f)
 	char *path = pct_unescape(field(f, 0)), *width = field(f, 1), *label = field(f, 2);
 	Node *alt = child(f, "alt");
 	Label *l = streq(label, "-") ? NULL : find_label(label);
-	static int count;
 
-	count++;
 	fputs("<figure", out);
 	if (l) {
 		fputs(" id=\"", out);
@@ -377,7 +447,7 @@ figure(Node *f)
 	fputc('"', out);
 	if (!streq(width, "-") && strchr(width, '%'))
 		fprintf(out, " style=\"width: %s\"", width);
-	fprintf(out, "><figcaption><strong>Figure %d.</strong> ", count);
+	fprintf(out, "><figcaption><strong>Figure %s.</strong> ", f->num ? f->num : "?");
 	for (size_t i = 0; i < f->kids.n; i++)
 		if (streq(f->kids.v[i]->kind, "para"))
 			write_inlines(f->kids.v[i]);
@@ -407,12 +477,12 @@ contents(Node *doc)
 		Node *k = n->kids.v[(*i)++];
 		if (!streq(k->kind, "section"))
 			continue;
-		Label *l = find_label(section_key(k));
+		const char *num = heading_number(k);
 		fputs("<li><a href=\"#", out);
 		esc(out, section_key(k));
 		fputs("\">", out);
-		if (l && *l->number)
-			fprintf(out, "<span class=\"num\">%s</span> ", l->number);
+		if (num)
+			fprintf(out, "<span class=\"num\">%s</span> ", num);
 		write_inlines(child(k, "heading"));
 		fputs("</a><ol>\n", out);
 		VPUSH(stack, k);
@@ -422,6 +492,60 @@ contents(Node *doc)
 }
 
 static Node *doc_root;
+
+/* under an author's name: affiliations, then email, ORCID and web page */
+static void
+author_details(Node *a)
+{
+	bool contact = false;
+
+	for (size_t i = 0; i < a->kids.n; i++) {
+		Node *k = a->kids.v[i];
+		if (streq(k->kind, "affiliation")) {
+			fputs("<p class=\"affiliation\">", out);
+			esc(out, k->rest);
+			fputs("</p>\n", out);
+		}
+	}
+	for (size_t i = 0; i < a->kids.n; i++) {
+		Node *k = a->kids.v[i];
+		const char *url = streq(k->kind, "email") ? fmt("mailto:%s", k->rest) :
+		    streq(k->kind, "orcid") ? fmt("https://orcid.org/%s", k->rest) :
+		    streq(k->kind, "url") ? k->rest : NULL;
+		if (url == NULL)
+			continue;
+		fputs(contact ? " · " : "<p class=\"contact\">", out);
+		contact = true;
+		fputs("<a href=\"", out);
+		esc(out, url);
+		fputs("\">", out);
+		if (streq(k->kind, "orcid"))
+			fputs("ORCID ", out);
+		esc(out, k->rest);
+		fputs("</a>", out);
+	}
+	if (contact)
+		fputs("</p>\n", out);
+}
+
+/* the subject classification and key words, after the abstract */
+static void
+classification(void)
+{
+	if (classification_done)
+		return;
+	classification_done = true;
+	if (msc) {
+		fputs("<p class=\"classification\"><em>2020 Mathematics Subject Classification.</em> ", out);
+		esc(out, msc);
+		fputs("</p>\n", out);
+	}
+	if (keywords) {
+		fputs("<p class=\"classification\"><em>Key words and phrases.</em> ", out);
+		esc(out, keywords);
+		fputs("</p>\n", out);
+	}
+}
 
 static void
 blocks(Node *n, int depth)
@@ -435,14 +559,13 @@ blocks(Node *n, int depth)
 			fputs("</p>\n", out);
 		} else if (streq(kd, "section")) {
 			int level = atoi(field(k, 0));
-			const char *key = section_key(k);
-			Label *l = find_label(key);
+			const char *key = section_key(k), *num = heading_number(k);
 			int h = MIN(level + 1, 6);
 			fputs("<section id=\"", out);
 			esc(out, key);
 			fprintf(out, "\">\n<h%d>", h);
-			if (l && *l->number)
-				fprintf(out, "<span class=\"num\">%s</span> ", l->number);
+			if (num)
+				fprintf(out, "<span class=\"num\">%s</span> ", num);
 			write_inlines(child(k, "heading"));
 			fprintf(out, "</h%d>\n", h);
 			blocks(k, depth + 1);
@@ -491,6 +614,7 @@ blocks(Node *n, int depth)
 			    "<h2 id=\"tekx-abstract\">Abstract</h2>\n", out);
 			blocks(k, depth);
 			fputs("</section>\n", out);
+			classification();
 		} else if (streq(kd, "let")) {
 			Node *m = child(k, "mathml"), *prose = child(k, "prose");
 			fputs("<p>Let ", out);
@@ -510,9 +634,9 @@ blocks(Node *n, int depth)
 			    "<h2 id=\"tekx-references\">References</h2>\n<ol>\n", out);
 			for (size_t j = 0; j < k->kids.n; j++) {
 				Node *e = k->kids.v[j];
-				Label *l = find_label(e->rest);
+				Label *l = find_label(cite_label(e->rest));
 				fputs("<li id=\"", out);
-				esc(out, e->rest);
+				esc(out, cite_label(e->rest));
 				fprintf(out, "\"><span class=\"lbl\">%s</span> ", l ? l->text : "[?]");
 				write_inlines(e);
 				fputs("</li>\n", out);
@@ -540,6 +664,8 @@ static const char style[] =
     "header p{margin:.2rem 0}.subtitle{font-style:italic}.author{font-size:1.1rem}.date{color:var(--muted)}\n"
     "h2,h3,h4{line-height:1.25;margin:2rem 0 .6rem}.num{margin-right:.6em}\n"
     "p{margin:.5rem 0;text-align:justify;hyphens:auto}\n"
+    ".affiliation{font-style:italic;font-size:.85rem;margin:.1rem 0}.contact{font-size:.85rem;margin:.1rem 0 .8rem}\n"
+    ".classification{font-size:.85rem;margin:.3rem 2rem}\n"
     ".abstract{margin:0 2rem 2rem;font-size:.95rem}.abstract h2{text-align:center;font-size:1rem;margin:0}\n"
     ".display{margin:1rem 0;overflow-x:auto}\n.equation{display:flex;align-items:center;justify-content:center;"
     "gap:1rem;position:relative;min-height:2em}\n.eqno{position:absolute;right:0}\n"
@@ -578,12 +704,18 @@ html_main(FILE *in, FILE *o, const char *file)
 			subtitle = val;
 		else if (streq(key, "author")) {
 			char *a = xstrdup(val), *s;
-			while ((s = strstr(a, " and ")) != NULL) {
+			while (k->kids.n == 0 && (s = strstr(a, " and ")) != NULL) {
 				*s = 0;
 				VPUSH(authors, trim(a));
+				VPUSH(author_nodes, (Node *)NULL);
 				a = s + 5;
 			}
 			VPUSH(authors, trim(a));
+			VPUSH(author_nodes, k);
+		} else if (streq(key, "msc")) {
+			msc = val;
+		} else if (streq(key, "keywords")) {
+			keywords = val;
 		} else if (streq(key, "date")) {
 			if (streq(val, "today")) {
 				static const char *month[] = {"January", "February", "March", "April", "May", "June",
@@ -626,6 +758,9 @@ html_main(FILE *in, FILE *o, const char *file)
 			fputs("<p class=\"author\">", out);
 			esc(out, authors.v[i]);
 			fputs("</p>\n", out);
+			Node *a = author_nodes.v[i];
+			if (a && a->kids.n)
+				author_details(a);
 		}
 		if (date) {
 			fputs("<p class=\"date\">", out);
@@ -635,6 +770,8 @@ html_main(FILE *in, FILE *o, const char *file)
 		fputs("</header>\n", out);
 	}
 	fputs("<main>\n", out);
+	if (child(doc, "abstract") == NULL)
+		classification();
 	blocks(doc, 0);
 	if (nnotes) {
 		fputs("<section class=\"endnotes\" role=\"doc-endnotes\" aria-label=\"Footnotes\">\n<ol>\n", out);

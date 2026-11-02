@@ -117,7 +117,9 @@ document
 | node | arguments and text |
 |---|---|
 | `document` | the root; its text is the source file's name, so that later stages reading a pipe still report errors against it and find files beside it |
-| `meta` | KEY VALUE |
+| `meta` | KEY VALUE; an `author` may have children `affiliation`, `email`, `orcid`, `url` |
+| `bibfile` | PATH of a BibTeX database (read by `parse`, which writes its cited entries into `refs`) |
+| `appendix` | none: the top-level sections after it are appendices |
 | `env` | NAME KIND TITLE |
 | `define` | a mathematical definition, verbatim |
 | `section` | LEVEL NUMBERED LABEL; children `heading`, then blocks |
@@ -130,9 +132,15 @@ document
 | `code` | LANGUAGE; children `verbatim` LINE |
 | `let` | MATH; optional child `prose` |
 | `figure` | PATH (%-escaped) WIDTH LABEL; child `alt`, then caption blocks |
-| `refs` | children `entry` KEY with inline children |
+| `refs` | children `entry` KEY with inline children; BibTeX entries arrive here already formatted |
 | `contents`, `newpage` | none |
-| inline | `text`, `emph`, `strong`, `code`, `math` SOURCE, `link` URL, `url`, `ref` LABEL, `note` (a footnote, with inline children) |
+| inline | `text`, `emph`, `strong`, `code`, `math` SOURCE, `link` URL, `url`, `ref` LABEL, `note` (a footnote, with inline children), `cite` with children `item` KEY (the note as inline children) |
+
+`parse` decides what each `@key` is: a `ref` to a `#label`, or a `cite` of a
+reference entry. Entries are labelled in their own namespace (`cite:KEY`), so
+keys and labels never collide. The numbering pass (`number.c`), shared by both
+back ends, gives every numbered node its number, and so the PDF and the HTML
+always agree.
 
 Positions (`@line:col`) are carried so that later stages can report errors in
 the user's own coordinates.

@@ -1,0 +1,3 @@
+bibliography "bad.bib"
+
+See [@good].

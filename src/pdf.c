@@ -241,6 +241,8 @@ static const struct {
 	{"qed", "Span", NS_PDF2}, {"text-fragment", "Span", NS_PDF2},
 	{"quote", "BlockQuote", NS_PDF}, {"code", "Code", NS_PDF},
 	{"contents-entry", "P", NS_PDF2},
+	{"affiliation", "P", NS_PDF2}, {"contact", "P", NS_PDF2},
+	{"msc", "P", NS_PDF2}, {"keywords", "P", NS_PDF2},
 };
 
 static const char *

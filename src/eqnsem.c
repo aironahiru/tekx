@@ -151,8 +151,9 @@ mml_row_kids(Buf *b, M *m)
 	for (size_t i = 0; i < m->kids.n; i++) {
 		if (i > 0 && m->times && m->kids.v[i]->kind != M_SPACE && m->kids.v[i - 1]->kind != M_SPACE)
 			bputs(b, "<mo>⁢</mo>");
+		/* log x takes a thin space, as in TeX; log(x) does not */
 		if (i > 0 && m->apply)
-			bputs(b, "<mo>⁡</mo>");
+			bputs(b, m->kids.v[i]->kind == M_FENCE ? "<mo>⁡</mo>" : "<mo rspace=\"0.1667em\">⁡</mo>");
 		mml(b, m->kids.v[i]);
 	}
 }
@@ -198,7 +199,8 @@ mml(Buf *b, M *m)
 		bputs(b, "</mn>");
 		return;
 	case M_OP:
-		bputs(b, m->unary ? "<mo form=\"prefix\">" : "<mo>");
+		/* an ordinary operator such as the / of a/b takes no space */
+		bputs(b, m->unary ? "<mo form=\"prefix\">" : m->cls == ORD ? "<mo lspace=\"0\" rspace=\"0\">" : "<mo>");
 		xml_escape(b, m->text);
 		bputs(b, "</mo>");
 		return;
@@ -219,6 +221,10 @@ mml(Buf *b, M *m)
 		return;
 	}
 	case M_FRAC:
+		if (m->slashed) {
+			mml(b, m->slash);
+			return;
+		}
 		bputs(b, m->thin ? "<mfrac linethickness=\"0\">" : "<mfrac>");
 		mml(b, m->a);
 		mml(b, m->b);
@@ -366,6 +372,7 @@ eqn_mathml_split(M *m, char **left, char **right)
 char *
 eqn_mathml(M *m, bool display, const char *source)
 {
+	eqn_mark_slashed(m, display);
 	Buf b = {0};
 
 	bprintf(&b, "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"%s\" alttext=\"",

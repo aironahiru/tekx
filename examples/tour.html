@@ -18,6 +18,8 @@ header h1{font-size:1.9rem;line-height:1.2;margin:0 0 .4rem}
 header p{margin:.2rem 0}.subtitle{font-style:italic}.author{font-size:1.1rem}.date{color:var(--muted)}
 h2,h3,h4{line-height:1.25;margin:2rem 0 .6rem}.num{margin-right:.6em}
 p{margin:.5rem 0;text-align:justify;hyphens:auto}
+.affiliation{font-style:italic;font-size:.85rem;margin:.1rem 0}.contact{font-size:.85rem;margin:.1rem 0 .8rem}
+.classification{font-size:.85rem;margin:.3rem 2rem}
 .abstract{margin:0 2rem 2rem;font-size:.95rem}.abstract h2{text-align:center;font-size:1rem;margin:0}
 .display{margin:1rem 0;overflow-x:auto}
 .equation{display:flex;align-items:center;justify-content:center;gap:1rem;position:relative;min-height:2em}
@@ -53,11 +55,11 @@ sup.fn a{text-decoration:none}
 </section>
 <section id="intro">
 <h2><span class="num">1</span> Prose and mathematics</h2>
-<p>Let us begin with the golden ratio, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="phi equals the fraction with numerator 1 plus the square root of 5 and denominator 2 end fraction"><semantics><mrow><mi>𝜑</mi><mo>=</mo><mfrac><mrow><mn>1</mn><mo>+</mo><msqrt><mn>5</mn></msqrt></mrow><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tekx">phi = (1 + sqrt 5)/2</annotation></semantics></math>. It satisfies</p>
+<p>Let us begin with the golden ratio, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="phi equals the fraction with numerator 1 plus the square root of 5 and denominator 2 end fraction"><semantics><mrow><mi>𝜑</mi><mo>=</mo><mrow><mrow><mo fence="true">(</mo><mrow><mn>1</mn><mo>+</mo><msqrt><mn>5</mn></msqrt></mrow><mo fence="true">)</mo></mrow><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow></mrow><annotation encoding="application/x-tekx">phi = (1 + sqrt 5)/2</annotation></semantics></math>. It satisfies</p>
 <div class="display">
 <div class="equation" id="golden"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="phi squared equals phi plus 1"><semantics><mrow><msup><mi>𝜑</mi><mn>2</mn></msup><mo>=</mo><mrow><mi>𝜑</mi><mo>+</mo><mn>1</mn></mrow></mrow><annotation encoding="application/x-tekx">phi^2 = phi + 1</annotation></semantics></math><span class="eqno">(1)</span></div>
 </div>
-<p>which a screen reader speaks as “phi squared equals phi plus 1”, and which copies out of the PDF as <code>φ² = φ + 1</code>. Paste that back into a tekx file and you get the same formula.<sup class="fn"><a href="#fn-1" id="fnref-1" role="doc-noteref" aria-label="Footnote 1">1</a></sup> Long words such as incomprehensibilities are hyphenated and still copy as one word; see <a href="#fib" aria-label="Reference 1">[1]</a> and <a href="https://example.org">https://example.org</a>.</p>
+<p>which a screen reader speaks as “phi squared equals phi plus 1”, and which copies out of the PDF as <code>φ² = φ + 1</code>. Paste that back into a tekx file and you get the same formula.<sup class="fn"><a href="#fn-1" id="fnref-1" role="doc-noteref" aria-label="Footnote 1">1</a></sup> Long words such as incomprehensibilities are hyphenated and still copy as one word; see [<a href="#cite:fib" role="doc-biblioref" aria-label="Reference 1">1</a>] and <a href="https://example.org">https://example.org</a>.</p>
 <div class="theorem plain" role="group" id="pyth" aria-label="Theorem 1">
 <p><span class="thead">Theorem 1</span> <span class="tnote">(Pythagoras)</span><span class="thead">.</span> For a right triangle with legs <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a"><semantics><mrow><mi>𝑎</mi></mrow><annotation encoding="application/x-tekx">a</annotation></semantics></math>, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="b"><semantics><mrow><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">b</annotation></semantics></math> and hypotenuse <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="c"><semantics><mrow><mi>𝑐</mi></mrow><annotation encoding="application/x-tekx">c</annotation></semantics></math>,</p>
 <div class="display">
@@ -107,7 +109,7 @@ sup.fn a{text-decoration:none}
 <section class="references" aria-labelledby="tekx-references">
 <h2 id="tekx-references">References</h2>
 <ol>
-<li id="fib"><span class="lbl">[1]</span> N. N. Vorobiev, <em>Fibonacci Numbers</em>, Birkhäuser, 2002.</li>
+<li id="cite:fib"><span class="lbl">[1]</span> N. N. Vorobiev, <em>Fibonacci Numbers</em>, Birkhäuser, 2002.</li>
 </ol>
 </section>
 </section>

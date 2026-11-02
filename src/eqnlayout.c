@@ -426,7 +426,7 @@ class_of_m(M *m)
 	case M_BIGOP:
 		return OPC;
 	case M_FRAC:
-		return INNER;
+		return m->slashed ? ORD : INNER;
 	case M_SCRIPT:
 		return m->a ? class_of_m(m->a) : ORD;
 	case M_ROW:
@@ -578,6 +578,8 @@ hlist(Atoms *at, St s)
 static Box *
 lay_frac(M *m, St s, int parent)
 {
+	if (m->slashed)
+		return lay(m->slash, s, parent);
 	int node = new_node(parent, "mfrac", NULL);
 	Box *num = lay(m->a, num_style(s), node), *den = lay(m->b, den_style(s), node);
 	Box *b = box_new();
@@ -1091,6 +1093,7 @@ lay(M *m, St s, int parent)
 Box *
 eqn_layout(M *m, bool display, MNodes *ns)
 {
+	eqn_mark_slashed(m, display);
 	St s = {display ? D : T, false};
 
 	if (mf == NULL) {

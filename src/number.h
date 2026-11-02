@@ -23,6 +23,8 @@ typedef struct {
 } Env;
 
 void number_document(Node *doc);	/* the numbering pass, before layout */
+const char *heading_number(Node *section);	/* "2.1", "Appendix A", or NULL */
+char *cite_label(const char *key);	/* the label name of a reference entry */
 Label *find_label(const char *name);
 void add_label(const char *name, const char *text, const char *number, int line);
 void label_el(const char *name, int el);

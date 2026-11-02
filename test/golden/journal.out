@@ -1,0 +1,291 @@
+== tree
+document test/golden/journal.tekx
+  meta@3 title Gaps Between Sums of Two Squares
+  meta@4 author Ada Lovelace
+    affiliation University of London, UK
+    email ada@example.org
+    orcid 0000-0002-1825-0097
+  meta@5 author Charles Babbage
+    affiliation Cambridge
+    url https://example.org/cb
+  meta@6 author Mary Somerville and John Herschel
+  meta@7 msc 11N36 (primary); 11E25 (secondary)
+  meta@8 keywords sums of two squares, short intervals
+  meta@9 numbering by section
+  bibfile@10:14 journal.bib
+  abstract@12
+    para@13 0
+      text We improve the exponent 
+      math@13:28 1/2
+      text  of 
+      cite@13:36
+        item@13:37 hooley
+          text Thm. 2
+        item@13:54 landau
+      text .
+  section@15 1 1 intro
+    heading
+      text Introduction
+    para@17 0
+      text Landau 
+      cite@17:8
+        item@17:9 landau
+      text  proved
+    display@19
+      line@19:5 asym B(x) ~ K x/sqrt(log x)
+    para@21 0
+      text By Theorem 
+      ref@21:12 main
+      text  and Lemmas 
+      ref@21:29 a
+      text  and 
+      ref@21:36 b
+      text , see (
+      ref@21:45 asym
+      text ) and Section 
+      ref@21:64 intro
+      text ; also 
+      cite@22:6
+        item@22:7 vallee
+        item@22:16 erdos
+        item@22:24 thesis
+        item@22:33 arxiv
+        item@22:41 parens
+      text  and 
+      cite@22:54
+        item@22:55 arxiv
+          text §2
+      text . The paper 
+      cite@23:11
+        item@23:11 hooley
+      text  and the formula (
+      ref@23:36 asym
+      text ) are different things.
+    theorem@25 theorem main
+      heading
+        text Main
+      para@26 0
+        text Every interval 
+        math@26:19 [x, x + x^(1/4 + epsilon)]
+        text  contains one.
+    theorem@28 lemma a
+      para@29 0
+        text First.
+    theorem@31 lemma b
+      para@32 0
+        text Second, by 
+        cite@32:14
+          item@32:15 landau
+            text p. 
+            math@32:28 305
+        text .
+  appendix@34
+  section@36 1 1 comp
+    heading
+      text Computations
+    theorem@38 lemma c
+      para@39 0
+        text As in Appendix 
+        ref@39:18 comp
+        text , Lemma 
+        ref@39:31 c
+        text  holds.
+      display@41
+        line@41:5 bound g(x) <= 2 x^(1/4)
+  refs
+    entry erdos
+      text Paul Erdős, Pál Turán, et al., 
+      emph
+        text On some problems of a statistical group-theory
+      text , Proceedings of a Colloquium (John Smith and Mary Jones, Jr., eds.), Springer, 1965, pp. 1–20.
+    entry hooley
+      text Christopher Hooley, 
+      emph
+        text On the intervals between numbers that are sums of two squares
+      text , Acta Math. 
+      strong
+        text 127
+      text  (1971), 279–297, 
+      link https://doi.org/10.1007/BF02392056
+        text doi:10.1007/BF02392056
+      text .
+    entry landau
+      text Edmund Landau, 
+      emph
+        text Über die Einteilung der positiven ganzen Zahlen in vier Klassen
+      text , Arch. Math. Phys. 
+      strong
+        text 13
+      text  (1908), 305–312.
+    entry thesis
+      text Jörg Müller, 
+      emph
+        math L
+        text -functions and the Selberg class
+      text , Ph.D. thesis, Universität Göttingen, 2001.
+    entry parens
+      text Ann Odd, 
+      emph
+        text A DOI with parentheses
+      text , J. Number Theory 
+      strong
+        text 17
+      text  (1983), no. 3, 250, 
+      link https://doi.org/10.1016/0022-314X%2883%2990019-6
+        text doi:10.1016/0022-314X(83)90019-6
+      text .
+    entry arxiv
+      text Terence Tao, 
+      emph
+        text A remark on primes of the form 
+        math n^2 + 1
+      text , 2024, 
+      link https://arxiv.org/abs/2401.01234
+        text arXiv:2401.01234
+      text .
+    entry vallee
+      text Charles de la Vallée Poussin, 
+      emph
+        text Cours d’analyse infinitésimale
+      text , 2nd ed., Gauthier-Villars, Paris, 1909.
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half"><semantics><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow><annotation encoding="application/x-tekx">1/2</annotation></semantics></math>
+speech one half
+linear 1/2
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="capital B x is similar to capital K the fraction with numerator x and denominator the square root of log x end root end fraction"><semantics><mrow><mrow><mi>𝐵</mi><mo>⁢</mo><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow></mrow><mo>∼</mo><mrow><mi>𝐾</mi><mo>⁢</mo><mfrac><mi>𝑥</mi><msqrt><mrow><mi>log</mi><mo rspace="0.1667em">⁡</mo><mi>𝑥</mi></mrow></msqrt></mfrac></mrow></mrow><annotation encoding="application/x-tekx">B(x) ~ K x/sqrt(log x)</annotation></semantics></math>
+speech capital B x is similar to capital K the fraction with numerator x and denominator the square root of log x end root end fraction
+linear B(x) ∼ K x/√(log x)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="open bracket x, x plus x raised to the power one quarter plus epsilon, end power close bracket"><semantics><mrow><mo fence="true">[</mo><mrow><mi>𝑥</mi><mo>,</mo><mrow><mi>𝑥</mi><mo>+</mo><msup><mi>𝑥</mi><mrow><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>4</mn></mrow><mo>+</mo><mi>𝜀</mi></mrow></msup></mrow></mrow><mo fence="true">]</mo></mrow><annotation encoding="application/x-tekx">[x, x + x^(1/4 + epsilon)]</annotation></semantics></math>
+speech open bracket x, x plus x raised to the power one quarter plus epsilon, end power close bracket
+linear [x, x + x^(1/4+ε)]
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="305"><semantics><mrow><mn>305</mn></mrow><annotation encoding="application/x-tekx">305</annotation></semantics></math>
+speech 305
+linear 305
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="g of x is less than or equal to 2 x raised to the power one quarter, end power"><semantics><mrow><mrow><mi>𝑔</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow></mrow><mo>≤</mo><mrow><mn>2</mn><mo>⁢</mo><msup><mi>𝑥</mi><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>4</mn></mrow></msup></mrow></mrow><annotation encoding="application/x-tekx">g(x) &lt;= 2 x^(1/4)</annotation></semantics></math>
+speech g of x is less than or equal to 2 x raised to the power one quarter, end power
+linear g(x) ≤ 2x^(1/4)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="capital L"><semantics><mrow><mi>𝐿</mi></mrow><annotation encoding="application/x-tekx">L</annotation></semantics></math>
+speech capital L
+linear L
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="n squared plus 1"><semantics><mrow><msup><mi>𝑛</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tekx">n^2 + 1</annotation></semantics></math>
+speech n squared plus 1
+linear n² + 1
+== structure
+pdf2:Document
+  tekx:title-block
+    tekx:title
+    tekx:author
+    tekx:affiliation
+    tekx:contact
+      pdf2:Link link="Email ada@example.org" url=mailto%3Aada@example.org
+      pdf2:Link link="ORCID 0000-0002-1825-0097" url=https%3A//orcid.org/0000-0002-1825-0097
+    tekx:author
+    tekx:affiliation
+    tekx:contact
+      pdf2:Link link="https://example.org/cb" url=https%3A//example.org/cb
+    tekx:author
+    tekx:author
+  tekx:abstract
+    tekx:abstract-heading
+    pdf2:P
+      pdf2:Formula
+        mathml:math
+      pdf2:Link link="Reference 2" to=LI
+      pdf2:Link link="Reference 3" to=LI
+  tekx:msc
+    pdf2:Em
+  tekx:keywords
+    pdf2:Em
+  tekx:section
+    tekx:section-heading
+    pdf2:P
+      pdf2:Link link="Reference 3" to=LI
+    tekx:equation
+      pdf2:Formula ident="asym"
+        mathml:math
+        tekx:equation-number
+    pdf2:P
+      pdf2:Link link="Theorem 1.1" to=theorem
+      pdf2:Link link="Lemma 1.2" to=theorem
+      pdf2:Link link="Lemma 1.3" to=theorem
+      pdf2:Link link="Equation 1.1" to=Formula
+      pdf2:Link link="Section 1" to=section
+      pdf2:Link link="Reference 1" to=LI
+      pdf2:Link link="Reference 4" to=LI
+      pdf2:Link link="Reference 7" to=LI
+      pdf2:Link link="Reference 6" to=LI
+      pdf2:Link link="Reference 2" to=LI
+      pdf2:Link link="Equation 1.1" to=Formula
+    tekx:theorem
+      pdf2:P
+        tekx:theorem-head
+        pdf2:Formula
+          mathml:math
+    tekx:theorem
+      pdf2:P
+        tekx:theorem-head
+    tekx:theorem
+      pdf2:P
+        tekx:theorem-head
+        pdf2:Link link="Reference 3" to=LI
+        pdf2:Formula
+          mathml:math
+  tekx:section
+    tekx:section-heading
+    tekx:theorem
+      pdf2:P
+        tekx:theorem-head
+        pdf2:Link link="Appendix A" to=section
+        pdf2:Link link="Lemma A.1" to=theorem
+      tekx:equation
+        pdf2:Formula ident="bound"
+          mathml:math
+          tekx:equation-number
+  tekx:bibliography
+    tekx:bibliography-heading
+    pdf2:L ListNumbering=Decimal
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+            pdf2:Strong
+            pdf2:Link link="doi:10.1007/BF02392056" url=https%3A//doi.org/10.1007/BF02392056
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+            pdf2:Strong
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+              pdf2:Formula
+                mathml:math
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+            pdf2:Strong
+            pdf2:Link link="doi:10.1016/0022-314X(83)90019-6" url=https%3A//doi.org/10.1016/0022-314X%252883%252990019-6
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+              pdf2:Formula
+                mathml:math
+            pdf2:Link link="arXiv:2401.01234" url=https%3A//arxiv.org/abs/2401.01234
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em

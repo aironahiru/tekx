@@ -7,6 +7,8 @@
  */
 #include "number.h"
 
+#include <strings.h>
+
 Labels labels;
 static VEC(Env) envs;
 static bool envs_ready;
@@ -92,9 +94,9 @@ plain(Buf *b, Node *n)
 	else if (streq(n->kind, "math")) {
 		Node *l = child(n, "linear");
 		bputs(b, l ? l->rest : n->rest);
-	} else if (streq(n->kind, "ref")) {
+	} else if (streq(n->kind, "ref") || streq(n->kind, "refnum")) {
 		Label *l = find_label(n->rest);
-		bputs(b, l ? l->text : n->rest);
+		bputs(b, l ? (streq(n->kind, "refnum") ? l->number : l->text) : n->rest);
 	}
 	for (size_t i = 0; i < n->kids.n; i++)
 		if (!streq(n->kind, "math") && !streq(n->kind, "note"))
@@ -119,7 +121,54 @@ section_key(Node *s)
 	return streq(label, "-") ? fmt("tekx-section-%zu", (size_t)s->line) : label;
 }
 
+/*
+ * The counters.  With `numbering by section`, theorems and equations
+ * restart in each top-level section and carry its number: Theorem 2.3,
+ * (2.3), and in an appendix Lemma A.1, (A.1).  Figures and references
+ * are numbered through the whole document.
+ */
 static int sec[4], thm, eq, bib, fig;
+static bool by_section, appendix;
+static char *top = "";	/* the current top-level section number, "2" or "A" */
+
+/* reference entries live in their own namespace, so that a citation key
+ * and a label (an equation #landau and the paper landau) never collide */
+char *
+cite_label(const char *key)
+{
+	return fmt("cite:%s", key);
+}
+
+/* a theorem or equation number: "3", or "2.3" by section */
+static char *
+counted(int n)
+{
+	return by_section && *top ? fmt("%s.%d", top, n) : fmt("%d", n);
+}
+
+static char *
+section_number(int level)
+{
+	Buf b = {0};
+
+	for (int j = 1; j <= level && j < 4; j++) {
+		if (j == 1 && appendix)
+			bprintf(&b, "%c", 'A' + (sec[1] - 1) % 26);
+		else
+			bprintf(&b, "%s%d", j > 1 ? "." : "", sec[j]);
+	}
+	return bstr(&b);
+}
+
+const char *
+heading_number(Node *s)
+{
+	if (s->num == NULL)
+		return NULL;
+	if (atoi(field(s, 0)) == 1 && s->num[0] >= 'A' && s->num[0] <= 'Z')
+		return fmt("Appendix %s", s->num);
+	return s->num;
+}
 
 static void
 number(Node *n)
@@ -130,6 +179,9 @@ number(Node *n)
 			char *name = field(k, 0), *kind = field(k, 1), *title = field_rest(k, 2);
 			Env *base = find_env(kind);
 			add_env(name, *title ? title : name, base ? base->style : 0);
+		} else if (streq(k->kind, "appendix")) {
+			appendix = true;
+			sec[1] = 0;
 		} else if (streq(k->kind, "section")) {
 			int level = atoi(field(k, 0));
 			bool numbered = atoi(field(k, 1)) != 0;
@@ -137,32 +189,106 @@ number(Node *n)
 				sec[level]++;
 				for (int j = level + 1; j < 4; j++)
 					sec[j] = 0;
+				k->num = section_number(level);
+				if (level == 1) {
+					top = k->num;
+					thm = eq = 0;
+				}
 			}
-			Buf b = {0};
-			for (int j = 1; j <= level && j < 4; j++)
-				bprintf(&b, "%s%d", j > 1 ? "." : "", sec[j]);
-			add_label(section_key(k), numbered ? fmt("Section %s", bstr(&b)) : plain_text(child(k, "heading")),
-			    numbered ? bstr(&b) : "", k->line);
+			const char *text = !numbered ? plain_text(child(k, "heading")) :
+			    level == 1 && appendix ? fmt("Appendix %s", k->num) : fmt("Section %s", k->num);
+			add_label(section_key(k), text, numbered ? k->num : "", k->line);
 			number(k);
 		} else if (streq(k->kind, "theorem")) {
 			thm++;
+			k->num = counted(thm);
 			Env *e = find_env(field(k, 0));
-			add_label(field(k, 1), fmt("%s %d", e ? e->title : field(k, 0), thm), fmt("%d", thm), k->line);
+			add_label(field(k, 1), fmt("%s %s", e ? e->title : field(k, 0), k->num), k->num, k->line);
 			number(k);
 		} else if (streq(k->kind, "line")) {
 			char *label = field(k, 0);
 			if (!streq(label, "-")) {
 				eq++;
-				add_label(label, fmt("(%d)", eq), fmt("%d", eq), k->line);
+				k->num = counted(eq);
+				add_label(label, fmt("(%s)", k->num), k->num, k->line);
 			}
 		} else if (streq(k->kind, "figure")) {
 			fig++;
-			add_label(field(k, 2), fmt("Figure %d", fig), fmt("%d", fig), k->line);
+			k->num = fmt("%d", fig);
+			add_label(field(k, 2), fmt("Figure %d", fig), k->num, k->line);
+			number(k);
 		} else if (streq(k->kind, "entry")) {
 			bib++;
-			add_label(k->rest, fmt("[%d]", bib), fmt("%d", bib), k->line);
+			k->num = fmt("%d", bib);
+			add_label(cite_label(k->rest), fmt("[%d]", bib), k->num, k->line);
 		} else {
 			number(k);
+		}
+	}
+}
+
+/*
+ * Writers coming from LaTeX type "Theorem @main" (Theorem~\\ref{main}),
+ * "(@gauss)" and "Lemmas @a and @b".  A reference already says
+ * "Theorem 1.1" and "(2.1)", so the duplicated word or parentheses are
+ * dropped, and after a plural word the references give numbers alone:
+ * "Lemmas 2.2 and 2.3".  Links keep their full spoken names.
+ */
+static bool
+word_before(const char *t, const char *word, size_t *at)
+{
+	size_t n = strlen(t), w = strlen(word);
+
+	if (n < w + 1 || t[n - 1] != ' ')
+		return false;
+	size_t a = n - 1 - w;
+	if (strncasecmp(t + a, word, w) != 0 || (a > 0 && t[a - 1] != ' ' && t[a - 1] != '('))
+		return false;
+	*at = a;
+	return true;
+}
+
+static bool
+separator(const char *t)
+{
+	return streq(t, ", ") || streq(t, " and ") || streq(t, ", and ") || streq(t, " or ") ||
+	    streq(t, ", or ") || streq(t, "–") || streq(t, " to ");
+}
+
+static void
+tidy_refs(Node *n)
+{
+	for (size_t i = 0; i < n->kids.n; i++) {
+		Node *k = n->kids.v[i];
+		Node *prev = i > 0 && streq(n->kids.v[i - 1]->kind, "text") ? n->kids.v[i - 1] : NULL;
+		Node *next = i + 1 < n->kids.n && streq(n->kids.v[i + 1]->kind, "text") ? n->kids.v[i + 1] : NULL;
+		Label *l = streq(k->kind, "ref") ? find_label(k->rest) : NULL;
+		if (l == NULL || prev == NULL) {
+			tidy_refs(k);
+			continue;
+		}
+		const char *sp = strchr(l->text, ' ');
+		size_t at;
+		if (l->text[0] == '(' && prev->rest[0] && prev->rest[strlen(prev->rest) - 1] == '(' &&
+		    next && next->rest[0] == ')') {
+			prev->rest[strlen(prev->rest) - 1] = 0;
+			next->rest++;
+		} else if (sp) {
+			char *word = xstrndup(l->text, (size_t)(sp - l->text));
+			if (word_before(prev->rest, word, &at)) {
+				prev->rest[at] = 0;
+			} else if (word_before(prev->rest, fmt("%ss", word), &at)) {
+				/* a plural: this reference and the ones joined to it give numbers */
+				for (size_t j = i; j < n->kids.n; j += 2) {
+					Node *r = n->kids.v[j];
+					if (!streq(r->kind, "ref") || find_label(r->rest) == NULL)
+						break;
+					r->kind = xstrdup("refnum");
+					if (j + 1 >= n->kids.n || !streq(n->kids.v[j + 1]->kind, "text") ||
+					    !separator(n->kids.v[j + 1]->rest))
+						break;
+				}
+			}
 		}
 	}
 }
@@ -171,5 +297,12 @@ void
 number_document(Node *doc)
 {
 	init_envs();
+	/* the setting may come after the sections it governs: read it first */
+	for (size_t i = 0; i < doc->kids.n; i++) {
+		Node *k = doc->kids.v[i];
+		if (streq(k->kind, "meta") && streq(field(k, 0), "numbering"))
+			by_section = streq(field_rest(k, 1), "by section");
+	}
 	number(doc);
+	tidy_refs(doc);
 }
