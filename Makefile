@@ -52,6 +52,11 @@ obj-debug/%.o: src/%.c $(HDR) | obj-debug
 test: tekx tekx-debug
 	@sh test/run.sh
 
+# the example PDFs and the README picture, reproducibly
+examples: tekx
+	for f in examples/*.tekx; do SOURCE_DATE_EPOCH=1793616300 ./tekx $$f || exit 1; done
+	pdftoppm -r 70 -png -f 1 -l 1 -singlefile examples/showcase.pdf examples/showcase
+
 install: tekx
 	mkdir -p $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/share/man/man1
 	cp tekx $(DESTDIR)$(PREFIX)/bin/tekx
@@ -60,4 +65,4 @@ install: tekx
 clean:
 	rm -rf obj obj-debug tekx tekx-debug src/assets.c tools/bin2c test/out
 
-.PHONY: all debug test install clean
+.PHONY: all debug test examples install clean

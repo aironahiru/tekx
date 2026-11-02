@@ -392,8 +392,8 @@ space_glue(HList *hl, Ctx c)
 	double w = (g ? font_adv(f, g) : f->upem / 4) * c.size / f->upem;
 	H x;
 
-	if (hl->n && hl->v[hl->n - 1].kind == H_GLUE && hl->v[hl->n - 1].space)
-		return;	/* collapse runs of spaces */
+	if (c.face != FACE_MONO && hl->n && hl->v[hl->n - 1].kind == H_GLUE && hl->v[hl->n - 1].space)
+		return;	/* collapse runs of spaces, except in code */
 	memset(&x, 0, sizeof x);
 	x.kind = H_GLUE;
 	x.w = w;
@@ -410,58 +410,100 @@ space_glue(HList *hl, Ctx c)
 	VPUSH(*hl, x);
 }
 
-/* shape a run of text in one face: glyphs, clusters, kerning */
+/* shape text: glyphs, clusters, kerning; characters missing from the face
+ * fall back to the text font, then the math font, never to .notdef */
 typedef struct {
 	VEC(u16) g;
 	VEC(int) cl;	/* characters per glyph */
 	VEC(double) adv;
 	VEC(char *) text;
-	VEC(int) start;	/* byte offset of each glyph's first character */
+	VEC(int) start;	/* index of each glyph's first character */
+	VEC(int) face;
 } Shaped;
+
+static int
+face_for(u32 cp, int face)
+{
+	static const int order[] = {-1, FACE_REG, FACE_MATH};
+
+	for (size_t i = 0; i < NELEM(order); i++) {
+		int f = order[i] < 0 ? face : order[i];
+		if (font_glyph(face_font(f), cp))
+			return f;
+	}
+	return -1;
+}
+
+static void
+shape_run(Shaped *r, const char *s, size_t a, size_t b, int ci0, int face, double size)
+{
+	Font *f = face_font(face);
+	VEC(u16) g = {0};
+	VEC(int) cl = {0};
+	VEC(int) offs = {0};
+
+	for (size_t i = a; i < b;) {
+		u32 cp;
+		int k = utf8_dec(s + i, b - i, &cp);
+		VPUSH(g, (u16)font_glyph(f, cp == 0xa0 ? ' ' : cp));
+		VPUSH(cl, 1);
+		VPUSH(offs, (int)i);
+		i += (size_t)k;
+	}
+	VPUSH(offs, (int)b);
+	int ng = (int)g.n;
+	if (ng && face != FACE_MONO && face != FACE_MATH)
+		ng = gsub_apply(f, "liga", g.v, cl.v, ng);
+	int ci = 0;
+	for (int i = 0; i < ng; i++) {
+		int x = offs.v[ci], y = offs.v[MIN(ci + cl.v[i], (int)offs.n - 1)];
+		char *t = xstrndup(s + x, (size_t)(y - x));
+		if (streq(t, "\u00a0"))
+			t = " ";
+		double adv = font_adv(f, g.v[i]);
+		if (i + 1 < ng)
+			adv += font_kern(f, g.v[i], g.v[i + 1]);
+		VPUSH(r->g, g.v[i]);
+		VPUSH(r->cl, cl.v[i]);
+		VPUSH(r->adv, adv * size / f->upem);
+		VPUSH(r->text, t);
+		VPUSH(r->start, ci0 + ci);
+		VPUSH(r->face, face);
+		ci += cl.v[i];
+	}
+}
 
 static Shaped
 shape(const char *s, Ctx c)
 {
-	Font *f = face_font(c.face);
 	Shaped r;
-	size_t n = strlen(s);
-	VEC(int) offs = {0};
+	size_t n = strlen(s), a = 0;
+	int ci = 0, run_face = -2, run_ci = 0;
 
 	memset(&r, 0, sizeof r);
-	for (size_t i = 0; i < n;) {
-		u32 cp;
-		int k = utf8_dec(s + i, n - i, &cp);
-		if (cp == 0xa0)
-			cp = ' ';
-		int g = font_glyph(f, cp);
-		if (g == 0 && cp != ' ') {
-			/* fall back to the math font, which covers many symbols */
-			warn_at(0, 0, "no glyph for U+%04X in the %s font", (unsigned)cp, face_name[c.face]);
+	for (size_t i = 0; i <= n;) {
+		u32 cp = 0;
+		int k = i < n ? utf8_dec(s + i, n - i, &cp) : 0;
+		int f = i < n ? face_for(cp == 0xa0 ? ' ' : cp, c.face) : -3;
+		if (i < n && f < 0) {
+			warn_at(0, 0, "no font has a glyph for U+%04X; it is left out", (unsigned)cp);
 		}
-		VPUSH(r.g, (u16)g);
-		VPUSH(r.cl, 1);
-		VPUSH(offs, (int)i);
+		if (f != run_face) {
+			if (run_face >= 0)
+				shape_run(&r, s, a, i, run_ci, run_face, c.size);
+			run_face = f;
+			a = i;
+			run_ci = ci;
+		}
+		if (i == n)
+			break;
+		if (f < 0) {
+			/* skip the character entirely */
+			a = i + (size_t)k;
+			run_face = -2;
+		}
 		i += (size_t)k;
-	}
-	VPUSH(offs, (int)n);
-	int ng = (int)r.g.n;
-	if (ng && c.face != FACE_MONO)
-		ng = gsub_apply(f, "liga", r.g.v, r.cl.v, ng);
-	r.g.n = (size_t)ng;
-	r.cl.n = (size_t)ng;
-	int ci = 0;
-	for (int i = 0; i < ng; i++) {
-		int a = offs.v[ci], b = offs.v[MIN(ci + r.cl.v[i], (int)offs.n - 1)];
-		char *t = xstrndup(s + a, (size_t)(b - a));
-		if (streq(t, " "))
-			t = " ";
-		VPUSH(r.text, t);
-		VPUSH(r.start, ci);
-		ci += r.cl.v[i];
-		double adv = font_adv(f, r.g.v[i]);
-		if (i + 1 < ng)
-			adv += font_kern(f, r.g.v[i], r.g.v[i + 1]);
-		VPUSH(r.adv, adv * c.size / f->upem);
+		ci++;
 	}
 	return r;
 }
@@ -522,7 +564,7 @@ add_word(HList *hl, const char *w, Ctx c)
 			memset(&cur, 0, sizeof cur);
 			x = 0;
 		}
-		op_glyph(&cur, c.face, c.size, x, 0, s.g.v[i], s.adv.v[i], s.text.v[i], c.el, sp, c.link);
+		op_glyph(&cur, s.face.v[i], c.size, x, 0, s.g.v[i], s.adv.v[i], s.text.v[i], c.el, sp, c.link);
 		x += s.adv.v[i];
 	}
 	hbox(hl, &cur, x, h, d);
@@ -1142,6 +1184,7 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 
 /* ---- block layout ---- */
 
+static bool prev_was_text;	/* the block before was running text */
 static int sec_num[4];
 static int thm_num;
 static int doc_el;
@@ -1311,7 +1354,7 @@ display(Node *d, Box_ bx)
 	if (fs.n == 0)
 		return;
 	vspace(0.75 * bx.size);
-	if (vl.n)
+	if (vl.n && prev_was_text)
 		vl.v[vl.n - 1].keep = true;	/* no page break between a display and its introduction */
 	bool aligned = any_align && fs.n > 1;
 	double left = (bx.fr.w - (maxl + maxr)) / 2;
@@ -1945,6 +1988,9 @@ blocks(Node *n, Box_ bx)
 	for (size_t i = 0; i < n->kids.n; i++) {
 		Node *k = n->kids.v[i];
 		const char *kd = k->kind;
+		bool text_now = streq(kd, "para") || streq(kd, "let");
+		if (!text_now && !streq(kd, "display"))
+			prev_was_text = false;
 		if (streq(kd, "para")) {
 			bool cont = atoi(k->rest) != 0;
 			bool indent = !after_heading && !cont;
@@ -1999,6 +2045,8 @@ blocks(Node *n, Box_ bx)
 			v->newpage = true;
 			after_heading = true;
 		}
+		if (text_now)
+			prev_was_text = true;
 	}
 }
 

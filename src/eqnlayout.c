@@ -478,7 +478,7 @@ add_atom(M *k, St s, int parent, Atoms *out)
 		a.lcls = class_of_m(k->kids.v[0]) == OPC ? OPC : ORD, a.rcls = CLOSE;
 	if (k->kind == M_TEXT) {
 		static const char *kw[] = {"if", "otherwise", "and", "or", "when", "where", "unless", "for all",
-		    "for every", "for each", "for some", "for any", "for"};
+		    "for every", "for each", "for some", "for any", "for", "prime", "odd", "even"};
 		for (size_t i = 0; i < NELEM(kw); i++)
 			if (streq(kw[i], k->text))
 				a.text = true;
@@ -752,11 +752,9 @@ lay_radical(M *m, St s, int parent)
 	double t = C(s, RadicalRuleThickness);
 	double target = body->h + body->d + gap + t;
 	int g = font_glyph(mf, 0x221a);
-	int rnode = new_node(node, "mo", NULL);
+	/* the radical sign belongs to msqrt itself: MathML has no operator for it */
 	bool assembled;
-	Box *rad = vstretch(g, target, s, rnode, "√", &assembled);
-	if (assembled)
-		nodes->v[rnode].actual = "√";
+	Box *rad = vstretch(g, target, s, node, "√", &assembled);
 	/* the radical's own extent */
 	double rh = rad->h, rd = rad->d;
 	double total = rh + rd;

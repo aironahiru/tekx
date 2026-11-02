@@ -388,12 +388,8 @@ greek_name(u32 c)
 static void
 say_id(Buf *b, M *m)
 {
-	if (m->func) {
-		word(b, fname(m->text));
-		return;
-	}
 	if (utf8_len(m->text) > 1) {
-		word(b, m->text);
+		word(b, m->func ? fname(m->text) : m->text);
 		return;
 	}
 	u32 c = utf8_first(m->text);
@@ -435,6 +431,16 @@ simple(M *m)
 	if (m->kind == M_ROW && m->kids.n == 2 && m->kids.v[0]->kind == M_OP && m->kids.v[0]->unary)
 		return simple(m->kids.v[1]);
 	return m->kind == M_ID || m->kind == M_NUM || (m->kind == M_OP && m->cls == ORD);
+}
+
+/* parts of a fraction that can be read without "end fraction": k, 2, k squared */
+static bool
+simple_part(M *m)
+{
+	if (simple(m))
+		return true;
+	return m && m->kind == M_SCRIPT && !m->limits && simple(m->a) && (!m->b || simple(m->b)) &&
+	    (!m->c || simple(m->c));
 }
 
 static void
@@ -517,7 +523,7 @@ say(Buf *b, M *m)
 			say(b, m->a);
 			word(b, "choose");
 			say(b, m->b);
-		} else if (simple(m->a) && simple(m->b)) {
+		} else if (simple_part(m->a) && simple_part(m->b)) {
 			say(b, m->a);
 			word(b, "over");
 			say(b, m->b);
@@ -631,26 +637,33 @@ say(Buf *b, M *m)
 		    streq(m->text, "⋃") ? "the union" : streq(m->text, "⋂") ? "the intersection" :
 		    streq(m->text, "∐") ? "the coproduct" : fname(m->text);
 		word(b, what);
+		/* limits read naturally: "as x approaches 0 from the right", "over i in I" */
+		Buf ls = {0};
+		say(&ls, m->b);
+		char *lt = bstr(&ls), *q;
+		while ((q = strstr(lt, " is in ")) != NULL)
+			lt = fmt("%.*s in %s", (int)(q - lt), lt, q + 7);
+		if ((q = strstr(lt, " to the power plus")) != NULL)
+			lt = fmt("%.*s from the right%s", (int)(q - lt), lt, q + 18);
+		if ((q = strstr(lt, " to the power negative")) != NULL)
+			lt = fmt("%.*s from the left%s", (int)(q - lt), lt, q + 22);
 		if (streq(m->text, "lim") && m->b) {
 			word(b, "as");
-			Buf s = {0};
-			say(&s, m->b);
-			char *t = bstr(&s);
-			char *to = strstr(t, " to ");
+			char *to = strstr(lt, " to ");
 			if (to) {
 				*to = 0;
-				word(b, fmt("%s approaches %s", t, to + 4));
+				word(b, fmt("%s approaches %s", trim(lt), to + 4));
 			} else {
-				word(b, t);
+				word(b, lt);
 			}
 		} else if (m->b && m->c) {
 			word(b, "from");
-			say(b, m->b);
+			word(b, trim(lt));
 			word(b, "to");
 			say(b, m->c);
 		} else if (m->b) {
 			word(b, "over");
-			say(b, m->b);
+			word(b, trim(lt));
 		} else if (m->c) {
 			word(b, "up to");
 			say(b, m->c);
@@ -675,8 +688,14 @@ say(Buf *b, M *m)
 		return;
 	}
 	case M_OVERLINE:
-		say(b, m->a);
-		word(b, "bar");
+		if (simple(m->a)) {
+			say(b, m->a);
+			word(b, "bar");
+		} else {
+			word(b, "bar over");
+			say(b, m->a);
+			word(b, "end bar");
+		}
 		return;
 	case M_TABLE:
 		if (m->sem && streq(m->sem, "cases")) {
@@ -751,12 +770,18 @@ last_cp(Buf *b)
 }
 
 static char *
-lin_str(M *m, bool compact)
+lin_raw(M *m, bool compact)
 {
 	Buf b = {0};
 
 	lin(&b, m, compact);
 	return bstr(&b);
+}
+
+static char *
+lin_str(M *m, bool compact)
+{
+	return trim(lin_raw(m, compact));
 }
 
 static bool
@@ -794,13 +819,10 @@ lin_paren_tight(Buf *b, M *m, bool compact, bool allow_tight)
 		}
 		tight = !spaced;
 	}
-	if (lin_atom(m) || tight) {
+	if (lin_atom(m) || tight)
 		bputs(b, s);
-	} else {
-		bputc(b, '(');
-		lin(b, m, compact);
-		bputc(b, ')');
-	}
+	else
+		bprintf(b, "(%s)", s);
 }
 
 /* scripts and roots take exactly one atom */
@@ -869,7 +891,7 @@ lin(Buf *b, M *m, bool compact)
 	case M_ROW:
 		for (size_t i = 0; i < m->kids.n; i++) {
 			M *k = m->kids.v[i];
-			char *s = lin_str(k, compact);
+			char *s = lin_raw(k, compact);
 			if (*s == 0)
 				continue;
 			bool spaced_op = !compact && k->kind == M_OP && !k->unary && (k->cls == REL || k->cls == BIN);
@@ -920,7 +942,7 @@ lin(Buf *b, M *m, bool compact)
 		return;
 	case M_TEXT: {
 		static const char *kw[] = {"if", "otherwise", "and", "or", "when", "where", "unless", "for all",
-		    "for every", "for each", "for some", "for any", "for"};
+		    "for every", "for each", "for some", "for any", "for", "prime", "odd", "even"};
 		bool known = false;
 		for (size_t i = 0; i < NELEM(kw); i++)
 			known |= streq(kw[i], m->text);

@@ -1760,7 +1760,8 @@ word(P *p, Tok *t)
 		return r;
 	}
 	if (streq(w, "if") || streq(w, "otherwise") || streq(w, "and") || streq(w, "or") ||
-	    streq(w, "when") || streq(w, "where") || streq(w, "unless"))
+	    streq(w, "when") || streq(w, "where") || streq(w, "unless") || streq(w, "prime") ||
+	    streq(w, "odd") || streq(w, "even"))
 		return text_node(w);
 
 	/* function names */

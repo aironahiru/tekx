@@ -1,0 +1,193 @@
+.TH TEKX 1 "November 2026" "tekx 0.1.0" "User Commands"
+.SH NAME
+tekx \- typeset mathematics into accessible PDF
+.SH SYNOPSIS
+.B tekx
+.RB [ \-E | \-P | \-M | \-S ]
+.RB [ \-o
+.IR output ]
+.I file.tekx
+.br
+.B tekx
+.BR pp | parse | eqn | set | pdf
+.RI [ file ]
+.br
+.B tekx \-v
+.SH DESCRIPTION
+.B tekx
+reads a document written in the tekx language and writes a PDF 2.0 file that
+conforms to PDF/UA\-2 and WTPDF.
+Mathematics is written the way it is spoken:
+.PP
+.RS
+.nf
+sum k^2 for k from 1 to n = n(n + 1)(2n + 1)/6
+integral of e^(\-x^2) dx from \-infinity to infinity = sqrt pi
+limit of sin x / x as x approaches 0 = 1
+.fi
+.RE
+.PP
+Every formula is typeset with the font's OpenType MATH table, tagged with
+MathML structure, given spoken alternative text, and given a linear copy text
+that
+.B tekx
+reads back as the same formula.
+.PP
+The output file is
+.I file.pdf
+unless
+.B \-o
+says otherwise.
+Nothing is printed on success, and nothing is written when there are errors.
+.PP
+The work is done by five filters connected by text streams.
+Each can be run alone; with no
+.I file
+it reads the standard input.
+.TP
+.B pp
+macro preprocessor: comments,
+.BR do \&...\& end ,
+definitions, block and text macros; writes core tekx with
+.B #line
+markers.
+.TP
+.B parse
+structure: writes the document tree, one node per line, nested by indentation.
+.TP
+.B eqn
+mathematics: adds layout, MathML, speech and copy text to every formula.
+.TP
+.B set
+typesetting: line breaking, hyphenation, pages, numbering and cross-references;
+writes a page description.
+.TP
+.B pdf
+device back end: subsets fonts and writes tagged PDF.
+.PP
+Thus
+.PP
+.RS
+.nf
+tekx pp paper.tekx | tekx parse | tekx eqn | tekx set | tekx pdf >paper.pdf
+.fi
+.RE
+.PP
+is the same as
+.BR "tekx paper.tekx" .
+.SH OPTIONS
+.TP
+.B \-E
+Stop after
+.B pp
+and write core tekx to the standard output.
+.TP
+.B \-P
+Stop after
+.B parse
+and write the document tree.
+.TP
+.B \-M
+Stop after
+.B eqn
+and write the tree with laid-out mathematics.
+.TP
+.B \-S
+Stop after
+.B set
+and write the page description.
+.TP
+.BI \-o " output"
+Write the result to
+.IR output ;
+.B \-
+means the standard output.
+.TP
+.B \-v
+Print the version and exit.
+.SH THE LANGUAGE
+A short example:
+.PP
+.RS
+.nf
+title "On Primes"
+author "Ada Lovelace"
+date today
+
+section Euler's product #euler
+
+For $s > 1$,
+
+    zeta(s) = prod_(p prime) 1/(1 \- p^(\-s))   #product
+
+theorem "Euclid"
+  There are infinitely many primes; see @product.
+.fi
+.RE
+.PP
+Blocks start with a keyword and take an indented body:
+.BR section ,
+.BR theorem ,
+.BR lemma ,
+.BR definition ,
+.BR proof ,
+.BR abstract ,
+.BR quote ,
+lists, tables, code,
+.BR contents ,
+.BR references .
+A line indented further than the text around it is display mathematics.
+.B #label
+marks a target and
+.B @label
+refers to it.
+.B define
+declares text macros, block macros, mathematical notation and new theorem-like
+environments.
+The full reference is
+.IR doc/language.md ;
+the formats between the stages are described in
+.IR doc/machinery.md .
+.SH ENVIRONMENT
+.TP
+.B SOURCE_DATE_EPOCH
+The time used for
+.B date today
+and for the PDF's dates.
+With it set, the same input always produces the same bytes.
+.SH EXIT STATUS
+0 on success, 1 if the document has errors, 2 for usage errors and failures
+such as an unreadable file.
+.SH DIAGNOSTICS
+Errors are written to the standard error as
+.PP
+.RS
+.IB file : line : column ": error: " message
+.RE
+.PP
+with a suggestion where one can be made, for example
+.IR "unknown label @strat; did you mean @start?" .
+.SH EXAMPLES
+Typeset a document:
+.PP
+.RS
+.B tekx paper.tekx
+.RE
+.PP
+See how a formula is understood:
+.PP
+.RS
+.nf
+echo \(aq$sum 1/k^2 for k from 1 to infinity$\(aq | tekx \-M \- | grep \-E \(aqspeech|linear\(aq
+.fi
+.RE
+.SH SEE ALSO
+.BR eqn (1),
+.BR troff (1),
+.BR tex (1)
+.SH STANDARDS
+ISO 32000\-2 (PDF 2.0), ISO 14289\-2 (PDF/UA\-2), WTPDF 1.0, MathML Core,
+OpenType 1.9 MATH.
+.SH AUTHORS
+The tekx authors.
+Released under the Apache License 2.0.
