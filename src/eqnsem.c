@@ -1090,7 +1090,10 @@ lin(Buf *b, M *m, bool compact)
 			lin_paren(b, m->b, compact);
 			return;
 		}
-		lin_paren_tight(b, m->a, compact, true);
+		if (negated_atom(m->a))
+			bputs(b, lin_str(m->a, compact));	/* −1/2 reads back as (−1)/2: the same tree */
+		else
+			lin_paren_tight(b, m->a, compact, true);
 		bputc(b, '/');
 		lin_paren_tight(b, m->b, compact, true);
 		return;

@@ -110,6 +110,7 @@ bool eqn_mathml_split(M *m, char **left, char **right);	/* the two sides of an a
 
 /* shared helpers */
 bool is_atom(M *m);
+bool negated_atom(M *m);	/* −1, −x */
 void eqn_mark_slashed(M *m, bool display);	/* decide which a/b are set on the line */
 const char *op_speech(const char *op);
 

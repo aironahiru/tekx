@@ -46,3 +46,5 @@ floor(x) + ceil(y) <= abs(z)
 velocity = distance / time
 f(x) = x quad x > 0
 3/4 + n/2
+x^(-1/2)
+-x/2

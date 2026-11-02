@@ -879,7 +879,8 @@ static Node *section_stack[4];
 /* the settings a document may open with; anything else that looks like one
  * (a word followed by a quoted value) is an error, not silently prose */
 static const char *settings[] = {"title", "subtitle", "author", "date", "language", "lang",
-    "keywords", "subject", "paper", "size", "font", "msc", "numbering", "bibliography", "citations"};
+    "keywords", "subject", "paper", "size", "font", "msc", "numbering", "bibliography", "citations",
+    "running", "linenumbers"};
 
 static bool
 is_setting(const char *w)
@@ -1062,6 +1063,8 @@ blocks(Node *parent, int i, int base, bool top)
 				KVs v = kwargs(rest);
 				for (size_t k = 0; k < v.n; k++)
 					node_add(section_stack[0], "bibfile", ln->no, col, v.v[k].val);
+			} else if (streq(w, "linenumbers") && !streq(unquote(rest), "on") && !streq(unquote(rest), "off")) {
+				error_at(ln->no, col, "expected: linenumbers on (or off), not '%s'", unquote(rest));
 			} else if (streq(w, "citations") && !streq(unquote(rest), "numeric") &&
 			    !streq(unquote(rest), "alphabetic")) {
 				error_at(ln->no, col, "unknown citation style '%s' (expected: citations numeric, or "
@@ -1073,7 +1076,7 @@ blocks(Node *parent, int i, int base, bool top)
 			} else {
 				char *v = unquote(rest);
 				if (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||
-				    streq(w, "keywords") || streq(w, "subject") || streq(w, "msc"))
+				    streq(w, "keywords") || streq(w, "subject") || streq(w, "msc") || streq(w, "running"))
 					v = typography(v, ln->no, col);
 				node_add(section_stack[0], "meta", ln->no, 0,
 				    fmt("%s %s", streq(w, "lang") ? "language" : w, v));
@@ -1335,7 +1338,8 @@ blocks(Node *parent, int i, int base, bool top)
 				error_at(ln->no, ln->indent + 1, "unknown setting '%s'; did you mean '%s'?", w, best);
 			else
 				error_at(ln->no, ln->indent + 1, "'%s' is not a setting (settings: title, subtitle, author, "
-				    "date, language, keywords, msc, numbering, bibliography, paper, size, font); "
+				    "date, language, keywords, msc, numbering, bibliography, citations, running, "
+				    "linenumbers, paper, size, font); "
 				    "write \\%s to start a paragraph with it", w, w);
 			i++;
 			continue;

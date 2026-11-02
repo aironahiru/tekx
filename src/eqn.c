@@ -739,6 +739,14 @@ strip(M *m)
 	return m;
 }
 
+/* −1 or −x: a sign and an atom, which needs no parentheses as a numerator */
+bool
+negated_atom(M *m)
+{
+	return m && m->kind == M_ROW && m->kids.n == 2 && m->kids.v[0]->kind == M_OP && m->kids.v[0]->unary &&
+	    is_atom(m->kids.v[1]);
+}
+
 bool
 is_atom(M *m)
 {
@@ -916,7 +924,7 @@ mark_slashed(M *m, bool disp)
 		m->slashed = m->solidus && !m->thin && !disp;
 		if (m->slashed && m->slash == NULL) {
 			M *r = mrow();
-			VPUSH(r->kids, is_atom(m->a) ? m->a : fence("(", m->a, ")"));
+			VPUSH(r->kids, is_atom(m->a) || negated_atom(m->a) ? m->a : fence("(", m->a, ")"));
 			VPUSH(r->kids, op("/", ORD));
 			VPUSH(r->kids, is_atom(m->b) ? m->b : fence("(", m->b, ")"));
 			r->group = true;

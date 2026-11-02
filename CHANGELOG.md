@@ -20,6 +20,8 @@ The release from which the compatibility promise holds.
   - `numbering by section` (Theorem 2.3, (2.3)).
   - `appendix` (Appendix A, Lemma A.1).
   - Unnumbered `theorem*`.
+  - `running "Short Title"` for running heads, and `linenumbers on` for
+    referee copies.
 - **Packages.**
   - `use NAME [VERSION]`.
   - `tekx pkg` adds, installs and verifies packages, from directories, git
@@ -65,6 +67,8 @@ The release from which the compatibility promise holds.
   an `mfrac`.
 - **MathML spacing.** There is no space around an ordinary `/`, and a thin
   space follows `log` in `log x`.
+- **Negated numerators.** A negated number or letter in a numerator needs no
+  parentheses: `x^(-1/2)` gives x^{−1/2}, and pastes as `x^(−1/2)`.
 - **Reference entries.** Entries are labelled in their own namespace
   (`cite:KEY`). A bare `@key` names a `#label` when one exists.
 - **Keywords.** `keywords` are printed after the abstract, as well as stored

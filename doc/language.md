@@ -38,6 +38,8 @@ and the document's metadata (PDF title, authors, language, XMP).
 | `msc TEXT` | the 2020 Mathematics Subject Classification, printed after the abstract |
 | `numbering by section` | theorems and equations numbered within sections: Theorem 2.3, (2.3); the default is `numbering continuous` |
 | `bibliography "refs.bib"` | read a BibTeX database (several may be listed, separated by commas) |
+| `running "Short Title"` | running heads: the short title on odd pages, the authors on even pages, none on the first |
+| `linenumbers on` | referee line numbers, every fifth line, in the left margin |
 | `citations alphabetic` | AMS alphabetic labels, [Hoo71], [BC47], instead of numbers (`citations numeric`, the default) |
 | `paper a4` | `a4` (default), `a5` or `letter` |
 | `size 11` | the body type size in points, 6 to 24 (default 11) |

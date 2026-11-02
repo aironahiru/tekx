@@ -187,6 +187,8 @@ static int cur_line;	/* source line of the block being set, for warnings */
 /* ---- metadata ---- */
 
 static char *meta_title, *meta_subtitle, *meta_date, *meta_keywords, *meta_subject, *meta_msc;
+static char *meta_running;	/* the short title for running heads, or NULL */
+static bool line_numbers;	/* referee line numbers in the margin */
 static VEC(char *) authors;
 static VEC(Node *) author_nodes;	/* parallel to authors: the meta node, with details */
 
@@ -2191,6 +2193,10 @@ read_meta(Node *n)
 			VPUSH(author_nodes, k);
 		} else if (streq(key, "msc"))
 			meta_msc = val;
+		else if (streq(key, "running"))
+			meta_running = val;
+		else if (streq(key, "linenumbers"))
+			line_numbers = streq(val, "on");
 		else if (streq(key, "date"))
 			meta_date = streq(val, "today") ? format_date(doc_time()) : val;
 		else if (streq(key, "language"))
@@ -2696,6 +2702,53 @@ emit_page_number(int pi)
 	close_span();
 }
 
+/*
+ * Running heads, as the AMS sets them: the authors on even pages, the
+ * short title on odd ones, none on the first.  They are pagination
+ * artifacts, so readers and copy and paste pass them by.
+ */
+static void
+emit_running_head(int pi)
+{
+	if (meta_running == NULL || pi == 0)
+		return;
+	Buf who = {0};
+	for (size_t i = 0; i < authors.n; i++)
+		bprintf(&who, "%s%s", i == 0 ? "" : i + 1 == authors.n ? (authors.n > 2 ? ", and " : " and ") : ", ",
+		    authors.v[i]);
+	const char *s = pi % 2 == 1 && who.n ? bstr(&who) : meta_running;
+	Ops ops = {0};
+	double size = BS * 8.5 / 11;
+	double w = text_line(s, FACE_IT, size, ART_PAGE, &ops, 0);
+	double y = TOP - 2.4 * BS;
+	for (size_t i = 0; i < ops.n; i++) {
+		context(ART_PAGE, -1);
+		glyph_out(&ops.v[i], LM + MAX(0, (TW - w) / 2) + ops.v[i].x, y);
+	}
+	close_span();
+}
+
+/* referee line numbers: every fifth line of text, in the left margin */
+static int text_lines;
+
+static void
+emit_line_number(V *v)
+{
+	bool text = false;
+	for (size_t k = 0; k < v->ops.n && !text; k++)
+		text = (v->ops.v[k].kind == O_GLYPH || v->ops.v[k].kind == O_IMAGE) && v->ops.v[k].el >= 0;
+	if (!text || ++text_lines % 5 != 0)
+		return;
+	Ops ops = {0};
+	double size = BS * 7 / 11;
+	double w = text_line(fmt("%d", text_lines), FACE_REG, size, ART_LAYOUT, &ops, 0);
+	for (size_t i = 0; i < ops.n; i++) {
+		context(ART_LAYOUT, -1);
+		glyph_out(&ops.v[i], LM - 1.6 * BS - w + ops.v[i].x, v->y);
+	}
+	close_span();
+}
+
 static void
 emit_pageref(Op *o, double x0, double y, LinkRects *lr)
 {
@@ -2934,9 +2987,14 @@ emit(void)
 			double x0 = LM + v->x, y = v->y;
 			for (size_t k = 0; k < v->ops.n; k++)
 				emit_op(&v->ops.v[k], x0, y, &lr);
+			if (line_numbers) {
+				close_span();
+				emit_line_number(v);
+			}
 		}
 		close_span();
 		emit_notes(pi, &lr);
+		emit_running_head((int)pi);
 		emit_page_number((int)pi);
 		emit_link_rects(&lr);
 	}
