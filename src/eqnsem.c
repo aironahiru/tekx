@@ -724,13 +724,34 @@ say(Buf *b, M *m)
 	}
 }
 
+/* "for all epsilon is greater than 0" reads "for all epsilon greater than 0" */
+static char *
+quantifiers(char *s)
+{
+	static const char *q[] = {"for all ", "there exists ", "there exists a unique "};
+
+	for (size_t k = 0; k < NELEM(q); k++) {
+		char *p = s;
+		while ((p = strstr(p, q[k])) != NULL) {
+			char *var = p + strlen(q[k]), *sp = strchr(var, ' ');
+			if (sp && startswith(sp, " is ")) {
+				s = fmt("%.*s%s", (int)(sp - s), s, sp + 3);
+				p = s;
+				continue;
+			}
+			p = var;
+		}
+	}
+	return s;
+}
+
 char *
 eqn_speech(M *m)
 {
 	Buf b = {0};
 
 	say(&b, m);
-	char *s = trim(bstr(&b));
+	char *s = quantifiers(trim(bstr(&b)));
 	/* tidy punctuation: "a , b" -> "a, b" */
 	Buf o = {0};
 	for (const char *p = s; *p; p++) {

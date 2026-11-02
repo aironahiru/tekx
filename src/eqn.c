@@ -488,13 +488,9 @@ tokenize(const char *s, int line, int col)
 			}
 			i += (size_t)k;
 			/* merge runs of super/subscripts: x²³ */
-			if ((t.kind == T_SUP || t.kind == T_SUB) && v.n && v.v[v.n - 1].kind == t.kind &&
-			    !t.sp && v.v[v.n - 1].pos + 0 >= 0) {
-				Tok *prev = &v.v[v.n - 1];
-				if (prev->kind == t.kind) {
-					prev->s = fmt("%s%s", prev->s, t.s);
-					continue;
-				}
+			if ((t.kind == T_SUP || t.kind == T_SUB) && v.n && v.v[v.n - 1].kind == t.kind && !t.sp) {
+				v.v[v.n - 1].s = fmt("%s%s", v.v[v.n - 1].s, t.s);
+				continue;
 			}
 		} else {
 			size_t k;
@@ -1200,7 +1196,7 @@ apply(P *p, M *f, bool prefix_ok)
 {
 	Tok *t = peek(p);
 
-	if (is(t, "(") && !(t->sp && !prefix_ok && 0)) {
+	if (is(t, "(")) {
 		M *arg = nud(p);
 		M *r = mrow();
 		madd(r, f);

@@ -614,7 +614,7 @@ typedef struct {
 } Formula;
 
 static Formula
-formula(Node *n, int parent, double size, bool display)
+formula(Node *n, int parent, double size)
 {
 	Formula f;
 	VEC(int) nodes = {0};
@@ -684,14 +684,13 @@ formula(Node *n, int parent, double size, bool display)
 			op_rule(&f.ops, x, y, w, h, s);
 		}
 	}
-	(void)display;
 	return f;
 }
 
 static void
 add_math(HList *hl, Node *n, Ctx c)
 {
-	Formula f = formula(n, c.el, c.size, false);
+	Formula f = formula(n, c.el, c.size);
 	VEC(double) brk = {0};
 	double k = c.size / 1000;
 
@@ -1170,8 +1169,7 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 			/* keep the real space at the end of the line for copy and paste */
 			op_glyph(&ops, bi->sface, bi->ssize, x, 0, bi->sgid, bi->w, " ", bi->sel, bi->sspan, bi->slink);
 		}
-		V *v = vline(h, d, lead, fr.x, &ops);
-		(void)v;
+		vline(h, d, lead, fr.x, &ops);
 		prev = b;
 	}
 	/* widows and orphans: keep the first two and the last two lines together */
@@ -1208,6 +1206,26 @@ ctx(Box_ bx, int e)
 	return c;
 }
 
+/* the end-of-proof mark at the right margin of the last line */
+static void
+add_qed(HList *hl, int p, double size)
+{
+	int qe = el(p, "tekx", "qed");
+	Font *f = face_font(FACE_MATH);
+	int g = font_glyph(f, 0x220e);
+	double w = font_adv(f, g) * size / f->upem;
+	Ops o = {0};
+
+	while (hl->n && hl->v[hl->n - 1].kind == H_GLUE)
+		hl->n--;
+	hpen(hl, 10000, false, 0, NULL, -1);
+	hglue(hl, size * 0.5, 0, 0, false);
+	hpen(hl, 0, false, 0, NULL, -1);
+	hglue(hl, 0, 0, 0, true);
+	op_glyph(&o, FACE_MATH, size, 0, 0, g, w, "∎", qe, -1, -1);
+	hbox(hl, &o, w, size * 0.7, 0);
+}
+
 static void
 paragraph(Node *n, Box_ bx, HList *prefix, bool indent, bool qed)
 {
@@ -1227,22 +1245,8 @@ paragraph(Node *n, Box_ bx, HList *prefix, bool indent, bool qed)
 		}
 	if (n)
 		add_inlines(&hl, n, c);
-	if (qed) {
-		/* the end-of-proof mark sits at the right margin of the last line */
-		int q = el(p, "tekx", "qed");
-		Font *f = face_font(FACE_MATH);
-		int g = font_glyph(f, 0x220e);
-		double w = font_adv(f, g) * bx.size / f->upem;
-		while (hl.n && hl.v[hl.n - 1].kind == H_GLUE)
-			hl.n--;
-		hpen(&hl, 10000, false, 0, NULL, -1);
-		hglue(&hl, bx.size * 0.5, 0, 0, false);
-		hpen(&hl, 0, false, 0, NULL, -1);
-		hglue(&hl, 0, 0, 0, true);
-		Ops o = {0};
-		op_glyph(&o, FACE_MATH, bx.size, 0, 0, g, w, "∎", q, -1, -1);
-		hbox(&hl, &o, w, bx.size * 0.7, 0);
-	}
+	if (qed)
+		add_qed(&hl, p, bx.size);
 	set_par(&hl, bx.fr, bx.size, indent ? 1.5 * bx.size : 0, true, qed);
 }
 
@@ -1295,13 +1299,11 @@ heading(Node *sec, Box_ bx, int level, bool numbered, const char *label)
 	HList hl = {0};
 	Ctx c = {FACE_BF, size, hel, -1, true};
 	if (num) {
+		/* the number, then a real space one em wide */
 		add_text(&hl, num, c);
 		Font *f = face_font(FACE_BF);
-		int g = font_glyph(f, ' ');
-		double w = font_adv(f, g) * size / f->upem;
 		Ops o = {0};
-		op_glyph(&o, FACE_BF, size, 0, 0, g, size, " ", hel, -1, -1);
-		(void)w;
+		op_glyph(&o, FACE_BF, size, 0, 0, font_glyph(f, ' '), size, " ", hel, -1, -1);
 		hbox(&hl, &o, size, 0, 0);
 	}
 	if (h)
@@ -1335,7 +1337,7 @@ display(Node *d, Box_ bx)
 		if (!streq(ln->kind, "line"))
 			continue;
 		char *label = field(ln, 0);
-		Formula f = formula(ln, div, bx.size, true);
+		Formula f = formula(ln, div, bx.size);
 		if (!streq(label, "-")) {
 			Label *l = find_label(label);
 			VPUSH(nums, l ? l->text : "(?)");
@@ -1574,6 +1576,32 @@ code_block(Node *cnode, Box_ bx)
 	vspace(0.5 * bx.size);
 }
 
+/* the first child of a block that is not its heading */
+static Node *
+first_block(Node *t)
+{
+	for (size_t i = 0; i < t->kids.n; i++)
+		if (!streq(t->kids.v[i]->kind, "heading"))
+			return t->kids.v[i];
+	return NULL;
+}
+
+/* a copy of t without its heading and without `skip` */
+static Node
+rest_of(Node *t, Node *skip)
+{
+	Node rest = *t;
+	VEC(Node *) kids = {0};
+
+	for (size_t i = 0; i < t->kids.n; i++)
+		if (t->kids.v[i] != skip && !streq(t->kids.v[i]->kind, "heading"))
+			VPUSH(kids, t->kids.v[i]);
+	rest.kids.v = kids.v;
+	rest.kids.n = kids.n;
+	rest.kids.cap = kids.cap;
+	return rest;
+}
+
 static void
 theorem(Node *t, Box_ bx)
 {
@@ -1581,80 +1609,39 @@ theorem(Node *t, Box_ bx)
 	Env *env = find_env(kind);
 	int style = env ? env->style : 0;
 	const char *title = env ? env->title : kind;
-	Label *l = !streq(label, "-") ? find_label(label) : NULL;
 	int div = el(bx.el, "tekx", "theorem");
-	Node *h = child(t, "heading");
+	Node *h = child(t, "heading"), *first = first_block(t);
+	bool runin = first && streq(first->kind, "para");
 
 	thm_num++;
 	label_el(label, div);
-	(void)l;
 	dest(div);
 	vspace(0.6 * bx.size);
-	/* head: "Theorem 3 (Pythagoras)." */
-	HList head = {0};
-	int he = -1;
-	{
-		Ctx c = {style == 2 ? FACE_IT : FACE_BF, bx.size, -1, -1, true};
-		he = el(-2, "tekx", "theorem-head");	/* parent fixed up below */
-		c.el = he;
-		add_text(&head, fmt("%s %d", title, thm_num), c);
-		if (h) {
-			Ctx n = c;
-			n.face = FACE_REG;
-			space_glue(&head, n);
-			add_text(&head, "(", n);
-			add_inlines(&head, h, n);
-			add_text(&head, ")", n);
-		}
-		add_text(&head, ".", c);
-		space_glue(&head, c);
+	/* the head, "Theorem 3 (Pythagoras).", runs into the first paragraph */
+	int p = el(div, "pdf2", "P");
+	int he = el(p, "tekx", "theorem-head");
+	HList hl = {0};
+	Ctx c = {style == 2 ? FACE_IT : FACE_BF, bx.size, he, -1, true};
+	add_text(&hl, fmt("%s %d", title, thm_num), c);
+	if (h) {
+		Ctx n = c;
+		n.face = FACE_REG;
+		space_glue(&hl, n);
+		add_text(&hl, "(", n);
+		add_inlines(&hl, h, n);
+		add_text(&hl, ")", n);
 	}
+	add_text(&hl, ".", c);
+	space_glue(&hl, c);
 	Box_ in = bx;
 	in.el = div;
 	in.face = style == 0 ? FACE_IT : FACE_REG;
-	Node *first = t->kids.n ? NULL : NULL;
-	for (size_t i = 0; i < t->kids.n; i++)
-		if (!streq(t->kids.v[i]->kind, "heading")) {
-			first = t->kids.v[i];
-			break;
-		}
-	size_t before_els = els.n;
-	(void)before_els;
-	if (first && streq(first->kind, "para")) {
-		/* the head runs into the first paragraph */
-		int p = el(div, "pdf2", "P");
-		els.v[he].parent = p;
-		HList hl = head;
-		Ctx c = ctx(in, p);
-		add_inlines(&hl, first, c);
-		for (size_t i = 0; i < hl.n; i++)
-			if (hl.v[i].space && hl.v[i].sel == -1)
-				hl.v[i].sel = p;
-		set_par(&hl, in.fr, in.size, 0, true, false);
-		after_heading = false;
-		Node rest = *t;
-		VEC(Node *) kids = {0};
-		bool skipped = false;
-		for (size_t i = 0; i < t->kids.n; i++) {
-			Node *k = t->kids.v[i];
-			if (streq(k->kind, "heading"))
-				continue;
-			if (!skipped && k == first) {
-				skipped = true;
-				continue;
-			}
-			VPUSH(kids, k);
-		}
-		rest.kids.v = kids.v;
-		rest.kids.n = kids.n;
-		blocks(&rest, in);
-	} else {
-		int p = el(div, "pdf2", "P");
-		els.v[he].parent = p;
-		set_par(&head, in.fr, in.size, 0, false, false);
-		after_heading = true;
-		blocks(t, in);
-	}
+	if (runin)
+		add_inlines(&hl, first, ctx(in, p));
+	set_par(&hl, in.fr, in.size, 0, runin, false);
+	after_heading = !runin;
+	Node rest = rest_of(t, runin ? first : NULL);
+	blocks(&rest, in);
 	vspace(0.6 * bx.size);
 	after_heading = false;
 }
@@ -1679,76 +1666,38 @@ proof(Node *t, Box_ bx)
 {
 	int div = el(bx.el, "tekx", "proof");
 	Box_ in = bx;
-	in.el = div;
-	Node *h = child(t, "heading");
+	Node *h = child(t, "heading"), *first = first_block(t);
+	bool runin = first && streq(first->kind, "para");
 
+	in.el = div;
 	vspace(0.4 * bx.size);
-	HList head = {0};
-	int he = el(-2, "tekx", "proof-head");
+	qed_para = last_para(t);
+	int p = el(div, "pdf2", "P");
+	int he = el(p, "tekx", "proof-head");
+	HList hl = {0};
 	Ctx c = {FACE_IT, bx.size, he, -1, true};
 	if (h) {
-		add_inlines(&head, h, c);
-		add_text(&head, ".", c);
+		add_inlines(&hl, h, c);
+		add_text(&hl, ".", c);
 	} else {
-		add_text(&head, "Proof.", c);
+		add_text(&hl, "Proof.", c);
 	}
-	space_glue(&head, c);
-	qed_para = last_para(t);
-	Node *first = NULL;
-	for (size_t i = 0; i < t->kids.n; i++)
-		if (!streq(t->kids.v[i]->kind, "heading")) {
-			first = t->kids.v[i];
-			break;
-		}
-	if (first && streq(first->kind, "para")) {
-		int p = el(div, "pdf2", "P");
-		els.v[he].parent = p;
-		HList hl = head;
+	space_glue(&hl, c);
+	bool q = runin && first == qed_para;
+	if (runin)
 		add_inlines(&hl, first, ctx(in, p));
-		for (size_t i = 0; i < hl.n; i++)
-			if (hl.v[i].space && hl.v[i].sel == -1)
-				hl.v[i].sel = p;
-		bool q = first == qed_para;
-		if (q) {
-			int qe = el(p, "tekx", "qed");
-			Font *f = face_font(FACE_MATH);
-			int g = font_glyph(f, 0x220e);
-			double w = font_adv(f, g) * bx.size / f->upem;
-			while (hl.n && hl.v[hl.n - 1].kind == H_GLUE)
-				hl.n--;
-			hpen(&hl, 10000, false, 0, NULL, -1);
-			hglue(&hl, bx.size * 0.5, 0, 0, false);
-			hpen(&hl, 0, false, 0, NULL, -1);
-			hglue(&hl, 0, 0, 0, true);
-			Ops o = {0};
-			op_glyph(&o, FACE_MATH, bx.size, 0, 0, g, w, "∎", qe, -1, -1);
-			hbox(&hl, &o, w, bx.size * 0.7, 0);
-			qed_para = NULL;
-		}
-		set_par(&hl, in.fr, in.size, 0, true, q);
-		Node rest = *t;
-		VEC(Node *) kids = {0};
-		for (size_t i = 0; i < t->kids.n; i++)
-			if (t->kids.v[i] != first && !streq(t->kids.v[i]->kind, "heading"))
-				VPUSH(kids, t->kids.v[i]);
-		rest.kids.v = kids.v;
-		rest.kids.n = kids.n;
-		after_heading = false;
-		blocks(&rest, in);
-	} else {
-		int p = el(div, "pdf2", "P");
-		els.v[he].parent = p;
-		set_par(&head, in.fr, in.size, 0, false, false);
-		after_heading = true;
-		blocks(t, in);
+	if (q) {
+		add_qed(&hl, p, bx.size);
+		qed_para = NULL;
 	}
-	if (qed_para == NULL && !(first && streq(first->kind, "para") && first == last_para(t))) {
-		/* nothing left to do: the mark was placed */
-	}
+	set_par(&hl, in.fr, in.size, 0, runin, q);
+	after_heading = !runin;
+	Node rest = rest_of(t, runin ? first : NULL);
+	blocks(&rest, in);
 	if (qed_para != NULL || last_para(t) == NULL) {
-		/* the proof ends with a display or list: the mark goes on a line of its own */
-		int p = el(div, "pdf2", "P");
-		int qe = el(p, "tekx", "qed");
+		/* the proof ends with a display or a list: the mark gets a line of its own */
+		int pe = el(div, "pdf2", "P");
+		int qe = el(pe, "tekx", "qed");
 		Font *f = face_font(FACE_MATH);
 		int g = font_glyph(f, 0x220e);
 		double w = font_adv(f, g) * bx.size / f->upem;
@@ -2361,7 +2310,7 @@ typedef struct {
 typedef VEC(LinkRect) LinkRects;
 
 static void
-emit_link_rects(LinkRects *lr, int page)
+emit_link_rects(LinkRects *lr)
 {
 	for (size_t i = 0; i < lr->n; i++) {
 		LinkRect *r = &lr->v[i];
@@ -2390,7 +2339,6 @@ emit_link_rects(LinkRects *lr, int page)
 		bprintf(&b, " %s", l->contents);
 		fprintf(out, "%s\n", bstr(&b));
 	}
-	(void)page;
 	lr->n = 0;
 }
 
@@ -2583,7 +2531,7 @@ emit(void)
 		}
 		close_span();
 		emit_page_number((int)pi);
-		emit_link_rects(&lr, (int)pi);
+		emit_link_rects(&lr);
 	}
 }
 

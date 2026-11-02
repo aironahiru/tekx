@@ -31,12 +31,15 @@ static const struct {
 	{"pdf", pdf_main},
 };
 
+static const char usage_text[] =
+    "usage: tekx [-E | -P | -M | -S] [-o output] file.tekx\n"
+    "       tekx pp | parse | eqn | set | pdf [file]\n"
+    "       tekx -v | -h\n";
+
 static void
 usage(void)
 {
-	fputs("usage: tekx [-E | -P | -M | -S] [-o output] file.tekx\n"
-	    "       tekx pp | parse | eqn | set | pdf [file]\n"
-	    "       tekx -v\n", stderr);
+	fputs(usage_text, stderr);
 	exit(2);
 }
 
@@ -117,7 +120,14 @@ main(int argc, char **argv)
 			last = 3;
 		else if (streq(a, "-o") && i + 1 < argc)
 			output = argv[++i];
-		else if (streq(a, "-v") || streq(a, "--version")) {
+		else if (streq(a, "-h") || streq(a, "--help")) {
+			fputs(usage_text, stdout);
+			fputs("\n  -E  stop after macros       -P  stop after parsing\n"
+			    "  -M  stop after mathematics  -S  stop after typesetting\n"
+			    "  -o  output file (- for standard output); default: file.pdf\n\n"
+			    "See tekx(1), doc/language.md and doc/machinery.md.\n", stdout);
+			return 0;
+		} else if (streq(a, "-v") || streq(a, "--version")) {
 			printf("tekx %s\n", TEKX_VERSION);
 			return 0;
 		} else if (a[0] == '-' && a[1])

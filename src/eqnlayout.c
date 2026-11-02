@@ -798,10 +798,8 @@ static Box *
 lay_fence(M *m, St s, int parent)
 {
 	int node = new_node(parent, "mrow", NULL);
-	int n0 = (int)nodes->n;
-	(void)n0;
-	/* the opening delimiter's node must come first: create it lazily
-	 * after measuring the body, then reorder by creating a placeholder */
+	/* the opening delimiter's element must precede the body's, but its
+	 * size depends on the body: reserve the element now, fill it later */
 	int open_node = *m->open ? new_node(node, "mo", NULL) : -1;
 	Box *body = lay(m->a, s, node);
 	Box *b = box_new();
