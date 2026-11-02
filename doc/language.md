@@ -40,7 +40,8 @@ and the document's metadata (PDF title, authors, language, XMP).
 | `bibliography "refs.bib"` | read a BibTeX database (several may be listed, separated by commas) |
 | `running "Short Title"` | running heads: the short title on odd pages, the authors on even pages, none on the first |
 | `linenumbers on` | referee line numbers, every fifth line, in the left margin |
-| `citations alphabetic` | AMS alphabetic labels, [Hoo71], [BC47], instead of numbers (`citations numeric`, the default) |
+| `citations alphabetic` | AMS alphabetic labels, [Hoo71], [BC47], instead of numbers (`citations numeric`, the default, sorts the list by author) |
+| `citations ordered` | numbers in the order of first citation, as many applied and physics journals require |
 | `paper a4` | `a4` (default), `a5` or `letter` |
 | `size 11` | the body type size in points, 6 to 24 (default 11) |
 | `font ROLE FILE` | replace a built-in font; ROLE is `text`, `italic`, `bold`, `bolditalic`, `math` or `mono` |

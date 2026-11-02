@@ -1066,9 +1066,9 @@ blocks(Node *parent, int i, int base, bool top)
 			} else if (streq(w, "linenumbers") && !streq(unquote(rest), "on") && !streq(unquote(rest), "off")) {
 				error_at(ln->no, col, "expected: linenumbers on (or off), not '%s'", unquote(rest));
 			} else if (streq(w, "citations") && !streq(unquote(rest), "numeric") &&
-			    !streq(unquote(rest), "alphabetic")) {
-				error_at(ln->no, col, "unknown citation style '%s' (expected: citations numeric, or "
-				    "citations alphabetic)", unquote(rest));
+			    !streq(unquote(rest), "alphabetic") && !streq(unquote(rest), "ordered")) {
+				error_at(ln->no, col, "unknown citation style '%s' (expected: citations numeric, "
+				    "citations ordered, or citations alphabetic)", unquote(rest));
 			} else if (streq(w, "numbering") && !streq(unquote(rest), "by section") &&
 			    !streq(unquote(rest), "continuous")) {
 				error_at(ln->no, col, "unknown numbering '%s' (expected: numbering by section, or "
@@ -1529,6 +1529,17 @@ bibliography(Node *doc, const char *source)
 	}
 	if (list.n == 0)
 		return;
+	const char *style = "numeric";
+	for (size_t i = 0; i < doc->kids.n; i++)
+		if (streq(doc->kids.v[i]->kind, "meta") && streq(field(doc->kids.v[i], 0), "citations"))
+			style = field_rest(doc->kids.v[i], 1);
+	if (streq(style, "ordered")) {
+		/* numbered in the order of first citation, as unsrt does */
+		for (size_t i = 0; i < list.n; i++)
+			for (size_t k = 0; k < cited.n; k++)
+				if (streq(cited.v[k], list.v[i].e->key))
+					list.v[i].sort = fmt("%08zu", k);
+	}
 	qsort(list.v, list.n, sizeof *list.v, by_sort_key);
 	Node *refs = find_kind(doc, "refs");
 	if (refs == NULL)

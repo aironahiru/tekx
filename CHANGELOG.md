@@ -14,6 +14,7 @@ The release from which the compatibility promise holds.
   - `[@key]`, `[@a; @b]` and `[@key, Thm. 2]` cite: sorted, ranged and linked.
   - Only cited entries are printed, in the style of the AMS.
   - `citations alphabetic` gives amsalpha labels (Hoo71).
+  - `citations ordered` numbers references in the order they are first cited.
 - **Journal front matter.**
   - `author "Name", affiliation: "…", email: "…", orcid: "…"`.
   - `msc` and `keywords`, printed after the abstract.
