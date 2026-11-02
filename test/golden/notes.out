@@ -1,0 +1,16 @@
+== tree
+document test/golden/notes.tekx
+  para@1 0
+    text A note with a fraction
+    note@1:23
+      text Here 
+      math@1:31 a/b + sqrt 2
+      text  and a 
+      link https://example.org
+        text link
+      text .
+    text  in it.
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a over b plus the square root of 2"><semantics><mrow><mfrac><mi>𝑎</mi><mi>𝑏</mi></mfrac><mo>+</mo><msqrt><mn>2</mn></msqrt></mrow><annotation encoding="application/x-tekx">a/b + sqrt 2</annotation></semantics></math>
+speech a over b plus the square root of 2
+linear a/b + √2

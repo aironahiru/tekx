@@ -52,6 +52,14 @@ obj-debug/%.o: src/%.c $(HDR) | obj-debug
 test: tekx tekx-debug
 	@sh test/run.sh
 
+# mutation fuzzing under the sanitizers: make fuzz CASES=5000
+CASES ?= 2000
+fuzz: tekx-debug tools/mutate
+	@sh test/fuzz.sh $(CASES)
+
+tools/mutate: tools/mutate.c
+	$(CC) -O2 -o $@ tools/mutate.c
+
 # the example PDFs and the README picture, reproducibly
 examples: tekx
 	for f in examples/*.tekx; do SOURCE_DATE_EPOCH=1793616300 ./tekx $$f || exit 1; done
@@ -63,6 +71,6 @@ install: tekx
 	cp doc/tekx.1 $(DESTDIR)$(PREFIX)/share/man/man1/tekx.1
 
 clean:
-	rm -rf obj obj-debug tekx tekx-debug src/assets.c tools/bin2c test/out
+	rm -rf obj obj-debug tekx tekx-debug src/assets.c tools/bin2c tools/mutate test/out
 
-.PHONY: all debug test examples install clean
+.PHONY: all debug test fuzz examples install clean

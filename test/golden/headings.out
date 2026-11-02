@@ -1,0 +1,28 @@
+== tree
+document test/golden/headings.tekx
+  meta@2 title Headings
+  contents@4
+  section@6 1 1 -
+    heading
+      text The variable 
+      math@6:23 X
+      text  and its mean 
+      math@6:40 mu = E(X)
+    para@8 0
+      text Text.
+    section@10 2 1 -
+      heading
+        text Bounds on 
+        math@10:23 sum_(k=1)^n a_k
+      para@12 0
+        text More text.
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="capital X"><semantics><mrow><mi>𝑋</mi></mrow><annotation encoding="application/x-tekx">X</annotation></semantics></math>
+speech capital X
+linear X
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="mu equals capital E capital X"><semantics><mrow><mi>𝜇</mi><mo>=</mo><mrow><mi>𝐸</mi><mo>⁢</mo><mrow><mo fence="true">(</mo><mi>𝑋</mi><mo fence="true">)</mo></mrow></mrow></mrow><annotation encoding="application/x-tekx">mu = E(X)</annotation></semantics></math>
+speech mu equals capital E capital X
+linear μ = E(X)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the sum from k equals 1 to n of a sub k"><semantics><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑘</mi><mo>=</mo><mn>1</mn></mrow><mi>𝑛</mi></munderover><msub><mi>𝑎</mi><mi>𝑘</mi></msub></mrow><annotation encoding="application/x-tekx">sum_(k=1)^n a_k</annotation></semantics></math>
+speech the sum from k equals 1 to n of a sub k
+linear ∑_(k=1)^n a_k

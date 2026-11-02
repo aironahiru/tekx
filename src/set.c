@@ -641,7 +641,7 @@ formula(Node *n, int parent, double size)
 	int s = span(f.linear, true);
 	for (size_t i = 0; i < n->kids.n; i++) {
 		Node *c = n->kids.v[i];
-		char *r = c->rest;
+		char *r = xstrdup(c->rest);	/* next_field cuts its string: keep the node intact */
 		if (streq(c->kind, "box")) {
 			f.w = atof(next_field(&r)) * k;
 			f.h = atof(next_field(&r)) * k;
@@ -705,7 +705,7 @@ add_math(HList *hl, Node *n, Ctx c)
 		f.ops.v[i].link = c.link;
 	for (size_t i = 0; i < n->kids.n; i++)
 		if (streq(n->kids.v[i]->kind, "brk")) {
-			char *r = n->kids.v[i]->rest;
+			char *r = xstrdup(n->kids.v[i]->rest);
 			VPUSH(brk, atof(next_field(&r)) * k);
 			VPUSH(brk, atof(next_field(&r)) * k);
 			VPUSH(brk, atof(next_field(&r)));
@@ -1602,7 +1602,7 @@ table_block(Node *t, Box_ bx)
 	char aligns[64];
 	memset(aligns, 'l', sizeof aligns);
 	if (al) {
-		char *a = al->rest;
+		char *a = xstrdup(al->rest);
 		for (int c = 0; c < cols && c < 64; c++) {
 			char *f = next_field(&a);
 			if (*f)
@@ -2727,6 +2727,65 @@ emit_pageref(Op *o, double x0, double y, LinkRects *lr)
 	}
 }
 
+/* one drawing operation of a line whose origin is (x0, y) */
+static void
+emit_op(Op *o, double x0, double y, LinkRects *lr)
+{
+	if (o->kind == O_PAGEREF) {
+		emit_pageref(o, x0, y, lr);
+		return;
+	}
+	context(o->el, o->span);
+	if (o->kind == O_IMAGE) {
+		flush_run();
+		Buf b = {0};
+		bputs(&b, "I ");
+		bnum(&b, x0 + o->x);
+		bputc(&b, ' ');
+		bnum(&b, y + o->y);
+		bputc(&b, ' ');
+		bnum(&b, o->w);
+		bputc(&b, ' ');
+		bnum(&b, o->h);
+		bputc(&b, ' ');
+		pct_escape(&b, o->label);
+		fprintf(out, "%s\n", bstr(&b));
+		return;
+	}
+	if (o->kind == O_RULE) {
+		flush_run();
+		Buf b = {0};
+		bputs(&b, "r ");
+		bnum(&b, x0 + o->x);
+		bputc(&b, ' ');
+		bnum(&b, y + o->y);
+		bputc(&b, ' ');
+		bnum(&b, o->w);
+		bputc(&b, ' ');
+		bnum(&b, o->h);
+		fprintf(out, "%s\n", bstr(&b));
+		return;
+	}
+	glyph_out(o, x0 + o->x, y + o->y);
+	if (o->link >= 0 && o->kind == O_GLYPH) {
+		double gx0 = x0 + o->x, gx1 = gx0 + o->adv;
+		double gy0 = y - o->size * 0.8, gy1 = y + o->size * 0.25;
+		LinkRect *last = NULL;
+		for (size_t q = lr->n; q-- > 0;)
+			if (lr->v[q].link == o->link) {
+				last = &lr->v[q];
+				break;
+			}
+		if (last && fabs(last->y1 - gy1) < 0.5 * o->size && gx0 >= last->x0 - 1) {
+			last->x1 = MAX(last->x1, gx1);
+			last->y0 = MIN(last->y0, gy0);
+		} else {
+			LinkRect r = {o->link, gx0, gx1, gy0, gy1};
+			VPUSH(*lr, r);
+		}
+	}
+}
+
 /* the footnotes of a page, above its foot, under a short rule */
 static void
 emit_notes(size_t pi, LinkRects *lr)
@@ -2762,16 +2821,12 @@ emit_notes(size_t pi, LinkRects *lr)
 		for (size_t i = 0; i < nt->lines.n; i++) {
 			V *v = &nt->lines.v[i];
 			y += i ? v->lead : v->h;
-			for (size_t q = 0; q < v->ops.n; q++) {
-				Op *o = &v->ops.v[q];
-				context(o->el, o->span);
-				glyph_out(o, LM + v->x + o->x, y + o->y);
-			}
+			for (size_t q = 0; q < v->ops.n; q++)
+				emit_op(&v->ops.v[q], LM + v->x, y, lr);
 		}
 		y += (nt->lines.n ? nt->lines.v[nt->lines.n - 1].d : 0) + NOTE_GAP;
 	}
 	close_span();
-	(void)lr;
 }
 
 static void
@@ -2866,62 +2921,8 @@ emit(void)
 			if (v->newpage)
 				continue;
 			double x0 = LM + v->x, y = v->y;
-			for (size_t k = 0; k < v->ops.n; k++) {
-				Op *o = &v->ops.v[k];
-				if (o->kind == O_PAGEREF) {
-					emit_pageref(o, x0, y, &lr);
-					continue;
-				}
-				context(o->el, o->span);
-				if (o->kind == O_IMAGE) {
-					flush_run();
-					Buf b = {0};
-					bputs(&b, "I ");
-					bnum(&b, x0 + o->x);
-					bputc(&b, ' ');
-					bnum(&b, y + o->y);
-					bputc(&b, ' ');
-					bnum(&b, o->w);
-					bputc(&b, ' ');
-					bnum(&b, o->h);
-					bputc(&b, ' ');
-					pct_escape(&b, o->label);
-					fprintf(out, "%s\n", bstr(&b));
-					continue;
-				}
-				if (o->kind == O_RULE) {
-					flush_run();
-					Buf b = {0};
-					bputs(&b, "r ");
-					bnum(&b, x0 + o->x);
-					bputc(&b, ' ');
-					bnum(&b, y + o->y);
-					bputc(&b, ' ');
-					bnum(&b, o->w);
-					bputc(&b, ' ');
-					bnum(&b, o->h);
-					fprintf(out, "%s\n", bstr(&b));
-					continue;
-				}
-				glyph_out(o, x0 + o->x, y + o->y);
-				if (o->link >= 0 && o->kind == O_GLYPH) {
-					double gx0 = x0 + o->x, gx1 = gx0 + o->adv;
-					double gy0 = y - o->size * 0.8, gy1 = y + o->size * 0.25;
-					LinkRect *last = NULL;
-					for (size_t q = lr.n; q-- > 0;)
-						if (lr.v[q].link == o->link) {
-							last = &lr.v[q];
-							break;
-						}
-					if (last && fabs(last->y1 - gy1) < 0.5 * o->size && gx0 >= last->x0 - 1) {
-						last->x1 = MAX(last->x1, gx1);
-						last->y0 = MIN(last->y0, gy0);
-					} else {
-						LinkRect r = {o->link, gx0, gx1, gy0, gy1};
-						VPUSH(lr, r);
-					}
-				}
-			}
+			for (size_t k = 0; k < v->ops.n; k++)
+				emit_op(&v->ops.v[k], x0, y, &lr);
 		}
 		close_span();
 		emit_notes(pi, &lr);

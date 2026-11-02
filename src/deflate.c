@@ -572,6 +572,8 @@ zlib_decompress(const u8 *d, size_t n, size_t *outlen)
 				int k = 0;
 				while (k < hlit + hdist && !r.err) {
 					int s = huff_decode(&r, &ch), rep = 0, val = 0;
+					if (s < 0)
+						return NULL;	/* not a code: a corrupt stream */
 					if (s < 16) {
 						lens[k++] = (u8)s;
 						continue;

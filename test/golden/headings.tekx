@@ -1,0 +1,12 @@
+// Mathematics in headings is set twice: in the heading and in the contents.
+title "Headings"
+
+contents
+
+section The variable $X$ and its mean $mu = E(X)$
+
+Text.
+
+subsection Bounds on $sum_(k=1)^n a_k$
+
+More text.
