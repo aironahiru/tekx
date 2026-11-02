@@ -90,6 +90,7 @@ char *next_field(char **line);		/* split off one space-separated field */
 /* diagnostics: file:line:col: kind: message */
 extern const char *diag_file;
 extern int nerrors;
+extern Buf *diag_sink;		/* when set, diagnostics collect here instead of printing */
 void error_at(int line, int col, const char *fmt, ...) PRINTF(3, 4);
 void warn_at(int line, int col, const char *fmt, ...) PRINTF(3, 4);
 void note(const char *fmt, ...) PRINTF(1, 2);
@@ -119,6 +120,9 @@ int eqn_main(FILE *in, FILE *out, const char *file);
 int set_main(FILE *in, FILE *out, const char *file);
 int pdf_main(FILE *in, FILE *out, const char *file);
 int html_main(FILE *in, FILE *out, const char *file);	/* a second back end: HTML and MathML */
+/* LaTeX, both ways (texout.c, latex.c) */
+int tex_main(FILE *in, FILE *out, const char *file);	/* a third back end: LaTeX for submission */
+int latex_import(FILE *in, FILE *out, const char *file);	/* LaTeX in, tekx out */
 
 /* commands around the compiler (cli.c) */
 int watch_main(const char *self, int argc, char **argv, const char *file);	/* tekx -w */

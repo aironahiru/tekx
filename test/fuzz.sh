@@ -33,6 +33,16 @@ one() {
 		cp test/images/parabola.png "$dir/x.png"
 		./tools/mutate "$i" <test/golden/journal.bib >"$dir/journal.bib"
 		cp test/golden/journal.tekx "$dir/case.tekx"
+	elif [ $((i % 5)) -eq 2 ]; then
+		# a mutated LaTeX paper through tekx import, then built
+		cp test/images/parabola.png "$dir/x.png"
+		cp test/latex/refs.bib test/latex/parabola.png "$dir/"
+		tex=test/latex/paper.tex
+		[ $((i % 2)) -eq 0 ] && tex=test/latex/odd.tex
+		./tools/mutate "$i" <"$tex" >"$dir/case.tex"
+		timeout 20 ./tekx-debug import -o "$dir/case.tekx" "$dir/case.tex" >/dev/null 2>"$dir/import.txt"
+		[ $? -ge 124 ] && echo "timeout" >>"$dir/import.txt"
+		[ -e "$dir/case.tekx" ] || cp "$dir/case.tex" "$dir/case.tekx"
 	else
 		src=$(echo "$corpus" | sed -n "$((i % ncorpus + 1))p")
 		cp test/images/parabola.png "$dir/x.png"
@@ -42,6 +52,10 @@ one() {
 	rc=$?
 	timeout 20 ./tekx-debug -o "$dir/out.html" "$dir/case.tekx" >/dev/null 2>>"$dir/err.txt"
 	[ $? -ge 124 ] && rc=124
+	timeout 20 ./tekx-debug -o "$dir/out.tex" "$dir/case.tekx" >/dev/null 2>>"$dir/err.txt"
+	[ $? -ge 124 ] && rc=124
+	[ -e "$dir/import.txt" ] && cat "$dir/import.txt" >>"$dir/err.txt"
+	grep -q '^timeout$' "$dir/err.txt" && rc=124
 	if [ $rc -ge 124 ] || grep -q 'Sanitizer\|runtime error' "$dir/err.txt"; then
 		cp "$dir/case.tekx" "test/out/fuzz/fail-$i.tekx"
 		cp "$dir/x.png" "test/out/fuzz/fail-$i.png"

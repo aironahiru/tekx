@@ -1,0 +1,8 @@
+// notation tex: every formula reads as LaTeX, even one with no command in it
+notation tex
+
+In LaTeX $a_{ij}$ is a subscript, $ABCD$ is four letters, $xy$ a product, and
+$\left( a_{ij} \right)$ the same; $x^{-1/2}$ has an exponent of $-1/2$, and
+$1/\log x$ divides by a logarithm.
+
+    \sum_{k=1}^{n} k = \frac{n(n+1)}{2}.

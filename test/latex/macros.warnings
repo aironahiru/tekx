@@ -1,0 +1,4 @@
+test/latex/macros.tex:1:1: warning: \self uses itself: it is left unexpanded
+test/latex/macros.tex:1:1: warning: macro expansion goes on and on (a macro that uses itself?): stopped after 20 rounds
+test/latex/macros.tex:12:17: warning: unknown command \self: its text is kept
+test/latex/macros.tex:12:27: warning: unknown command \ping: its text is kept

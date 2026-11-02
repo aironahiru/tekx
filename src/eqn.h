@@ -70,6 +70,9 @@ void eqn_reset_declarations(void);
 void eqn_declare_function(const char *name);
 void eqn_define(const char *def, int line, int col);
 M *eqn_parse(const char *src, int line, int col, bool display, char **rows, int nrows);
+struct Node;
+void eqn_set_notation_tex(bool on);	/* every formula in TeX notation */
+void eqn_notation_from(struct Node *doc);	/* from a document's `notation` setting */
 
 /* layout */
 enum { F_MATH, F_TEXT };
@@ -107,6 +110,8 @@ char *eqn_speech(M *m);
 char *eqn_linear(M *m);
 char *eqn_grouping(M *m);	/* every grouping written out, for tekx explain */
 bool eqn_mathml_split(M *m, char **left, char **right);	/* the two sides of an alignment point */
+char *eqn_latex(M *m, bool display);	/* the formula as LaTeX (amsmath) source */
+bool eqn_latex_split(M *m, bool display, char **left, char **right);	/* its sides, for align */
 
 /* shared helpers */
 bool is_atom(M *m);

@@ -168,5 +168,12 @@ if command -v pdftotext >/dev/null 2>&1 || [ -n "${PDFJS:-}" ] || [ -n "${PDFIUM
 	fi
 fi
 
+# 11. LaTeX both ways: tekx import and the tex back end (test/latex.sh)
+if $update; then
+	TEKX=$T sh test/latex.sh -u >/dev/null || status=1
+else
+	TEKX=$T sh test/latex.sh || status=1
+fi
+
 [ $status -eq 0 ] && echo "all tests passed"
 exit $status

@@ -9,6 +9,9 @@
  *	tekx set    typesetting		tree -> page description
  *	tekx pdf    device back end	page description -> PDF
  *	tekx html   web back end	tree with mathematics -> HTML and MathML
+ *	tekx tex    LaTeX back end	tree with mathematics -> amsart LaTeX
+ *
+ * and `tekx import paper.tex` goes the other way, LaTeX to tekx.
  *
  * `tekx file.tekx` runs them in sequence, connected by in-memory text
  * streams, exactly as the shell pipeline
@@ -34,13 +37,15 @@ static const struct {
 	{"set", set_main},
 	{"pdf", pdf_main},
 	{"html", html_main},
+	{"tex", tex_main},
 };
 
-enum { PP, PARSE, EQN, SET, PDF, HTML };
+enum { PP, PARSE, EQN, SET, PDF, HTML, TEX };
 
 static const char usage_text[] =
     "usage: tekx [-E | -P | -M | -S] [-w] [-o output] file.tekx\n"
-    "       tekx pp | parse | eqn | set | pdf | html [file]\n"
+    "       tekx pp | parse | eqn | set | pdf | html | tex [file]\n"
+    "       tekx import [-o output] file.tex\n"
     "       tekx explain [formula ...]\n"
     "       tekx new NAME\n"
     "       tekx pkg new | add | install | verify | lock | list | remove | search | registry\n"
@@ -112,7 +117,7 @@ pipeline(FILE *in, const int *seq, int n, FILE *out, const char *file)
 	for (int k = 0; k < n; k++) {
 		int i = seq[k];
 		bool last = k == n - 1;
-		if (failed && (i == PDF || i == HTML))
+		if (failed && (i == PDF || i == HTML || i == TEX))
 			break;
 		char *buf = NULL;
 		size_t len = 0;
@@ -134,6 +139,51 @@ pipeline(FILE *in, const int *seq, int n, FILE *out, const char *file)
 	return failed;
 }
 
+/* tekx import paper.tex: a LaTeX document as tekx, written to paper.tekx */
+static int
+import(int argc, char **argv)
+{
+	const char *output = NULL, *file = NULL;
+
+	for (int i = 0; i < argc; i++) {
+		if (streq(argv[i], "-o") && i + 1 < argc)
+			output = argv[++i];
+		else if (argv[i][0] == '-' && argv[i][1])
+			usage();
+		else if (file == NULL)
+			file = argv[i];
+		else
+			usage();
+	}
+	if (file == NULL)
+		usage();
+	FILE *in = streq(file, "-") ? stdin : fopen(file, "rb");
+	if (in == NULL)
+		die("cannot open %s: %s", file, strerror(errno));
+	if (output == NULL) {
+		size_t n = strlen(file);
+		output = streq(file, "-") ? "-" : n > 4 && streq(file + n - 4, ".tex") ?
+		    fmt("%.*s.tekx", (int)(n - 4), file) : fmt("%s.tekx", file);
+	}
+	char *buf = NULL;
+	size_t len = 0;
+	FILE *mem = open_memstream(&buf, &len);
+	int rc = latex_import(in, mem, file);
+	fclose(mem);
+	if (in != stdin)
+		fclose(in);
+	if (rc != 0)
+		return rc;
+	FILE *out = streq(output, "-") ? stdout : fopen(output, "wb");
+	if (out == NULL)
+		die("cannot write %s: %s", output, strerror(errno));
+	if (fwrite(buf, 1, len, out) != len || fflush(out) != 0)
+		die("write error on %s", output);
+	if (out != stdout)
+		fclose(out);
+	return 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -147,6 +197,8 @@ main(int argc, char **argv)
 		return pkg_main(argc - 2, argv + 2);
 	if (argc >= 2 && streq(argv[1], "new"))
 		return new_main(argc - 2, argv + 2);
+	if (argc >= 2 && streq(argv[1], "import"))
+		return import(argc - 2, argv + 2);
 	if (argc >= 2) {
 		for (size_t s = 0; s < NELEM(stages); s++) {
 			if (!streq(argv[1], stages[s].name))
@@ -185,7 +237,8 @@ main(int argc, char **argv)
 			fputs("\n  -E  stop after macros       -P  stop after parsing\n"
 			    "  -M  stop after mathematics  -S  stop after typesetting\n"
 			    "  -w  watch: build again whenever the document or its inputs change\n"
-			    "  -o  output file (- for standard output); default: file.pdf\n\n"
+			    "  -o  output file (- for standard output); default: file.pdf\n"
+			    "      a name ending in .html or .tex writes HTML or LaTeX instead\n\n"
 			    "See tekx(1), doc/language.md and doc/machinery.md.\n", stdout);
 			return 0;
 		} else if (streq(a, "-v") || streq(a, "--version")) {
@@ -215,11 +268,12 @@ main(int argc, char **argv)
 	if (output == NULL)
 		output = default_output(streq(file, "-") ? "stdin" : file);
 
-	/* paper.html: the same tree, through the web back end instead */
+	/* paper.html, paper.tex: the same tree, through another back end */
 	size_t olen = strlen(output);
 	bool html = last == PDF && olen > 5 && streq(output + olen - 5, ".html");
-	int seq[] = {PP, PARSE, EQN, html ? HTML : SET, PDF};
-	int nseq = html ? 4 : last + 1;
+	bool tex = last == PDF && olen > 4 && streq(output + olen - 4, ".tex");
+	int seq[] = {PP, PARSE, EQN, html ? HTML : tex ? TEX : SET, PDF};
+	int nseq = html || tex ? 4 : last + 1;
 
 	/* Build the result in memory; never leave a half-written file behind. */
 	char *buf = NULL;

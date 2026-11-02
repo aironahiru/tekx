@@ -1,0 +1,38 @@
+// Imported from odd.tex by tekx import.
+title "Odds and Ends"
+author "A. Author", affiliation: "Some University", email: "a@example.org"
+author "B. Author"
+msc "11A41"
+notation tex
+
+section Things that need a person
+
+An unknown command keeps its text. A citation with a prenote [@knuth, p.~3], and
+an author-year one, [@knuth].
+
+    E = m c^2   #eq1
+
+    a &= b  c = d   #eq2
+
+| Merged |
+|:--|--:|
+| x | 1 |
+
+**Table.** A table
+
+Table ?? cannot be numbered.
+
+1. first
+
+Custom environments are kept as text.
+
+claim
+  Unnumbered claims are numbered.
+
+figure "missing.png"
+  alt "Describe the image here."
+
+Text with th and an mark.
+
+references
+  knuth: D. E. Knuth, *The TeX book*, 1984.

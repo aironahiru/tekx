@@ -329,6 +329,38 @@ Numbers come from the same numbering pass, `number.c`, that `set` uses, so the
 PDF and the page cannot disagree. The driver chooses this back end when the
 output file ends in `.html`.
 
+## LaTeX, both ways
+
+`tekx tex` (texout.c) is a third back end. It reads the same tree as `html`
+and writes amsart LaTeX for journals and arXiv:
+- each formula is parsed again from its source and written by `eqn_latex()`
+  (eqnsem.c), which serializes the meaning, not the tekx spelling;
+- fractions keep tekx's choice, a/b on the line outside display style;
+- `\left` and `\right` appear only around contents taller than a line;
+- display lines become `equation`, or `align` split by `eqn_latex_split()` at
+  the same alignment point the PDF uses;
+- the definitions are replayed with `eqn_reset_declarations()` first, so that
+  the stage runs after `eqn` in one process.
+
+The driver chooses this back end for an output name ending in `.tex`.
+
+`tekx import` (latex.c) goes the other way. It is not a stage, because its
+input is not tekx, and it works in steps:
+1. comments are blanked, keeping lines, so that warnings point at the right
+   place;
+2. `\newcommand`, `\def`, `\DeclareMathOperator`, `\newtheorem` and
+   `\numberwithin` are read and blanked;
+3. macros are expanded, at most twenty rounds, and a macro that names itself
+   is left alone;
+4. the body is converted block by block.
+
+Labels and references travel as placeholders until the end, when every target
+is known. A reference to something tekx cannot number (a table) becomes `??`
+with a warning, and a label that clashes with a citation key is renamed. Every
+formula is parsed with eqn as it is written, with diagnostics collected in
+`diag_sink` (util.c), so that one that tekx would not read is reported in the
+import's own words.
+
 ## Validation
 
 The PDFs are checked with veraPDF against the PDF/UA-2, WTPDF accessibility,

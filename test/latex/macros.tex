@@ -1,0 +1,13 @@
+% Macros: arguments, defaults, \def, and the ones that would never end.
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\pair}[2]{(#1, #2)}
+\newcommand{\norm}[2][2]{\lVert #2 \rVert_{#1}}
+\def\eps{\varepsilon}
+\DeclareMathOperator{\rank}{rank}
+\newcommand{\self}{\self\self}
+\newcommand{\ping}{\pong\pong}
+\newcommand{\pong}{\ping\ping}
+\begin{document}
+For $\eps > 0$ and $v \in \R^n$, $\norm{v} \le \norm[1]{v}$ and $\rank A = \pair{a}{b}$.
+Some never end: \self and \ping.
+\end{document}

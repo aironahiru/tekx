@@ -13,7 +13,7 @@ WARN     = -std=c17 -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
 DEFS     = -D_POSIX_C_SOURCE=200809L
 LDLIBS   = -lm
 
-SRC  = main.c util.c pp.c parse.c bib.c pkg.c sha256.c cli.c tree.c eqn.c eqnlayout.c eqnsem.c number.c set.c html.c hyph.c \
+SRC  = main.c util.c pp.c parse.c bib.c pkg.c sha256.c cli.c tree.c eqn.c eqnlayout.c eqnsem.c number.c set.c html.c texout.c latex.c hyph.c \
        pdf.c img.c font.c cff.c ttf.c otl.c mathtab.c deflate.c md5.c assets.c
 OBJ  = $(SRC:%.c=obj/%.o)
 DOBJ = $(SRC:%.c=obj-debug/%.o)

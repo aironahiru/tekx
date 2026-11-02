@@ -10,8 +10,13 @@ tekx \- typeset mathematics into accessible PDF and HTML
 .I file.tekx
 .br
 .B tekx
-.BR pp | parse | eqn | set | pdf | html
+.BR pp | parse | eqn | set | pdf | html | tex
 .RI [ file ]
+.br
+.B tekx import
+.RB [ \-o
+.IR output ]
+.I file.tex
 .br
 .B tekx explain
 .RI [ formula ...]
@@ -52,6 +57,9 @@ says otherwise.
 An output name ending in
 .I .html
 selects the web back end instead: the same document as HTML with MathML.
+One ending in
+.I .tex
+writes amsart LaTeX for journal submission.
 Nothing is printed on success, and nothing is written when there are errors.
 .PP
 The work is done by filters connected by text streams.
@@ -83,6 +91,11 @@ device back end: subsets fonts and writes tagged PDF.
 web back end: reads the tree after
 .B eqn
 and writes HTML with MathML.
+.TP
+.B tex
+LaTeX back end: reads the tree after
+.B eqn
+and writes amsart LaTeX, formulas written from their meaning.
 .PP
 Thus
 .PP
@@ -122,6 +135,18 @@ reproduces exactly what the lock pins.
 Every build verifies the hash of each package it uses.
 See
 .IR doc/packages.md .
+.PP
+.B tekx import
+converts a LaTeX document (amsart or article) into tekx, written to
+.I file.tekx
+unless
+.B \-o
+says otherwise.
+Formulas stay in LaTeX's notation under
+.BR "notation tex" ;
+what cannot be converted is kept as text and reported as
+.IB file : line : column
+warnings.
 .SH OPTIONS
 .TP
 .B \-E

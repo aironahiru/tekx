@@ -1,0 +1,133 @@
+// Imported from paper.tex by tekx import.
+title "Gaps Between Sums of Two Squares"
+author "Ada Lovelace", affiliation: "Department of Mathematics, University of London", email: "ada@example.org"
+author "Charles Babbage", affiliation: "Analytical Engine Laboratory, Cambridge", email: "cb@example.org", url: "https://example.org/cb"
+date today
+msc "11N36 (primary); 11E25 (secondary)"
+keywords "sums of two squares, sieve methods"
+numbering by section
+notation tex
+bibliography "refs.bib"
+
+define operator Var
+define mainthm like theorem titled "Main Theorem"
+
+abstract
+  Let $B(x)$ count the integers up to $x$ that are sums of two squares. We show
+  that every interval $[x, x + x^{1/4+\varepsilon}]$ contains one, improving [@hooley,
+  Thm.~2] and [@landau].
+
+section Introduction #sec:intro
+
+A classical result of Landau [@landau] states that
+
+    B(x) = \frac{K x}{\sqrt{\log x}} \bigl(1 + O(1/\log x)\bigr),   #eq:landau
+
+where $K$ is the Landau–Ramanujan constant. Write $g(x)$ for the largest gap.^[See
+[@hooley] for the history, and <https://example.org/notes>.] Prices such as \$5
+and \$10 stay text.
+
+mainthm "Gaps" #thm:main
+  For every $\varepsilon > 0$ there is $x_0(\varepsilon)$ such that $g(x) \le x^{1/4+\varepsilon}$
+  for all $x \ge x_0(\varepsilon)$.
+
+@thm:main improves on [@hooley; @landau]; see also @sec:prelim
+and @eq:landau.
+
+section Preliminaries #sec:prelim
+
+definition #def:r
+  For $n \ge 1$ let $r(n)$ be the number of pairs $(a, b) \in \mathbb{Z}^2$ with
+  $n = a^2 + b^2$, and let $\chi$ be the non-principal character modulo~$4$.
+
+lemma "Jacobi" #lem:jacobi
+  For every $n \geq 1$,
+
+      r(n) = 4 \sum_{d \mid n} \chi(d).
+
+proof
+  This is classical [@hardy, § 16.9].
+
+lemma #lem:sieve
+  Let $1 \le y \le x$. Then
+
+      \sum_{x < n \le x + y} r(n) &= \pi y + O(x^{1/3})   #eq:sieve
+      = \pi y \left(1 + O\left(\frac{x^{1/3}}{y}\right)\right).
+
+proof "Proof of @lem:sieve"
+  By @lem:jacobi and the hyperbola method,
+
+      \sum_{x < n \le x + y} r(n) &= 4 \sum_{d \le \sqrt{2x}} \chi(d) \left(\left\lfloor \frac{x+y}{d} \right\rfloor - \left\lfloor \frac{x}{d} \right\rfloor\right)
+      = 4 y \sum_{d \le \sqrt{2x}} \frac{\chi(d)}{d} + O(\sqrt{x}),
+
+  and the last sum is $\pi/4 + O(x^{-1/2})$.
+
+remark
+  The variance $\Var(X)$ and the trace $\operatorname{tr} A$ of a matrix $A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}$
+  satisfy $\left\lvert \operatorname{tr} A \right\rvert \le \lVert A \rVert_{2}$
+  and $\lVert v \rVert_{1} \le \sqrt{n} \lVert v \rVert_{2}$ for $v \in \mathbb{R}^n$.
+
+section The main argument
+
+We use three ingredients:
+
+- the sieve bound @eq:sieve;
+
+- a second moment estimate,
+
+      S(x, y) := \sum_{x < n \le x + y} r(n)^2 \ll y \log x;   #eq1
+
+- and *Cauchy–Schwarz*.
+
+The steps are:
+
+1. bound the mean;
+
+1. bound the variance.
+
+- **Sieve** a lower bound for $r(n)$ on average;
+
+- **Moment** an upper bound.
+
+    f(x) = \begin{cases} x & \text{if } x \ge 0, \\ -x & \text{otherwise}, \end{cases}   #eq2
+    \binom{n}{k} = \frac{n!}{k!\,(n-k)!}.
+
+    \sum_{k=1}^{n} k^3 = 1 + 8 + 27 + \cdots = \left(\frac{n(n+1)}{2}\right)^2.   #eq3
+
+| Exponent | Source | Year |
+|:--|:-:|--:|
+| $1/2$ | Bambah and Chowla | 1947 |
+| $5/12$ | Hooley | 1971 |
+
+**Table.** Exponents for the largest gap.
+
+figure "parabola.png" width 60% #fig:parabola
+  alt "The graph of y = x²."
+  The graph of $y = x^2$.
+
+@fig:parabola shows a parabola. The code is
+
+```
+for n in range(10):
+    print(n, r(n))   # 100% plain
+```
+
+and, as Hardy wrote,
+
+quote
+  A mathematician, like a painter or a poet, is a maker of patterns.
+
+corollary #cor:gaps
+  $g(x) \ll x^{1/4} \log x$.
+
+appendix
+
+section A computation #app:comp
+
+lemma #lem:numerics
+  For $x \le 10^{12}$ we have $g(x) \le 2 x^{1/4}$; Erdős and Turán knew this,
+  see @app:comp.
+
+section* Acknowledgements
+
+We thank the referee.

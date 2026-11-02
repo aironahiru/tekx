@@ -440,6 +440,13 @@ compose(char acc, u32 base)
 	return 0;
 }
 
+/* a LaTeX accent (\"u, \'{e}) as one character, for tekx import too */
+u32
+tex_accent(char accent, u32 base)
+{
+	return compose(accent, base);
+}
+
 /* the base letter of an accented one, for sorting */
 static u32
 decompose(u32 cp)
@@ -901,7 +908,8 @@ bib_format(const BibEntry *e)
 	return bstr(&b);
 }
 
-/* the letters of a name, accents folded: "Erdős" -> "Erdos" */
+/* the letters of a name, as amsalpha keeps them: punctuation goes, accents
+ * stay ("Müller" gives Mül) */
 static char *
 fold(const char *s)
 {
@@ -910,11 +918,8 @@ fold(const char *s)
 	for (size_t i = 0; s[i];) {
 		u32 cp;
 		i += (size_t)utf8_dec(s + i, strlen(s + i), &cp);
-		cp = decompose(cp);
 		if (cp < 0x80 && isalpha((int)cp))
 			bputc(&b, (int)cp);
-		else if (cp == 0xDF)
-			bputs(&b, "ss");
 		else if (cp >= 0x80)
 			utf8_enc(&b, cp);
 	}

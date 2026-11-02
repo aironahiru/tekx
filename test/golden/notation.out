@@ -1,0 +1,66 @@
+== tree
+document test/golden/notation.tekx
+  meta@2 notation tex
+  para@4 0
+    text In LaTeX 
+    math@4:11 a_{ij}
+    text  is a subscript, 
+    math@4:36 ABCD
+    text  is four letters, 
+    math@4:60 xy
+    text  a product, and 
+    math@5:2 \left( a_{ij} \right)
+    text  the same; 
+    math@5:36 x^{-1/2}
+    text  has an exponent of 
+    math@5:66 -1/2
+    text , and 
+    math@6:2 1/\log x
+    text  divides by a logarithm.
+  display@8
+    line@8:5 - \sum_{k=1}^{n} k = \frac{n(n+1)}{2}.
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a sub i j end sub"><semantics><mrow><msub><mi>𝑎</mi><mrow><mi>𝑖</mi><mo>⁢</mo><mi>𝑗</mi></mrow></msub></mrow><annotation encoding="application/x-tekx">a_{ij}</annotation></semantics></math>
+speech a sub i j end sub
+linear a_(ij)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="capital A capital B capital C capital D"><semantics><mrow><mi>𝐴</mi><mo>⁢</mo><mi>𝐵</mi><mo>⁢</mo><mi>𝐶</mi><mo>⁢</mo><mi>𝐷</mi></mrow><annotation encoding="application/x-tekx">ABCD</annotation></semantics></math>
+speech capital A capital B capital C capital D
+linear ABCD
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x y"><semantics><mrow><mi>𝑥</mi><mo>⁢</mo><mi>𝑦</mi></mrow><annotation encoding="application/x-tekx">xy</annotation></semantics></math>
+speech x y
+linear xy
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="open paren a sub i j end sub close paren"><semantics><mrow><mo fence="true">(</mo><msub><mi>𝑎</mi><mrow><mi>𝑖</mi><mo>⁢</mo><mi>𝑗</mi></mrow></msub><mo fence="true">)</mo></mrow><annotation encoding="application/x-tekx">\left( a_{ij} \right)</annotation></semantics></math>
+speech open paren a sub i j end sub close paren
+linear (a_(ij))
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x raised to the power negative 1 over 2, end power"><semantics><mrow><msup><mi>𝑥</mi><mrow><mrow><mo form="prefix">−</mo><mn>1</mn></mrow><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow></msup></mrow><annotation encoding="application/x-tekx">x^{-1/2}</annotation></semantics></math>
+speech x raised to the power negative 1 over 2, end power
+linear x^(−1/2)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="negative 1 over 2"><semantics><mrow><mrow><mo form="prefix">−</mo><mn>1</mn></mrow><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow><annotation encoding="application/x-tekx">-1/2</annotation></semantics></math>
+speech negative 1 over 2
+linear −1/2
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator 1 and denominator log x end fraction"><semantics><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mrow><mo fence="true">(</mo><mrow><mi>log</mi><mo rspace="0.1667em">⁡</mo><mi>𝑥</mi></mrow><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">1/\log x</annotation></semantics></math>
+speech the fraction with numerator 1 and denominator log x end fraction
+linear 1/(log x)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the sum from k equals 1 to n of k equals the fraction with numerator n open paren n plus 1 close paren and denominator 2 end fraction ."><semantics><mrow><mrow><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑘</mi><mo>=</mo><mn>1</mn></mrow><mi>𝑛</mi></munderover><mi>𝑘</mi></mrow><mo>=</mo><mfrac><mrow><mi>𝑛</mi><mo>⁢</mo><mrow><mo fence="true">(</mo><mrow><mi>𝑛</mi><mo>+</mo><mn>1</mn></mrow><mo fence="true">)</mo></mrow></mrow><mn>2</mn></mfrac></mrow><mo>.</mo></mrow><annotation encoding="application/x-tekx">\sum_{k=1}^{n} k = \frac{n(n+1)}{2}.</annotation></semantics></math>
+speech the sum from k equals 1 to n of k equals the fraction with numerator n open paren n plus 1 close paren and denominator 2 end fraction .
+linear ∑_(k=1)^n k = n(n + 1)/2.
+== structure
+pdf2:Document
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  tekx:equation
+    pdf2:Formula
+      mathml:math

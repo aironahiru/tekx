@@ -1,0 +1,204 @@
+% Written by tekx 0.2.0 from test/out/latex/paper.tekx.
+\documentclass[a4paper]{amsart}
+\usepackage[T1]{fontenc}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+
+\makeatletter
+\@ifundefined{KV@Gin@alt}{\define@key{Gin}{alt}{}}{}
+\makeatother
+
+\theoremstyle{plain}
+\newtheorem{mainthm}{Main Theorem}[section]
+\newtheorem{lemma}[mainthm]{Lemma}
+\newtheorem{corollary}[mainthm]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[mainthm]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[mainthm]{Remark}
+
+\numberwithin{equation}{section}
+\DeclareMathOperator{\Var}{Var}
+
+\title{Gaps Between Sums of Two Squares}
+\author{Ada Lovelace}
+\email{ada@example.org}
+\address{Department of Mathematics, University of London}
+\author{Charles Babbage}
+\email{cb@example.org}
+\urladdr{https://example.org/cb}
+\address{Analytical Engine Laboratory, Cambridge}
+\date{\today}
+\subjclass[2020]{11N36 (primary); 11E25 (secondary)}
+\keywords{sums of two squares, sieve methods}
+
+\begin{document}
+
+\begin{abstract}
+Let $B(x)$ count the integers up to $x$ that are sums of two squares. We show that every interval $[x, x + x^{1/4 + \varepsilon}]$ contains one, improving \cite[Thm.~2]{hooley} and \cite{landau}.
+
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}\label{sec:intro}
+
+A classical result of Landau \cite{landau} states that
+
+\begin{equation}\label{eq:landau}
+  B(x) = \frac{K x}{\sqrt{\log x}} \left( 1 + O\left( \frac{1}{\log x} \right) \right),
+\end{equation}
+
+where $K$ is the Landau--Ramanujan constant. Write $g(x)$ for the largest gap.\footnote{See \cite{hooley} for the history, and \url{https://example.org/notes}.} Prices such as \$5 and \$10 stay text.
+
+\begin{mainthm}[Gaps]\label{thm:main}
+For every $\varepsilon > 0$ there is $x_{0}(\varepsilon)$ such that $g(x) \leq x^{1/4 + \varepsilon}$ for all $x \geq x_{0}(\varepsilon)$.
+
+\end{mainthm}
+
+Main Theorem~\ref{thm:main} improves on \cite{hooley,landau}; see also Section~\ref{sec:prelim} and \eqref{eq:landau}.
+
+\section{Preliminaries}\label{sec:prelim}
+
+\begin{definition}\label{def:r}
+For $n \geq 1$ let $r(n)$ be the number of pairs $(a, b) \in \mathbb{Z}^{2}$ with $n = a^{2} + b^{2}$, and let $\chi$ be the non-principal character modulo~$4$.
+
+\end{definition}
+
+\begin{lemma}[Jacobi]\label{lem:jacobi}
+For every $n \geq 1$,
+
+\[
+  r(n) = 4 \sum_{d \mid n} \chi(d).
+\]
+
+\end{lemma}
+
+\begin{proof}
+This is classical \cite[\S{} 16.9]{hardy}.
+
+\end{proof}
+
+\begin{lemma}\label{lem:sieve}
+Let $1 \leq y \leq x$. Then
+
+\begin{align}
+  \sum_{x < n \leq x + y} r(n) & = \pi y + O(x^{1/3}) \label{eq:sieve} \\
+   & = \pi y\left( 1 + O\left( \frac{x^{1/3}}{y} \right) \right). \notag
+\end{align}
+
+\end{lemma}
+
+\begin{proof}[Proof of Lemma~\ref{lem:sieve}]
+By Lemma~\ref{lem:jacobi} and the hyperbola method,
+
+\begin{align*}
+  \sum_{x < n \leq x + y} r(n) & = 4 \sum_{d \leq \sqrt{2 x}} \chi(d) \left( \left\lfloor \frac{x + y}{d} \right\rfloor - \left\lfloor \frac{x}{d} \right\rfloor \right) \\
+   & = 4 y \sum_{d \leq \sqrt{2 x}} \frac{\chi(d)}{d} + O(\sqrt{x}),
+\end{align*}
+
+and the last sum is $\pi/4 + O(x^{-1/2})$.
+
+\end{proof}
+
+\begin{remark}
+The variance $\operatorname{Var}(X)$ and the trace $\operatorname{tr} A$ of a matrix $A = \left( \begin{array}{cc} a & b \\ c & d \end{array} \right)$ satisfy $\lvert \operatorname{tr} A \rvert \leq \lVert A \rVert_{2}$ and $\lVert v \rVert_{1} \leq \sqrt{n} \lVert v \rVert_{2}$ for $v \in \mathbb{R}^{n}$.
+
+\end{remark}
+
+\section{The main argument}
+
+We use three ingredients:
+
+\begin{itemize}
+\item the sieve bound \eqref{eq:sieve};
+\item 
+a second moment estimate,
+
+\begin{equation}\label{eq1}
+  S(x, y) \mathrel{:=} \sum_{x < n \leq x + y} {r(n)}^{2} \ll y \log x;
+\end{equation}
+
+\item and \emph{Cauchy--Schwarz}.
+\end{itemize}
+
+The steps are:
+
+\begin{enumerate}
+\item bound the mean;
+\item bound the variance.
+\end{enumerate}
+
+\begin{itemize}
+\item \textbf{Sieve} a lower bound for $r(n)$ on average;
+\item 
+\textbf{Moment} an upper bound.
+
+\begin{align}
+  f(x) & = \begin{cases} x & \text{ if } x \geq 0, \\ -x & \text{ otherwise }, \end{cases} \label{eq2} \\
+  \binom{n}{k} & = \frac{n!}{k! \, (n - k)!}. \notag
+\end{align}
+
+\begin{equation}\label{eq3}
+  \sum_{k = 1}^{n} k^{3} = 1 + 8 + 27 + \cdots = \left( \frac{n(n + 1)}{2} \right)^{2}.
+\end{equation}
+
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{lcr}
+\hline
+\textbf{Exponent} & \textbf{Source} & \textbf{Year} \\
+\hline
+$1/2$ & Bambah and Chowla & 1947 \\
+$5/12$ & Hooley & 1971 \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Table.} Exponents for the largest gap.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.6\linewidth,alt={The graph of y = x².}]{parabola.png}
+\caption{The graph of $y = x^{2}$.}\label{fig:parabola}
+\end{figure}
+
+Figure~\ref{fig:parabola} shows a parabola. The code is
+
+\begin{verbatim}
+for n in range(10):
+    print(n, r(n))   # 100% plain
+\end{verbatim}
+
+and, as Hardy wrote,
+
+\begin{quote}
+A mathematician, like a painter or a poet, is a maker of patterns.
+
+\end{quote}
+
+\begin{corollary}\label{cor:gaps}
+$g(x) \ll x^{1/4} \log x$.
+
+\end{corollary}
+
+\appendix
+
+\section{A computation}\label{app:comp}
+
+\begin{lemma}\label{lem:numerics}
+For $x \leq 10^{12}$ we have $g(x) \leq 2 x^{1/4}$; Erdős and Turán knew this, see Appendix~\ref{app:comp}.
+
+\end{lemma}
+
+\section*{Acknowledgements}
+
+We thank the referee.
+
+\bibliographystyle{amsplain}
+\bibliography{refs}
+
+\end{document}

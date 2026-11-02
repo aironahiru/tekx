@@ -189,7 +189,14 @@ written for. The test suite's golden files are the contract, and every change
 to output is listed in [CHANGELOG.md](CHANGELOG.md). See
 [doc/compatibility.md](doc/compatibility.md).
 
-<!-- LATEX-IMPORT-EXPORT -->
+## Coming from LaTeX, and going back
+
+`tekx import paper.tex` turns a LaTeX paper (amsart or article) into tekx: front
+matter, theorems, displays with their numbers, citations and references, lists,
+tables and figures, with your macros expanded. Whatever it cannot carry over is
+named as a warning at its line. `tekx -o paper.tex paper.tekx` writes amsart
+LaTeX that compiles with pdflatex and BibTeX, for journals and arXiv. See
+[Coming from LaTeX](doc/language.md#coming-from-latex).
 
 ## One source, two accessible outputs
 

@@ -1,98 +1,100 @@
 == tree
 document test/golden/alpha.tekx
-  meta@2 title Gaps Between Sums of Two Squares
-  meta@3 author Ada Lovelace
+  meta@3 title Gaps Between Sums of Two Squares
+  meta@4 author Ada Lovelace
     affiliation University of London, UK
     email ada@example.org
     orcid 0000-0002-1825-0097
-  meta@4 author Charles Babbage
+  meta@5 author Charles Babbage
     affiliation Cambridge
     url https://example.org/cb
-  meta@5 author Mary Somerville and John Herschel
-  meta@6 msc 11N36 (primary); 11E25 (secondary)
-  meta@7 keywords sums of two squares, short intervals
-  meta@8 numbering by section
-  meta@9 citations alphabetic
-  bibfile@10:14 journal.bib
-  abstract@12
-    para@13 0
+  meta@6 author Mary Somerville and John Herschel
+  meta@7 msc 11N36 (primary); 11E25 (secondary)
+  meta@8 keywords sums of two squares, short intervals
+  meta@9 numbering by section
+  meta@10 citations alphabetic
+  meta@11 running Gaps Between Sums of Two Squares
+  meta@12 linenumbers on
+  bibfile@13:14 journal.bib
+  abstract@15
+    para@16 0
       text We improve the exponent 
-      math@13:28 1/2
+      math@16:28 1/2
       text  of 
-      cite@13:36
-        item@13:37 hooley
+      cite@16:36
+        item@16:37 hooley
           text Thm. 2
-        item@13:54 landau
+        item@16:54 landau
       text .
-  section@15 1 1 intro
+  section@18 1 1 intro
     heading
       text Introduction
-    para@17 0
+    para@20 0
       text Landau 
-      cite@17:8
-        item@17:9 landau
+      cite@20:8
+        item@20:9 landau
       text  proved
-    display@19
-      line@19:5 asym B(x) ~ K x/sqrt(log x)
-    para@21 0
+    display@22
+      line@22:5 asym B(x) ~ K x/sqrt(log x)
+    para@24 0
       text By Theorem 
-      ref@21:12 main
+      ref@24:12 main
       text  and Lemmas 
-      ref@21:29 a
+      ref@24:29 a
       text  and 
-      ref@21:36 b
+      ref@24:36 b
       text , see (
-      ref@21:45 asym
+      ref@24:45 asym
       text ) and Section 
-      ref@21:64 intro
+      ref@24:64 intro
       text ; also 
-      cite@22:6
-        item@22:7 vallee
-        item@22:16 erdos
-        item@22:24 thesis
-        item@22:33 arxiv
-        item@22:41 parens
+      cite@25:6
+        item@25:7 vallee
+        item@25:16 erdos
+        item@25:24 thesis
+        item@25:33 arxiv
+        item@25:41 parens
       text  and 
-      cite@22:54
-        item@22:55 arxiv
+      cite@25:54
+        item@25:55 arxiv
           text §2
       text . The paper 
-      cite@23:11
-        item@23:11 hooley
+      cite@26:11
+        item@26:11 hooley
       text  and the formula (
-      ref@23:36 asym
+      ref@26:36 asym
       text ) are different things.
-    theorem@25 theorem* main
+    theorem@28 theorem* main
       heading
         text Main Theorem
-      para@26 0
-        text Every interval 
-        math@26:19 [x, x + x^(1/4 + epsilon)]
-        text  contains one.
-    theorem@28 lemma a
       para@29 0
-        text First.
-    theorem@31 lemma b
+        text Every interval 
+        math@29:19 [x, x + x^(1/4 + epsilon)]
+        text  contains one.
+    theorem@31 lemma a
       para@32 0
+        text First.
+    theorem@34 lemma b
+      para@35 0
         text Second, by 
-        cite@32:14
-          item@32:15 landau
+        cite@35:14
+          item@35:15 landau
             text p. 
-            math@32:28 305
+            math@35:28 305
         text .
-  appendix@34
-  section@36 1 1 comp
+  appendix@37
+  section@39 1 1 comp
     heading
       text Computations
-    theorem@38 lemma c
-      para@39 0
+    theorem@41 lemma c
+      para@42 0
         text As in Appendix 
-        ref@39:18 comp
+        ref@42:18 comp
         text , Lemma 
-        ref@39:31 c
+        ref@42:31 c
         text  holds:
-      display@41
-        line@41:7 bound g(x) <= 2 x^(1/4)
+      display@44
+        line@44:7 bound g(x) <= 2 x^(1/4)
   refs
     entry erdos
       label ET+65
@@ -122,7 +124,7 @@ document test/golden/alpha.tekx
         text 13
       text  (1908), 305–312.
     entry thesis
-      label Mul01
+      label Mül01
       text Jörg Müller, 
       emph
         math L
@@ -220,7 +222,7 @@ pdf2:Document
       pdf2:Link link="Section 1" to=section
       pdf2:Link link="Reference dlVP09" to=LI
       pdf2:Link link="Reference ET+65" to=LI
-      pdf2:Link link="Reference Mul01" to=LI
+      pdf2:Link link="Reference Mül01" to=LI
       pdf2:Link link="Reference Tao24" to=LI
       pdf2:Link link="Reference Odd83" to=LI
       pdf2:Link link="Reference Tao24" to=LI

@@ -24,5 +24,6 @@ void bib_resolve(BibEntries *db);	/* crossref inheritance, biblatex field names 
 char *bib_format(const BibEntry *e);	/* the entry as tekx inline text */
 char *bib_sort_key(const BibEntry *e);
 char *bib_alpha_label(const BibEntry *e);	/* amsalpha: Hoo71, BC47, ABC+99 */
+u32 tex_accent(char accent, u32 base);	/* \"u: ü; 0 when there is no such letter */
 
 #endif

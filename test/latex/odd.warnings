@@ -1,0 +1,18 @@
+test/latex/odd.tex:3:1: warning: \newenvironment{myproof} is not converted: its contents are kept as they are
+test/latex/odd.tex:4:1: warning: tekx numbers every theorem-like block; unnumbered \newtheorem* environments will be numbered
+test/latex/odd.tex:7:1: warning: the 2010 Mathematics Subject Classification is printed as the 2020 one; check the codes
+test/latex/odd.tex:13:20: warning: unknown command \frobnicate: its text is kept
+test/latex/odd.tex:14:1: warning: a citation's prenote is dropped: tekx citations have a note after the key
+test/latex/odd.tex:14:50: warning: \citet (author in text) is written as a numbered citation, [@key]
+test/latex/odd.tex:16:13: warning: \tag{$\star$} is not supported: the equation gets tekx's own number
+test/latex/odd.tex:18:14: warning: tekx aligns a display at one point: the extra & are dropped
+test/latex/odd.tex:21:14: warning: tekx tables are not numbered: references to \label{tab:one} will read ??
+test/latex/odd.tex:24:1: warning: \multicolumn{2} becomes one cell
+test/latex/odd.tex:31:18: warning: enumerate options [label=(\alph*)] are not kept: items are numbered 1, 2, 3
+test/latex/odd.tex:34:16: warning: unknown environment myproof: its contents are kept
+test/latex/odd.tex:41:1: warning: scale= is not kept: give the figure a width
+test/latex/odd.tex:41:1: warning: tekx places PNG and JPEG images: convert missing to missing.png
+test/latex/odd.tex:41:1: warning: the figure has no caption to take alt text from: write what the image shows
+test/latex/odd.tex:43:11: warning: \textsuperscript{th} is set as plain text
+test/latex/odd.tex:43:39: warning: \footnotemark is not supported: it is left out
+test/latex/odd.tex:30:7: warning: \ref{tab:one} has no target that tekx can number; it reads ??

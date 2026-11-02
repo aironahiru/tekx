@@ -1,0 +1,48 @@
+% What tekx import cannot carry over, and what it says about each.
+\documentclass{article}
+\newenvironment{myproof}{\textit{Proof.}}{\hfill$\square$}
+\newtheorem*{claim*}{Claim}
+\title{Odds and Ends}
+\author{A. Author \\ Some University \\ a@example.org \and B. Author}
+\subjclass[2010]{11A41}
+\begin{document}
+\maketitle
+
+\section{Things that need a person}
+
+An unknown command \frobnicate{keeps its text}. A citation with a prenote
+\cite[see][p.~3]{knuth}, and an author-year one, \citet{knuth}.
+\begin{equation}
+  E = m c^2 \tag{$\star$}
+\end{equation}
+\begin{align}
+  a &= b & c &= d
+\end{align}
+\begin{table}
+\begin{tabular}{|l|r|}
+\hline
+\multicolumn{2}{c}{Merged} \\
+\hline
+x & 1 \\
+\end{tabular}
+\caption{A table}\label{tab:one}
+\end{table}
+Table~\ref{tab:one} cannot be numbered.
+\begin{enumerate}[label=(\alph*)]
+\item first
+\end{enumerate}
+\begin{myproof}
+Custom environments are kept as text.
+\end{myproof}
+\begin{claim*}
+Unnumbered claims are numbered.
+\end{claim*}
+\begin{figure}
+\includegraphics[scale=0.5]{missing}
+\end{figure}
+Text with \textsuperscript{th} and an \footnotemark{} mark.
+
+\begin{thebibliography}{9}
+\bibitem{knuth} D. E. Knuth, \emph{The \TeX book}, 1984.
+\end{thebibliography}
+\end{document}

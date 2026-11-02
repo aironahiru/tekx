@@ -359,9 +359,20 @@ next_field(char **line)
 	return start;
 }
 
+/* when set, diagnostics are collected here rather than printed: a caller
+ * can try something (tekx import checks each formula) and report in its
+ * own words */
+Buf *diag_sink;
+
 static void
 vdiag(const char *kind, int line, int col, const char *f, va_list ap)
 {
+	if (diag_sink) {
+		char msg[1024];
+		vsnprintf(msg, sizeof msg, f, ap);
+		bprintf(diag_sink, "%s%s", diag_sink->n ? "; " : "", msg);
+		return;
+	}
 	fflush(stdout);
 	if (line > 0)
 		fprintf(stderr, "%s:%d:%d: %s: ", diag_file, line, col > 0 ? col : 1, kind);

@@ -1,4 +1,5 @@
-// The journal golden with AMS alphabetic citations and an unnumbered theorem.
+// The journal golden with AMS alphabetic citations, an unnumbered theorem,
+// running heads and referee line numbers.
 title "Gaps Between Sums of Two Squares"
 author "Ada Lovelace", affiliation: "University of London, UK", email: "ada@example.org", orcid: "0000-0002-1825-0097"
 author "Charles Babbage", affiliation: "Cambridge", url: "https://example.org/cb"
@@ -7,6 +8,8 @@ msc "11N36 (primary); 11E25 (secondary)"
 keywords "sums of two squares, short intervals"
 numbering by section
 citations alphabetic
+running "Gaps Between Sums of Two Squares"
+linenumbers on
 bibliography "journal.bib"
 
 abstract

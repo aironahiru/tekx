@@ -1,0 +1,7 @@
+// Imported from macros.tex by tekx import.
+notation tex
+
+define operator rank
+
+For $\varepsilon > 0$ and $v \in \mathbb{R}^n$, $\lVert v \rVert_{2} \le \lVert v \rVert_{1}$
+and $\rank A = (a, b)$. Some never end: and .

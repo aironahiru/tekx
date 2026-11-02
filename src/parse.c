@@ -880,7 +880,7 @@ static Node *section_stack[4];
  * (a word followed by a quoted value) is an error, not silently prose */
 static const char *settings[] = {"title", "subtitle", "author", "date", "language", "lang",
     "keywords", "subject", "paper", "size", "font", "msc", "numbering", "bibliography", "citations",
-    "running", "linenumbers"};
+    "running", "linenumbers", "notation"};
 
 static bool
 is_setting(const char *w)
@@ -1073,6 +1073,9 @@ blocks(Node *parent, int i, int base, bool top)
 			    !streq(unquote(rest), "continuous")) {
 				error_at(ln->no, col, "unknown numbering '%s' (expected: numbering by section, or "
 				    "numbering continuous)", unquote(rest));
+			} else if (streq(w, "notation") && !streq(unquote(rest), "tex") && !streq(unquote(rest), "tekx")) {
+				error_at(ln->no, col, "unknown notation '%s' (expected: notation tex, for formulas "
+				    "written in LaTeX throughout, or notation tekx)", unquote(rest));
 			} else {
 				char *v = unquote(rest);
 				if (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||

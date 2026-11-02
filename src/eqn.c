@@ -208,10 +208,15 @@ eqn_declare_function(const char *name)
 	VPUSH(doc_functions, xstrdup(name));
 }
 
+/* forget a document's definitions, so that another reading of it (a second
+ * back end in the same process) can make them afresh */
 void
 eqn_reset_declarations(void)
 {
 	doc_functions.n = 0;
+	user_functions.n = 0;
+	user_operators.n = 0;
+	mdefs.n = 0;
 }
 
 static bool
@@ -396,6 +401,28 @@ tex_dropped(const char *name)
 typedef VEC(Tok) TokVec;
 typedef VEC(char *) StrVec;
 
+/* A formula is read in TeX's notation when it holds a TeX command (even
+ * one that only steers layout, such as \left), or when the document says
+ * `notation tex`: then $a_{ij}$ and $ABCD$ mean what they mean in LaTeX. */
+static bool saw_tex, notation_tex;
+
+void
+eqn_set_notation_tex(bool on)
+{
+	notation_tex = on;
+}
+
+/* `notation tex` may stand anywhere at the top level; it governs every formula */
+void
+eqn_notation_from(Node *doc)
+{
+	for (size_t i = 0; i < doc->kids.n; i++) {
+		Node *k = doc->kids.v[i];
+		if (streq(k->kind, "meta") && streq(field(k, 0), "notation"))
+			notation_tex = streq(field_rest(k, 1), "tex");
+	}
+}
+
 static const char *ascii_syms[] = {
 	"<=>", "<->", "|->", "...", "<==", "<=", ">=", "!=", "->", "=>", "<-", ":=", "~=", "+-", "-+",
 	"||", "<<", ">>", "/\\", "\\/", "''",
@@ -474,6 +501,7 @@ tokenize(const char *s, int line, int col)
 	size_t i = 0, n = strlen(s);
 	bool sp = false;
 
+	saw_tex = false;
 	while (i < n) {
 		Tok t = {0};
 		char c = s[i];
@@ -550,6 +578,7 @@ tokenize(const char *s, int line, int col)
 				j++;
 			char *name = xstrndup(s + i + 1, j - i - 1);
 			i = j;
+			saw_tex = true;	/* even \left alone makes a formula TeX */
 			if (tex_dropped(name)) {
 				if ((startswith(name, "left") || startswith(name, "right") || startswith(name, "big") ||
 				    startswith(name, "Big") || streq(name, "middle")) && i < n && s[i] == '.')
@@ -577,8 +606,13 @@ tokenize(const char *s, int line, int col)
 		} else {
 			size_t k;
 			for (k = 0; k < NELEM(ascii_syms); k++)
-				if (strncmp(s + i, ascii_syms[k], strlen(ascii_syms[k])) == 0)
+				if (strncmp(s + i, ascii_syms[k], strlen(ascii_syms[k])) == 0) {
+					/* 1/\log x is a slash and a TeX command, not /\ (and) */
+					if (streq(ascii_syms[k], "/\\") && i + 2 < n && ((s[i + 2] | 32) >= 'a' &&
+					    (s[i + 2] | 32) <= 'z'))
+						continue;
 					break;
+				}
 			t.kind = T_SYM;
 			if (k < NELEM(ascii_syms)) {
 				t.s = xstrdup(ascii_syms[k]);
@@ -739,12 +773,13 @@ strip(M *m)
 	return m;
 }
 
-/* −1 or −x: a sign and an atom, which needs no parentheses as a numerator */
+/* −1, −x: a numerator that needs no parentheses in −1/2, since the minus
+ * binds more strongly than the slash and reading it back gives the same */
 bool
 negated_atom(M *m)
 {
 	return m && m->kind == M_ROW && m->kids.n == 2 && m->kids.v[0]->kind == M_OP && m->kids.v[0]->unary &&
-	    is_atom(m->kids.v[1]);
+	    is_atom(m->kids.v[1]) && m->kids.v[1]->kind != M_OP;
 }
 
 bool
@@ -2736,12 +2771,22 @@ eqn_parse(const char *src, int line, int col, bool display, char **rows, int nro
 	p.nrows = nrows;
 	for (int k = 0; k < p.n; k++)
 		p.tex |= p.t[k].tex;
+	p.tex |= saw_tex || notation_tex;
 	scan_declarations(p.t, p.n);
 	if (p.t[0].kind == T_EOF)
 		return mrow();
 	M *m = expr(&p, 0);
 	while (peek(&p)->kind != T_EOF) {
 		Tok *t = peek(&p);
+		if (t->kind == T_SYM && streq(t->s, ".") && peek2(&p)->kind == T_EOF) {
+			/* a display ends its sentence: x = 1. */
+			M *r = mrow();
+			madd(r, m);
+			madd(r, op(".", PUNCT));
+			m = r;
+			advance(&p);
+			continue;
+		}
 		perr(&p, t, fmt("unexpected '%s'", t->s));
 		advance(&p);
 		if (peek(&p)->kind != T_EOF) {
@@ -2902,6 +2947,7 @@ eqn_main(FILE *in, FILE *out, const char *file)
 	Node *doc = tree_read(in);
 	if (*doc->rest)
 		diag_file = doc->rest;	/* the source file, named by parse */
+	eqn_notation_from(doc);
 	walk(doc);
 	tree_write(out, doc, 0);
 	return nerrors ? 1 : 0;

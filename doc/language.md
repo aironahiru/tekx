@@ -11,6 +11,7 @@ the way it is spoken. This document describes the whole language.
 - [Cross-references](#cross-references)
 - [Citations and bibliography](#citations-and-bibliography)
 - [Macros and definitions](#macros-and-definitions)
+- [Coming from LaTeX](#coming-from-latex)
 - [Errors](#errors)
 
 ## Documents
@@ -42,6 +43,7 @@ and the document's metadata (PDF title, authors, language, XMP).
 | `linenumbers on` | referee line numbers, every fifth line, in the left margin |
 | `citations alphabetic` | AMS alphabetic labels, [Hoo71], [BC47], instead of numbers (`citations numeric`, the default, sorts the list by author) |
 | `citations ordered` | numbers in the order of first citation, as many applied and physics journals require |
+| `notation tex` | every formula is read as LaTeX, even one without a command: `$a_{ij}$`, `$ABCD$` (the default is `notation tekx`) |
 | `paper a4` | `a4` (default), `a5` or `letter` |
 | `size 11` | the body type size in points, 6 to 24 (default 11) |
 | `font ROLE FILE` | replace a built-in font; ROLE is `text`, `italic`, `bold`, `bolditalic`, `math` or `mono` |
@@ -426,11 +428,19 @@ A formula may be written in LaTeX's notation instead, and it means the same:
 The result is the same formula, with the same layout, MathML, speech and copy
 text. The copy text is written in tekx's own notation.
 
-As soon as a formula uses one TeX command, TeX's reading rules apply to that
-formula:
+As soon as a formula uses one TeX command (even one that only steers layout,
+such as `\left`), TeX's reading rules apply to that formula:
 - braces group without being drawn, and `\{ \}` are set braces;
 - a run of letters is a product, as in TeX (`\text{…}` or `\mathrm{…}` makes a
   word).
+
+A formula with no command in it, such as `$a_{ij}$` or `$ABCD$`, is read in
+tekx notation, where `{ij}` is a set and `ABCD` one name. A document written in
+LaTeX's notation throughout says `notation tex`, and every formula is then read
+as LaTeX reads it. `tekx import` writes that line.
+
+A display may end with its sentence's full stop, `x = 1.`, as displays in
+papers do; the stop belongs to the sentence, not to the formula.
 
 What is understood:
 - **Commands with arguments:** `\frac`, `\dfrac`, `\tfrac`, `\sqrt` and
@@ -617,6 +627,50 @@ takes in a package's definitions: notation, environments and macros shared by
 a group's documents. A package may also bring blocks of its own, implemented
 by programs that rewrite the document. Packages are pinned by content hash in
 `tekx.lock` and managed with `tekx pkg`; see [packages.md](packages.md).
+
+## Coming from LaTeX
+
+tekx reads LaTeX and writes it, so a move costs nothing and journals still get
+what they ask for.
+
+```
+tekx import paper.tex           # writes paper.tekx
+tekx -o paper.tex paper.tekx    # amsart LaTeX for submission
+```
+
+**Import.** `tekx import` converts the parts of LaTeX that papers use:
+- **front matter:** amsart and article title pages (`\author`, `\address`,
+  `\email`, `\urladdr`, `\subjclass`, `\keywords`, `\date`) become settings;
+- **structure:** sections, the abstract and `\appendix`, each with its labels;
+- **theorems:** `\newtheorem` declarations map to tekx's kinds by name
+  (Theorem, Lemma, Corollary …), and others become
+  `define NAME like theorem titled "…"`;
+- **mathematics:** `equation`, `align`, `gather`, `multline`, `split`, `\[ \]`
+  and `$$` become displays. Labelled lines keep their labels, and numbered lines
+  without one get a label, so that every equation keeps its number. Formulas
+  stay in LaTeX's notation under `notation tex`;
+- **text:** lists, tables, figures, footnotes, `verbatim`, quotations, links and
+  accents;
+- **references:** `\ref`, `\eqref`, `\cref` and `\autoref` become `@label`
+  ("Theorem~\ref{x}" becomes `@x`, which reads "Theorem 2"), and `\cite[note]{a,b}`
+  becomes `[@a; @b, note]`;
+- **macros:** `\newcommand` and `\def` are expanded where they are used, and
+  `\DeclareMathOperator{\Var}{Var}` becomes `define operator Var`.
+
+What cannot be carried over is kept as text, and each case is reported as a
+warning at its file, line and column. That covers unknown commands and
+environments, `\tag`, table numbers, prenotes in citations, and a figure's alt
+text, which is copied from the caption and should be rewritten as a description
+of the image.
+
+**Export.** `-o paper.tex` writes an amsart document with `\newtheorem`
+declarations (one shared counter, as in tekx), `equation` and `align`
+environments with labels, and `\cite`. References read "Theorem~\ref{x}" and
+"\eqref{x}", so nothing beyond amsmath and hyperref is needed. A document with a
+`bibliography` keeps it as `\bibliography{…}` for BibTeX. Formulas are written
+from their meaning, so `sum k^2 for k from 1 to n` arrives as
+`\sum_{k = 1}^{n} k^{2}`. The test suite compiles the exports with pdflatex and
+BibTeX when TeX Live is at hand.
 
 ## Errors
 

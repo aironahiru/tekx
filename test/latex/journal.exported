@@ -1,0 +1,78 @@
+% Written by tekx 0.2.0 from test/golden/journal.tekx.
+\documentclass[a4paper]{amsart}
+\usepackage[T1]{fontenc}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+
+\numberwithin{equation}{section}
+
+\title{Gaps Between Sums of Two Squares}
+\author{Ada Lovelace}
+\email{ada@example.org}
+\urladdr{https://orcid.org/0000-0002-1825-0097}
+\address{University of London, UK}
+\author{Charles Babbage}
+\urladdr{https://example.org/cb}
+\address{Cambridge}
+\author{Mary Somerville}
+\author{John Herschel}
+\subjclass[2020]{11N36 (primary); 11E25 (secondary)}
+\keywords{sums of two squares, short intervals}
+
+\begin{document}
+
+\begin{abstract}
+We improve the exponent $1/2$ of \cite[Thm. 2]{hooley}, \cite{landau}.
+
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}\label{intro}
+
+Landau \cite{landau} proved
+
+\begin{equation}\label{asym}
+  B(x) \sim K \frac{x}{\sqrt{\log x}}
+\end{equation}
+
+By Theorem~\ref{main} and Lemmas \ref{a} and \ref{b}, see \eqref{asym} and Section~\ref{intro}; also \cite{vallee,erdos,thesis,arxiv,parens,dblp,biblatex} and \cite[\S{}2]{arxiv}. The paper \cite{hooley} and the formula \eqref{asym} are different things.
+
+\begin{theorem}[Main]\label{main}
+Every interval $[x, x + x^{1/4 + \varepsilon}]$ contains one.
+
+\end{theorem}
+
+\begin{lemma}\label{a}
+First.
+
+\end{lemma}
+
+\begin{lemma}\label{b}
+Second, by \cite[p. $305$]{landau}.
+
+\end{lemma}
+
+\appendix
+
+\section{Computations}\label{comp}
+
+\begin{lemma}\label{c}
+As in Appendix~\ref{comp}, Lemma~\ref{c} holds:
+
+\begin{equation}\label{bound}
+  g(x) \leq 2 x^{1/4}
+\end{equation}
+
+\end{lemma}
+
+\bibliographystyle{amsplain}
+\bibliography{journal}
+
+\end{document}

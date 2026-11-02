@@ -1422,3 +1422,535 @@ eqn_grouping(M *m)
 			bputc(&o, *p);
 	return bstr(&o);
 }
+
+/* ---- LaTeX ----
+ *
+ * The formula as LaTeX source for amsmath, for `tekx -o paper.tex`: written
+ * from the tree, so a formula typed in tekx notation comes out as the LaTeX
+ * a mathematician would have typed.  Fractions keep tekx's choice (a/b on
+ * the line outside display style), and \left \right appear only around
+ * contents taller than a line. */
+
+static const struct {
+	const char *u, *tex;
+} tex_ops[] = {
+	{"≠", "\\neq"}, {"≤", "\\leq"}, {"≥", "\\geq"}, {"≪", "\\ll"}, {"≫", "\\gg"}, {"∼", "\\sim"},
+	{"≅", "\\cong"}, {"≈", "\\approx"}, {"≡", "\\equiv"}, {"∝", "\\propto"}, {"∈", "\\in"},
+	{"∉", "\\notin"}, {"∋", "\\ni"}, {"⊂", "\\subset"}, {"⊆", "\\subseteq"}, {"⊃", "\\supset"},
+	{"⊇", "\\supseteq"}, {"⊊", "\\subsetneq"}, {"⊋", "\\supsetneq"}, {"→", "\\to"},
+	{"←", "\\leftarrow"}, {"↔", "\\leftrightarrow"}, {"↦", "\\mapsto"}, {"≔", "\\mathrel{:=}"},
+	{"∣", "\\mid"}, {"⟂", "\\perp"}, {"∥", "\\parallel"}, {"⇒", "\\Rightarrow"}, {"⟹", "\\implies"},
+	{"⇔", "\\Leftrightarrow"}, {"⟺", "\\iff"}, {"⇐", "\\Leftarrow"}, {"∧", "\\wedge"},
+	{"∨", "\\vee"}, {"−", "-"}, {"±", "\\pm"}, {"∓", "\\mp"}, {"∪", "\\cup"}, {"∖", "\\setminus"},
+	{"⊕", "\\oplus"}, {"⊖", "\\ominus"}, {"∩", "\\cap"}, {"⋅", "\\cdot"}, {"×", "\\times"},
+	{"÷", "\\div"}, {"∘", "\\circ"}, {"⊗", "\\otimes"}, {"⊙", "\\odot"}, {"⋆", "\\star"},
+	{"∗", "\\ast"}, {"mod", "\\bmod"}, {"′", "'"}, {"″", "''"}, {"∀", "\\forall"},
+	{"∃", "\\exists"}, {"∃!", "\\exists!"}, {"∄", "\\nexists"}, {"¬", "\\neg"}, {"∞", "\\infty"},
+	{"∂", "\\partial"}, {"∇", "\\nabla"}, {"∅", "\\emptyset"}, {"…", "\\ldots"}, {"⋯", "\\cdots"},
+	{"⋮", "\\vdots"}, {"⋱", "\\ddots"}, {"°", "^\\circ"}, {"∴", "\\therefore"},
+	{"∵", "\\because"}, {"⊢", "\\vdash"}, {"⊨", "\\models"}, {"≃", "\\simeq"}, {"≺", "\\prec"},
+	{"≻", "\\succ"}, {"ℵ", "\\aleph"}, {"ℏ", "\\hbar"}, {"ℓ", "\\ell"}, {"∠", "\\angle"},
+	{"⊤", "\\top"}, {"⊥", "\\bot"}, {"⟨", "\\langle"}, {"⟩", "\\rangle"}, {"⌊", "\\lfloor"},
+	{"⌋", "\\rfloor"}, {"⌈", "\\lceil"}, {"⌉", "\\rceil"}, {"‖", "\\|"}, {"{", "\\{"}, {"}", "\\}"},
+	{"\\{", "\\{"}, {"\\}", "\\}"}, {"⩽", "\\leqslant"}, {"⩾", "\\geqslant"},
+	{"↪", "\\hookrightarrow"}, {"⟶", "\\longrightarrow"}, {"⟵", "\\longleftarrow"},
+	{"↑", "\\uparrow"}, {"↓", "\\downarrow"}, {"⊲", "\\lhd"}, {"⊴", "\\trianglelefteq"},
+	{"≀", "\\wr"}, {"†", "\\dagger"}, {"‡", "\\ddagger"}, {"∙", "\\bullet"}, {"ı", "\\imath"},
+	{"ȷ", "\\jmath"}, {"∤", "\\nmid"}, {"≰", "\\nleq"}, {"≱", "\\ngeq"}, {"≲", "\\lesssim"},
+	{"≳", "\\gtrsim"}, {"≍", "\\asymp"}, {"≐", "\\doteq"}, {"⊏", "\\sqsubset"},
+	{"⊑", "\\sqsubseteq"}, {"△", "\\triangle"}, {"□", "\\square"}, {"♯", "\\sharp"},
+	{"♭", "\\flat"}, {"♮", "\\natural"}, {"ℑ", "\\Im"}, {"ℜ", "\\Re"}, {"℘", "\\wp"},
+	{"⋉", "\\ltimes"}, {"⋊", "\\rtimes"}, {"∸", "\\dotminus"}, {"⁢", ""}, {"⁡", ""},
+};
+
+static const struct {
+	const char *u, *tex;
+} tex_bigops[] = {
+	{"∑", "\\sum"}, {"∏", "\\prod"}, {"∐", "\\coprod"}, {"∫", "\\int"}, {"∬", "\\iint"},
+	{"∭", "\\iiint"}, {"∮", "\\oint"}, {"⋃", "\\bigcup"}, {"⋂", "\\bigcap"}, {"⨁", "\\bigoplus"},
+	{"⨂", "\\bigotimes"}, {"⨀", "\\bigodot"}, {"⋁", "\\bigvee"}, {"⋀", "\\bigwedge"},
+	{"⨄", "\\biguplus"},
+};
+
+/* names LaTeX defines as operators; anything else is \operatorname */
+static const char *tex_functions[] = {
+	"sin", "cos", "tan", "cot", "sec", "csc", "arcsin", "arccos", "arctan", "sinh", "cosh", "tanh",
+	"coth", "log", "ln", "lg", "exp", "lim", "limsup", "liminf", "sup", "inf", "max", "min", "det",
+	"dim", "ker", "deg", "gcd", "hom", "arg", "Pr",
+};
+
+static const char *greek_lower[] = {
+	"alpha", "beta", "gamma", "delta", "varepsilon", "zeta", "eta", "theta", "iota", "kappa",
+	"lambda", "mu", "nu", "xi", "o", "pi", "rho", "varsigma", "sigma", "tau", "upsilon", "varphi",
+	"chi", "psi", "omega",
+};
+static const char *greek_upper[] = {
+	"A", "B", "\\Gamma", "\\Delta", "E", "Z", "H", "\\Theta", "I", "K", "\\Lambda", "M", "N",
+	"\\Xi", "O", "\\Pi", "P", "", "\\Sigma", "T", "\\Upsilon", "\\Phi", "X", "\\Psi", "\\Omega",
+};
+
+static void tx(Buf *b, M *m);
+
+static const char *
+tex_symbol_of(const char *u)
+{
+	for (size_t i = 0; i < NELEM(tex_ops); i++)
+		if (streq(tex_ops[i].u, u))
+			return tex_ops[i].tex;
+	return NULL;
+}
+
+static void
+tex_char(Buf *b, u32 c)
+{
+	static const struct { u32 c; const char *t; } extra[] = {
+		{0x3f5, "\\epsilon"}, {0x3d1, "\\vartheta"}, {0x3f0, "\\varkappa"}, {0x3d5, "\\phi"},
+		{0x3f1, "\\varrho"}, {0x3d6, "\\varpi"},
+	};
+
+	if (c >= 0x3b1 && c <= 0x3c9) {
+		const char *g = greek_lower[c - 0x3b1];
+		bprintf(b, g[1] ? "\\%s" : "%s", g);
+		return;
+	}
+	if (c >= 0x391 && c <= 0x3a9 && c != 0x3a2) {
+		bputs(b, greek_upper[c - 0x391]);
+		return;
+	}
+	for (size_t i = 0; i < NELEM(extra); i++)
+		if (extra[i].c == c) {
+			bputs(b, extra[i].t);
+			return;
+		}
+	Buf u = {0};
+	utf8_enc(&u, c);
+	const char *s = tex_symbol_of(bstr(&u));
+	bputs(b, s ? s : bstr(&u));
+}
+
+static void
+tex_text_escaped(Buf *b, const char *s)
+{
+	for (; *s; s++) {
+		switch (*s) {
+		case '\\': bputs(b, "\\textbackslash{}"); break;
+		case '~': bputs(b, "\\textasciitilde{}"); break;
+		case '^': bputs(b, "\\textasciicircum{}"); break;
+		case '&': case '%': case '$': case '#': case '_': case '{': case '}':
+			bputc(b, '\\');
+			bputc(b, *s);
+			break;
+		default: bputc(b, *s);
+		}
+	}
+}
+
+static void
+tx_id(Buf *b, M *m)
+{
+	static const struct { int v; const char *cmd; } styles[] = {
+		{V_BOLD, "\\mathbf"}, {V_BB, "\\mathbb"}, {V_CAL, "\\mathcal"}, {V_SCRIPT, "\\mathscr"},
+		{V_FRAK, "\\mathfrak"}, {V_SANS, "\\mathsf"}, {V_MONO, "\\mathtt"}, {V_BOLDITALIC, "\\boldsymbol"},
+	};
+
+	if (m->differential) {
+		bputs(b, "\\mathrm{d}");
+		return;
+	}
+	if (utf8_len(m->text) != 1) {
+		if (m->func) {
+			for (size_t i = 0; i < NELEM(tex_functions); i++)
+				if (streq(tex_functions[i], m->text)) {
+					bprintf(b, "\\%s", m->text);
+					return;
+				}
+			bputs(b, "\\operatorname{");
+		} else {
+			bputs(b, "\\mathrm{");
+		}
+		tex_text_escaped(b, m->text);
+		bputc(b, '}');
+		return;
+	}
+	u32 c = utf8_first(m->text);
+	bool ascii = (c | 32) >= 'a' && (c | 32) <= 'z';
+	bool greek = c >= 0x391 && c <= 0x3f6;
+	const char *style = NULL;
+	for (size_t i = 0; i < NELEM(styles); i++)
+		if (styles[i].v == m->variant)
+			style = styles[i].cmd;
+	if (m->variant == V_NORMAL && ascii)
+		style = "\\mathrm";
+	if (greek && m->variant == V_BOLD)
+		style = "\\boldsymbol";
+	if (style) {
+		bprintf(b, "%s{", style);
+		tex_char(b, c);
+		bputc(b, '}');
+	} else {
+		tex_char(b, c);
+	}
+}
+
+/* contents taller than a line want \left and \right */
+static bool
+tall(M *m)
+{
+	if (m == NULL)
+		return false;
+	switch (m->kind) {
+	case M_FRAC:
+		return !m->slashed || tall(m->slash);
+	case M_TABLE:
+		return true;
+	case M_BIGOP:
+		return m->limits || tall(m->a);
+	case M_SCRIPT:
+		return tall(m->a) || tall(m->b) || tall(m->c);
+	case M_SQRT: case M_ROOT: case M_ACCENT: case M_OVERLINE: case M_FENCE:
+		return tall(m->a);
+	case M_ROW:
+		for (size_t i = 0; i < m->kids.n; i++)
+			if (tall(m->kids.v[i]))
+				return true;
+		return false;
+	default:
+		return false;
+	}
+}
+
+static const char *
+tex_delim(const char *d, bool left)
+{
+	static const struct { const char *u, *l, *r; } map[] = {
+		{"{", "\\{", "\\}"}, {"}", "\\{", "\\}"}, {"⟨", "\\langle", "\\langle"},
+		{"⟩", "\\rangle", "\\rangle"}, {"‖", "\\lVert", "\\rVert"}, {"|", "\\lvert", "\\rvert"},
+		{"⌊", "\\lfloor", "\\lfloor"}, {"⌋", "\\rfloor", "\\rfloor"}, {"⌈", "\\lceil", "\\lceil"},
+		{"⌉", "\\rceil", "\\rceil"},
+	};
+
+	if (!*d)
+		return ".";
+	for (size_t i = 0; i < NELEM(map); i++)
+		if (streq(map[i].u, d))
+			return left ? map[i].l : map[i].r;
+	return d;
+}
+
+/* a script or root argument */
+static void
+tx_group(Buf *b, M *m)
+{
+	bputc(b, '{');
+	tx(b, m);
+	bputc(b, '}');
+}
+
+static void
+tx_table(Buf *b, M *t)
+{
+	for (int r = 0; t && r < t->rows; r++) {
+		if (r)
+			bputs(b, " \\\\ ");
+		for (int c = 0; c < t->cols; c++) {
+			if (c)
+				bputs(b, " & ");
+			tx(b, t->kids.v[(size_t)(r * t->cols + c)]);
+		}
+	}
+}
+
+/* a blank between neighbours keeps "\alpha x" apart */
+static void
+tx_sep(Buf *b)
+{
+	if (b->n && b->s[b->n - 1] != ' ' && b->s[b->n - 1] != '{' && b->s[b->n - 1] != '(')
+		bputc(b, ' ');
+}
+
+/* f(x), -x, a/b, n!, (x, y), x.: written as a person would, without a blank */
+static bool
+tx_tight(M *prev, M *k)
+{
+	if (k->kind == M_FENCE && streq(k->open, "(") && (prev->kind == M_ID || prev->kind == M_SCRIPT))
+		return true;
+	if (prev->kind == M_OP && (prev->unary || streq(prev->text, "/")))
+		return true;
+	return k->kind == M_OP && (k->cls == PUNCT || streq(k->text, "/") || streq(k->text, "!") ||
+	    streq(k->text, ".") || streq(k->text, ","));
+}
+
+static void
+tx_op(Buf *b, M *m)
+{
+	const char *s = tex_symbol_of(m->text);
+
+	if (s)
+		bputs(b, s);
+	else if (utf8_len(m->text) > 1 && (m->text[0] | 32) >= 'a' && (m->text[0] | 32) <= 'z')
+		bprintf(b, "\\operatorname{%s}", m->text);
+	else
+		bputs(b, m->text);
+}
+
+static void
+tx_fence(Buf *b, M *m)
+{
+	if (m->sem && streq(m->sem, "binom") && m->a && m->a->kind == M_FRAC) {
+		bputs(b, "\\binom");
+		tx_group(b, m->a->a);
+		tx_group(b, m->a->b);
+		return;
+	}
+	if (m->sem && streq(m->sem, "cases") && m->a && m->a->kind == M_TABLE) {
+		bputs(b, "\\begin{cases} ");
+		tx_table(b, m->a);
+		bputs(b, " \\end{cases}");
+		return;
+	}
+	if (m->a && m->a->kind == M_TABLE && !m->a->colalign) {
+		const char *env = streq(m->open, "(") ? "pmatrix" : streq(m->open, "[") ? "bmatrix" :
+		    streq(m->open, "|") ? "vmatrix" : streq(m->open, "‖") ? "Vmatrix" :
+		    streq(m->open, "{") ? "Bmatrix" : !*m->open ? "matrix" : NULL;
+		if (env) {
+			bprintf(b, "\\begin{%s} ", env);
+			tx_table(b, m->a);
+			bprintf(b, " \\end{%s}", env);
+			return;
+		}
+	}
+	bool big = tall(m->a);
+	const char *l = tex_delim(m->open, true), *r = tex_delim(m->close, false);
+	if (big) {
+		bprintf(b, "\\left%s ", l);
+	} else if (*m->open) {
+		bputs(b, l);
+		if (l[0] == '\\' && ((l[strlen(l) - 1] | 32) >= 'a' && (l[strlen(l) - 1] | 32) <= 'z'))
+			bputc(b, ' ');
+	}
+	tx(b, m->a);
+	if (big) {
+		bprintf(b, " \\right%s", r);
+	} else if (*m->close) {
+		if (r[0] == '\\')
+			tx_sep(b);
+		bputs(b, r);
+	}
+}
+
+static void
+tx_bigop(Buf *b, M *m)
+{
+	const char *op = NULL;
+
+	for (size_t i = 0; i < NELEM(tex_bigops); i++)
+		if (streq(tex_bigops[i].u, m->text))
+			op = tex_bigops[i].tex;
+	if (op) {
+		bputs(b, op);
+		if (m->limits && strstr(op, "int"))
+			bputs(b, "\\limits");
+	} else {
+		bool std = false;
+		for (size_t i = 0; i < NELEM(tex_functions); i++)
+			std |= streq(tex_functions[i], m->text);
+		if (std)
+			bprintf(b, "\\%s", m->text);
+		else
+			bprintf(b, "\\operatorname*{%s}", m->text);
+	}
+	if (m->b) {
+		bputc(b, '_');
+		tx_group(b, m->b);
+	}
+	if (m->c) {
+		bputc(b, '^');
+		tx_group(b, m->c);
+	}
+	if (m->a && !(m->a->kind == M_ROW && m->a->kids.n == 0)) {
+		bputc(b, ' ');
+		tx(b, m->a);
+	}
+}
+
+static void
+tx_script(Buf *b, M *m)
+{
+	M *base = m->a;
+	bool empty = base == NULL || (base->kind == M_ROW && base->kids.n == 0);
+	bool simple = !empty && (base->kind == M_ID || base->kind == M_NUM || base->kind == M_FENCE ||
+	    base->kind == M_SQRT || base->kind == M_ACCENT || base->kind == M_OVERLINE ||
+	    (base->kind == M_OP && !base->unary));
+
+	if (empty)
+		bputs(b, "{}");
+	else if (simple)
+		tx(b, base);
+	else
+		tx_group(b, base);
+	if (m->b) {
+		bputc(b, '_');
+		tx_group(b, m->b);
+	}
+	if (m->c) {
+		bool prime = m->prime || (m->c->kind == M_OP && (streq(m->c->text, "′") || streq(m->c->text, "″")));
+		if (prime) {
+			bputs(b, m->c->kind == M_OP && streq(m->c->text, "″") ? "''" : "'");
+		} else {
+			bputc(b, '^');
+			tx_group(b, m->c);
+		}
+	}
+}
+
+static void
+tx_accent(Buf *b, M *m)
+{
+	static const struct { const char *u, *narrow, *wide; } acc[] = {
+		{"̂", "\\hat", "\\widehat"}, {"̃", "\\tilde", "\\widetilde"}, {"̅", "\\bar", "\\overline"},
+		{"̄", "\\bar", "\\overline"}, {"⃗", "\\vec", "\\overrightarrow"}, {"̇", "\\dot", "\\dot"},
+		{"̈", "\\ddot", "\\ddot"}, {"̌", "\\check", "\\check"}, {"̆", "\\breve", "\\breve"},
+		{"́", "\\acute", "\\acute"}, {"̀", "\\grave", "\\grave"}, {"̊", "\\mathring", "\\mathring"},
+	};
+	bool wide = !(m->a && (m->a->kind == M_ID || m->a->kind == M_NUM) && utf8_len(m->a->text) == 1);
+	const char *cmd = wide ? "\\widehat" : "\\hat";
+
+	for (size_t i = 0; i < NELEM(acc); i++)
+		if (streq(acc[i].u, m->text))
+			cmd = wide ? acc[i].wide : acc[i].narrow;
+	bputs(b, cmd);
+	tx_group(b, m->a);
+}
+
+static void
+tx(Buf *b, M *m)
+{
+	static const char *kw[] = {"if", "otherwise", "and", "or", "when", "where", "unless", "for all",
+	    "for every", "for each", "for some", "for any", "for", "prime", "odd", "even"};
+
+	if (m == NULL)
+		return;
+	switch (m->kind) {
+	case M_ROW:
+		for (size_t i = 0; i < m->kids.n; i++) {
+			M *k = m->kids.v[i];
+			if (i > 0 && !tx_tight(m->kids.v[i - 1], k))
+				tx_sep(b);
+			tx(b, k);
+		}
+		return;
+	case M_ID:
+		tx_id(b, m);
+		return;
+	case M_NUM:
+		bputs(b, m->text);
+		return;
+	case M_OP:
+		tx_op(b, m);
+		return;
+	case M_TEXT: {
+		bool spaced = false;
+		for (size_t i = 0; i < NELEM(kw); i++)
+			spaced |= streq(kw[i], m->text);
+		bputs(b, spaced ? "\\text{ " : "\\text{");
+		tex_text_escaped(b, m->text);
+		bputs(b, spaced ? " }" : "}");
+		return;
+	}
+	case M_FRAC:
+		if (m->slashed) {
+			tx(b, m->slash);
+		} else {
+			bputs(b, m->thin ? "\\genfrac{}{}{0pt}{}" : "\\frac");
+			tx_group(b, m->a);
+			tx_group(b, m->b);
+		}
+		return;
+	case M_SCRIPT:
+		tx_script(b, m);
+		return;
+	case M_SQRT:
+		bputs(b, "\\sqrt");
+		tx_group(b, m->a);
+		return;
+	case M_ROOT:
+		bputs(b, "\\sqrt[");
+		tx(b, m->b);
+		bputc(b, ']');
+		tx_group(b, m->a);
+		return;
+	case M_FENCE:
+		tx_fence(b, m);
+		return;
+	case M_BIGOP:
+		tx_bigop(b, m);
+		return;
+	case M_ACCENT:
+		tx_accent(b, m);
+		return;
+	case M_OVERLINE:
+		bputs(b, "\\overline");
+		tx_group(b, m->a);
+		return;
+	case M_TABLE:
+		if (m->colalign) {
+			bprintf(b, "\\begin{array}{%s} ", m->colalign);
+			tx_table(b, m);
+			bputs(b, " \\end{array}");
+		} else {
+			bputs(b, "\\begin{matrix} ");
+			tx_table(b, m);
+			bputs(b, " \\end{matrix}");
+		}
+		return;
+	case M_SPACE:
+		bputs(b, m->num >= 1900 ? "\\qquad" : m->num >= 900 ? "\\quad" : m->num >= 260 ? "\\;" :
+		    m->num >= 200 ? "\\:" : m->num > 0 ? "\\," : m->num < 0 ? "\\!" : "");
+		return;
+	case M_ALIGN:
+		bputs(b, "&");
+		return;
+	}
+}
+
+char *
+eqn_latex(M *m, bool display)
+{
+	Buf b = {0};
+
+	eqn_mark_slashed(m, display);
+	tx(&b, m);
+	return trim(bstr(&b));
+}
+
+/* the two sides of a display line's alignment point (& or the first
+ * relation), for an align environment; false when there is none */
+bool
+eqn_latex_split(M *m, bool display, char **left, char **right)
+{
+	MVec at = {0};
+	size_t k;
+
+	eqn_mark_slashed(m, display);
+	top_atoms(m, &at);
+	for (k = 0; k < at.n; k++)
+		if (at.v[k]->kind == M_ALIGN || (at.v[k]->kind == M_OP && at.v[k]->cls == REL && !at.v[k]->unary))
+			break;
+	if (k == at.n)
+		return false;
+	Buf l = {0}, r = {0};
+	for (size_t i = 0; i < k; i++) {
+		if (i > 0 && !tx_tight(at.v[i - 1], at.v[i]))
+			tx_sep(&l);
+		tx(&l, at.v[i]);
+	}
+	size_t start = at.v[k]->kind == M_ALIGN ? k + 1 : k;
+	for (size_t i = start; i < at.n; i++) {
+		if (i > start && !tx_tight(at.v[i - 1], at.v[i]))
+			tx_sep(&r);
+		tx(&r, at.v[i]);
+	}
+	*left = trim(bstr(&l));
+	*right = trim(bstr(&r));
+	return true;
+}
