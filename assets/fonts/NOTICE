@@ -1,0 +1,10 @@
+STIX Two fonts
+==============
+
+STIXTwoText-{Regular,Italic,Bold,BoldItalic}.otf and STIXTwoMath-Regular.otf
+are the STIX Two fonts by The STIX Fonts Project Authors
+(https://github.com/stipub/stixfonts), as distributed on CTAN (stix2-otf).
+
+They are licensed under the SIL Open Font License, Version 1.1 (see OFL.txt in
+this directory). The fonts are bundled unmodified inside the tekx binary; PDF
+files produced by tekx embed subsets of them, which the OFL permits.

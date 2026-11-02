@@ -7,3 +7,7 @@ build/
 *-luamml-mathml.html
 node_modules/
 __pycache__/
+# Rust
+/target/
+# tekx output from local experiments
+/out/

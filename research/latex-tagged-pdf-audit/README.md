@@ -1,4 +1,4 @@
-# tekx: LaTeX Tagged-PDF stack audit (LaTeX 2026-11-01 / TeX Live 2026)
+# LaTeX Tagged-PDF stack audit (LaTeX 2026-11-01 / TeX Live 2026)
 
 A developer reference for the modern "Tagged PDF" LaTeX pipeline. It covers seven layers, from `\DocumentMetadata` down to PDF-viewer clipboard engines. Every claim is tagged **[S]** (read in source or official docs), **[R]** (reproduced by compiling and validating; raw output in [`evidence/`](evidence/)) or **[U]** (under-documented runtime detail).
 
