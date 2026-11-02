@@ -363,6 +363,20 @@ inline_text(Node *parent, const char *text, int line, int col)
 	inlines(parent, &src, 0, n);
 }
 
+/* the typography of running text (quotes, dashes, ellipses) for plain
+ * values such as the title, which carry no markup */
+static char *
+typography(const char *text, int line, int col)
+{
+	Node *tmp = node_new("tmp", 0, 0, "");
+	Buf b = {0};
+
+	inline_text(tmp, text, line, col);
+	for (size_t i = 0; i < tmp->kids.n; i++)
+		bputs(&b, tmp->kids.v[i]->rest);
+	return bstr(&b);
+}
+
 /* ---- blocks ---- */
 
 static int blocks(Node *parent, int i, int base, bool top);
@@ -731,8 +745,12 @@ blocks(Node *parent, int i, int base, bool top)
 		if (top && (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||
 		    streq(w, "language") || streq(w, "lang") || streq(w, "keywords") || streq(w, "subject") ||
 		    streq(w, "paper") || streq(w, "size") || streq(w, "font")) && *rest) {
+			char *v = unquote(rest);
+			if (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||
+			    streq(w, "keywords") || streq(w, "subject"))
+				v = typography(v, ln->no, (int)(rest - s) + 1);
 			node_add(section_stack[0], "meta", ln->no, 0,
-			    fmt("%s %s", streq(w, "lang") ? "language" : w, unquote(rest)));
+			    fmt("%s %s", streq(w, "lang") ? "language" : w, v));
 			i++;
 			continue;
 		}
