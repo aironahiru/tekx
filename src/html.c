@@ -646,6 +646,9 @@ blocks(Node *n, int depth)
 			contents(doc_root);
 		} else if (streq(kd, "figure")) {
 			figure(k);
+		} else if (streq(kd, "custom")) {
+			error_at(k->line, 0, "the %s block belongs to package %s, and its filter did not turn it "
+			    "into document content", field(k, 0), field(k, 1));
 		}
 	}
 }

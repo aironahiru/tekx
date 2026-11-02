@@ -87,7 +87,14 @@ are preceded by a marker in the C preprocessor's form:
 ```
 
 `#macro NAME` announces a text macro, so that `parse` can suggest it for a
-misspelled `{name}`. `#line N "FILE"` gives the origin of the next line.
+misspelled `{name}`. `#line N "FILE"` gives the origin of the next line. A
+document that uses packages also gets `#document "FILE"` (the document itself,
+however many package files precede its first line), `#package NAME VERSION
+DIR`, `#block NAME PACKAGE` for a package's custom blocks, and `#filter PROGRAM
+DIR` for its filters. `parse` writes a custom block as a `custom` node (NAME
+PACKAGE, children `args` and `verbatim`), and pipes the finished tree through
+the filters in order. A `custom` node that survives the filters is an error in
+the back ends. See [packages.md](packages.md).
 Mathematical definitions (`define function`, `define operator`, notation macros)
 and `env NAME KIND TITLE` lines (from `define … like …`) pass through to later
 stages.

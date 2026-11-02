@@ -18,14 +18,26 @@
  *
  * Any other `define` line (mathematical notation) is passed through for
  * the eqn stage.
+ *
+ *	use NAME [VERSION]			take in a package's definitions
+ *
+ * splices in the files a package provides (and those of the packages it
+ * depends on), each line keeping its own file for diagnostics, and
+ * announces the package's custom blocks and filters to parse:
+ *
+ *	#package NAME VERSION DIR
+ *	#block NAME PACKAGE
+ *	#filter PROGRAM PACKAGE-DIR
  */
 #include "tekx.h"
+#include "pkg.h"
 
 #include <time.h>
 
 typedef struct {
-	int no;		/* source line number */
-	char *s;	/* text, tabs expanded */
+	int no;			/* source line number */
+	char *s;		/* text, tabs expanded */
+	const char *file;	/* the file it came from: the document or a package */
 } Line;
 
 typedef VEC(Line) Lines;
@@ -356,11 +368,12 @@ expand_text(const char *s, int no, int depth)
 }
 
 static Lines out;
+static const char *emit_file;	/* the file of the line being handled */
 
 static void
 emit(int no, const char *s)
 {
-	Line l = {no, xstrdup(s)};
+	Line l = {no, xstrdup(s), emit_file};
 
 	VPUSH(out, l);
 }
@@ -380,6 +393,8 @@ expand_blocks(Line *ls, size_t n, int depth)
 	for (size_t i = 0; i < n; i++) {
 		const char *s = ls[i].s;
 		int ind = indent_of(s);
+		emit_file = ls[i].file;
+		diag_file = ls[i].file;
 		if (is_fence(s))
 			fenced = !fenced;
 		if (fenced || is_fence(s)) {
@@ -426,7 +441,8 @@ expand_blocks(Line *ls, size_t n, int depth)
 				for (size_t k = i + 1; k <= last; k++) {
 					const char *bl = ls[k].s;
 					int bind = indent_of(bl);
-					Line l = {ls[k].no, bl[bind] ? fmt("%*s%s", ind + tind + bind - body_base, "", bl + bind) : ""};
+					Line l = {ls[k].no, bl[bind] ? fmt("%*s%s", ind + tind + bind - body_base, "", bl + bind) : "",
+					    ls[k].file};
 					VPUSH(exp, l);
 				}
 				continue;
@@ -444,7 +460,7 @@ expand_blocks(Line *ls, size_t n, int depth)
 				*bp = 0;
 				sub = fmt("%s%s%s", sub, bstr(&joined), bp + 6);
 			}
-			Line l = {ls[i].no, fmt("%*s%s", ind + tind, "", sub)};
+			Line l = {ls[i].no, fmt("%*s%s", ind + tind, "", sub), ls[i].file};
 			VPUSH(exp, l);
 		}
 		expand_blocks(exp.v, exp.n, depth + 1);
@@ -460,6 +476,8 @@ define(Line *ls, size_t n, size_t *i)
 	const char *s = l->s + ind + 7;	/* after "define " */
 	Macro m;
 
+	emit_file = l->file;
+	diag_file = l->file;
 	memset(&m, 0, sizeof m);
 	m.no = l->no;
 	while (*s == ' ')
@@ -474,7 +492,7 @@ define(Line *ls, size_t n, size_t *i)
 		for (; j < n; j++) {
 			int k = indent_of(ls[j].s);
 			if (ls[j].s[k] == 0) {
-				Line blank = {ls[j].no, ""};
+				Line blank = {ls[j].no, "", ls[j].file};
 				VPUSH(m.body, blank);
 				continue;
 			}
@@ -482,7 +500,7 @@ define(Line *ls, size_t n, size_t *i)
 				break;
 			if (base < 0)
 				base = k;
-			Line t = {ls[j].no, xstrdup(ls[j].s + MIN(k, base) - (k < base ? 0 : 0))};
+			Line t = {ls[j].no, xstrdup(ls[j].s + MIN(k, base) - (k < base ? 0 : 0)), ls[j].file};
 			if (k >= base)
 				t.s = fmt("%*s%s", k - base, "", ls[j].s + k);
 			VPUSH(m.body, t);
@@ -536,23 +554,112 @@ define(Line *ls, size_t n, size_t *i)
 	emit(l->no, l->s);	/* mathematical definition: for eqn */
 }
 
+/* ---- packages ---- */
+
+static Strs used, markers;
+static const char *doc_file;
+static bool missing_package;	/* everything after a failed `use` would be noise */
+
+static void read_lines(FILE *in, const char *file, Lines *into);
+
+static void
+use_package(Package *p, Lines *into, int no)
+{
+	for (size_t i = 0; i < used.n; i++)
+		if (streq(used.v[i], p->name))
+			return;
+	VPUSH(used, p->name);
+	for (size_t i = 0; i < p->depends.n; i++) {
+		char *d = xstrdup(p->depends.v[i]), *sp = strchr(d, ' '), *err = NULL;
+		if (sp)
+			*sp = 0;
+		Package *q = pkg_use(doc_file, d, sp ? trim(sp + 1) : NULL, &err);
+		if (q == NULL) {
+			error_at(no, 1, "%s (needed by %s)", err, p->name);
+			missing_package = true;
+		} else
+			use_package(q, into, no);
+	}
+	VPUSH(markers, fmt("#package %s %s %s", p->name, p->version, p->dir));
+	for (size_t i = 0; i < p->blocks.n; i++)
+		VPUSH(markers, fmt("#block %s %s", p->blocks.v[i], p->name));
+	for (size_t i = 0; i < p->filters.n; i++)
+		VPUSH(markers, fmt("#filter %s/%s %s", p->dir, p->filters.v[i], p->dir));
+	for (size_t i = 0; i < p->provides.n; i++) {
+		char *path = fmt("%s/%s", p->dir, p->provides.v[i]);
+		FILE *f = fopen(path, "rb");
+		if (f == NULL) {
+			error_at(no, 1, "cannot read %s", path);
+			continue;
+		}
+		read_lines(f, path, into);
+		fclose(f);
+	}
+}
+
+/* `use NAME [VERSION]` at the start of a line, outside code */
+static bool
+use_line(const char *s, char **name, char **version)
+{
+	if (!startswith(s, "use "))
+		return false;
+	char *t = trim(xstrdup(s + 4)), *sp = strchr(t, ' ');
+	if (sp) {
+		*sp = 0;
+		*version = trim(sp + 1);
+	} else {
+		*version = NULL;
+	}
+	*name = t;
+	return **name != 0;
+}
+
+static void
+read_lines(FILE *in, const char *file, Lines *into)
+{
+	char *raw;
+	int no = 0;
+	bool fenced = false;
+
+	while ((raw = read_line(in)) != NULL) {
+		if (no == 0 && startswith(raw, "\xef\xbb\xbf"))
+			raw += 3;	/* a byte order mark is not text */
+		Line l = {++no, expand_tabs(raw), file};
+		size_t n = strlen(l.s);
+		while (n && l.s[n - 1] == ' ')
+			l.s[--n] = 0;
+		if (is_fence(l.s))
+			fenced = !fenced;
+		char *name, *version;
+		bool whole;
+		char *code = strip_comment(xstrdup(l.s), &whole);
+		if (!fenced && !whole && use_line(code, &name, &version)) {
+			char *err = NULL;
+			const char *saved = diag_file;
+			diag_file = file;
+			Package *p = pkg_use(doc_file, name, version, &err);
+			if (p == NULL) {
+				error_at(no, 5, "%s", err);
+				missing_package = true;
+			} else
+				use_package(p, into, no);
+			diag_file = saved;
+			continue;
+		}
+		VPUSH(*into, l);
+	}
+}
+
 int
 pp_main(FILE *in, FILE *outf, const char *file)
 {
 	Lines src = {0}, norm = {0};
-	char *raw;
-	int no = 0;
 
 	diag_file = file;
-	while ((raw = read_line(in)) != NULL) {
-		if (no == 0 && startswith(raw, "\xef\xbb\xbf"))
-			raw += 3;	/* a byte order mark is not text */
-		Line l = {++no, expand_tabs(raw)};
-		size_t n = strlen(l.s);
-		while (n && l.s[n - 1] == ' ')
-			l.s[--n] = 0;
-		VPUSH(src, l);
-	}
+	doc_file = file;
+	read_lines(in, file, &src);
+	if (missing_package)
+		return 1;	/* the rest would only repeat what a missing package explains */
 
 	/* 1. comments, and do ... end -> indentation */
 	struct {
@@ -566,6 +673,7 @@ pp_main(FILE *in, FILE *outf, const char *file)
 	for (size_t i = 0; i < src.n; i++) {
 		char *s = src.v[i].s;
 		int ind = indent_of(s);
+		diag_file = src.v[i].file;
 		if (is_fence(s)) {
 			fenced = !fenced;
 		} else if (!fenced) {
@@ -579,7 +687,7 @@ pp_main(FILE *in, FILE *outf, const char *file)
 			/* an explicit end of block, so that deeper lines after it
 			 * cannot be mistaken for the block's body */
 			sp--;
-			Line l = {src.v[i].no, fmt("%*s#end", stack[sp].want - 2, "")};
+			Line l = {src.v[i].no, fmt("%*s#end", stack[sp].want - 2, ""), src.v[i].file};
 			VPUSH(norm, l);
 			continue;
 		}
@@ -611,9 +719,10 @@ pp_main(FILE *in, FILE *outf, const char *file)
 			if (*text == 0)
 				continue;
 		}
-		Line l = {src.v[i].no, *text ? fmt("%*s%s", nind, "", text) : ""};
+		Line l = {src.v[i].no, *text ? fmt("%*s%s", nind, "", text) : "", src.v[i].file};
 		VPUSH(norm, l);
 	}
+	diag_file = file;
 	while (sp > 0)
 		error_at(stack[--sp].no, 0, "'do' without a matching 'end'");
 
@@ -637,25 +746,32 @@ pp_main(FILE *in, FILE *outf, const char *file)
 
 	/* 3. block macros, then 4. text macros */
 	expand_blocks(body.v, body.n, 0);
+	fprintf(outf, "#document \"%s\"\n", file);
+	for (size_t i = 0; i < markers.n; i++)
+		fprintf(outf, "%s\n", markers.v[i]);
 	for (size_t i = 0; i < macros.n; i++)
 		if (!macros.v[i].block)
 			fprintf(outf, "#macro %s\n", macros.v[i].name);
 	fenced = false;
 	int expect = 0;
-	const char *cur_file = file;
+	const char *cur_file = NULL;
 	for (size_t i = 0; i < out.n; i++) {
 		Line *l = &out.v[i];
+		const char *lf = l->file ? l->file : file;
 		char *s = l->s;
+		diag_file = lf;
 		if (is_fence(s))
 			fenced = !fenced;
 		else if (!fenced)
 			s = expand_text(s, l->no, 0);
-		if (l->no != expect) {
-			fprintf(outf, "#line %d \"%s\"\n", l->no, cur_file);
+		if (l->no != expect || cur_file == NULL || !streq(lf, cur_file)) {
+			fprintf(outf, "#line %d \"%s\"\n", l->no, lf);
 			expect = l->no;
+			cur_file = lf;
 		}
 		fprintf(outf, "%s\n", s);
 		expect++;
 	}
+	diag_file = file;
 	return nerrors ? 1 : 0;
 }

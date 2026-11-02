@@ -148,5 +148,8 @@ $T pp "$f" | $T parse | $T eqn | $T set | $T pdf >test/out/byhand.pdf &&
     fail "the shell pipeline differs from the driver"
 echo "pipeline: done"
 
+# 9. packages: lock, verify, refuse a changed package, filters, git registries
+TEKX=$T sh test/pkg.sh || status=1
+
 [ $status -eq 0 ] && echo "all tests passed"
 exit $status

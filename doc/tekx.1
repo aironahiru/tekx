@@ -15,6 +15,10 @@ tekx \- typeset mathematics into accessible PDF and HTML
 .B tekx explain
 .RI [ formula ...]
 .br
+.B tekx pkg
+.BR new | add | install | verify | lock | list | remove | search | registry
+.RI [ args ]
+.br
 .B tekx \-v
 .SH DESCRIPTION
 .B tekx
@@ -91,6 +95,20 @@ is the same as
 shows how formulas are read: the grouping the parser chose, with every
 implicit parenthesis written out, the speech, the copy text and the MathML.
 It takes formulas as arguments, or one per line on the standard input.
+.PP
+.B tekx pkg
+manages packages: shared notation, environments, macros and programs that a
+document takes in with
+.BR "use NAME [VERSION]" .
+.B tekx pkg add
+fetches a package from a directory, a git URL or a registry and pins its
+version, source and SHA\-256 content hash in
+.IR tekx.lock ;
+.B tekx pkg install
+reproduces exactly what the lock pins.
+Every build verifies the hash of each package it uses.
+See
+.IR doc/packages.md .
 .SH OPTIONS
 .TP
 .B \-E
@@ -171,6 +189,16 @@ The time used for
 .B date today
 and for the PDF's dates.
 With it set, the same input always produces the same bytes.
+.TP
+.B TEKX_PATH
+Directories, separated by colons, searched for packages when no
+.I tekx.lock
+is found beside the document or above it.
+.TP
+.B TEKX_REGISTRY
+Package registries (directories or git URLs), separated by blanks, searched by
+.B tekx pkg add
+after the project's own.
 .SH EXIT STATUS
 0 on success, 1 if the document has errors, 2 for usage errors and failures
 such as an unreadable file.

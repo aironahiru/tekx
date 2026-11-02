@@ -17,6 +17,7 @@
  */
 #include "tekx.h"
 #include "eqn.h"
+#include "pkg.h"
 
 #include <errno.h>
 
@@ -40,6 +41,7 @@ static const char usage_text[] =
     "usage: tekx [-E | -P | -M | -S] [-o output] file.tekx\n"
     "       tekx pp | parse | eqn | set | pdf | html [file]\n"
     "       tekx explain [formula ...]\n"
+    "       tekx pkg new | add | install | verify | lock | list | remove | search | registry\n"
     "       tekx -v | -h\n";
 
 static void
@@ -138,6 +140,8 @@ main(int argc, char **argv)
 
 	if (argc >= 2 && streq(argv[1], "explain"))
 		return explain(argc - 2, argv + 2);
+	if (argc >= 2 && streq(argv[1], "pkg"))
+		return pkg_main(argc - 2, argv + 2);
 	if (argc >= 2) {
 		for (size_t s = 0; s < NELEM(stages); s++) {
 			if (!streq(argv[1], stages[s].name))

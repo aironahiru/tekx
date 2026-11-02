@@ -6,13 +6,15 @@
  * text are display mathematics: math is a first-class citizen.
  */
 #include "bib.h"
+#include "pkg.h"
 #include "tree.h"
 
 #include <ctype.h>
 
 typedef struct {
 	int no, indent;
-	char *s;	/* text without indentation or trailing blanks */
+	char *s;		/* text without indentation or trailing blanks */
+	const char *file;	/* the document, or the package file it came from */
 } Line;
 
 static Line *L;
@@ -28,6 +30,28 @@ static const char *theorem_kinds[] = {
 static VEC(char *) env_names;
 /* text macros known to pp, for suggestions */
 static VEC(char *) macro_names;
+
+/* blocks that packages implement with their filters: `#block NAME PACKAGE` */
+typedef struct {
+	char *name, *package;
+} Custom;
+static VEC(Custom) customs;
+
+static Custom *
+find_custom(const char *w)
+{
+	for (size_t i = 0; i < customs.n; i++)
+		if (streq(customs.v[i].name, w))
+			return &customs.v[i];
+	return NULL;
+}
+
+/* package filters, run on the finished tree: `#filter PROGRAM DIR` */
+typedef struct {
+	char *program, *dir;
+} Filter;
+static VEC(Filter) filters;
+static const char *doc_source;	/* the document's file, from pp's #document */
 
 /* ---- Ruby-style arguments: "Ada Lovelace", affiliation: "Dept, Univ" ---- */
 
@@ -619,7 +643,7 @@ starts_block(int i)
 	    streq(w, "abstract") || streq(w, "proof") || streq(w, "quote") || streq(w, "define") ||
 	    streq(w, "references") || streq(w, "bibliography") || streq(w, "contents") ||
 	    streq(w, "newpage") || streq(w, "pagebreak") || streq(w, "env") || is_theorem_kind(w) ||
-	    streq(w, "figure") ||
+	    streq(w, "figure") || find_custom(w) ||
 	    (streq(w, "let") && !strchr(s, '$'));
 	free(w);
 	return kw;
@@ -1060,8 +1084,23 @@ blocks(Node *parent, int i, int base, bool top)
 			continue;
 		}
 		if (streq(w, "define")) {
-			node_add(parent, "define", ln->no, (int)(rest - s) + ln->indent + 1, rest);
+			Node *d = node_add(parent, "define", ln->no, (int)(rest - s) + ln->indent + 1, rest);
+			if (ln->file && doc_source && !streq(ln->file, doc_source))
+				node_add(d, "from", 0, 0, ln->file);
 			i++;
+			continue;
+		}
+		Custom *cu = find_custom(w);
+		if (cu) {
+			/* a package's block: its header and raw body go to the package's filter */
+			int end = body_end(i, base), ind = first_body_indent(i, end);
+			Node *c = node_add(parent, "custom", ln->no, 0, fmt("%s %s", w, cu->package));
+			if (*rest)
+				node_add(c, "args", 0, 0, rest);
+			for (int j = i + 1; j < end; j++)
+				node_add(c, "verbatim", L[j].no, 0,
+				    is_blank(j) ? "" : fmt("%*s%s", MAX(L[j].indent - ind, 0), "", L[j].s));
+			i = end;
 			continue;
 		}
 		if (streq(w, "let") && *rest && !strchr(s, '$')) {
@@ -1455,6 +1494,7 @@ int
 parse_main(FILE *in, FILE *out, const char *file)
 {
 	const char *first_file = NULL;
+	VEC(char *) package_lines = {0};
 
 	VEC(Line) lines = {0};
 	char *raw;
@@ -1468,6 +1508,36 @@ parse_main(FILE *in, FILE *out, const char *file)
 			free(raw);
 			continue;
 		}
+		if (startswith(raw, "#document ")) {
+			char *q = strchr(raw, '"'), *e = q ? strrchr(q + 1, '"') : NULL;
+			if (e && e > q + 1)
+				doc_source = first_file = xstrndup(q + 1, (size_t)(e - q - 1));
+			free(raw);
+			continue;
+		}
+		if (startswith(raw, "#package ")) {
+			VPUSH(package_lines, xstrdup(raw + 9));
+			free(raw);
+			continue;
+		}
+		if (startswith(raw, "#block ")) {
+			char *t = xstrdup(raw + 7), *sp = strchr(t, ' ');
+			Custom cu = {t, sp ? trim(sp + 1) : ""};
+			if (sp)
+				*sp = 0;
+			VPUSH(customs, cu);
+			free(raw);
+			continue;
+		}
+		if (startswith(raw, "#filter ")) {
+			char *t = xstrdup(raw + 8), *sp = strrchr(t, ' ');
+			Filter f = {t, sp ? sp + 1 : "."};
+			if (sp)
+				*sp = 0;
+			VPUSH(filters, f);
+			free(raw);
+			continue;
+		}
 		if (startswith(raw, "#line ")) {
 			char *p = raw + 6;
 			no = atoi(p) - 1;
@@ -1476,7 +1546,7 @@ parse_main(FILE *in, FILE *out, const char *file)
 				char *e = strrchr(q + 1, '"');
 				if (e && e > q + 1) {
 					diag_file = xstrndup(q + 1, (size_t)(e - q - 1));
-					if (first_file == NULL)
+					if (first_file == NULL && doc_source == NULL)
 						first_file = diag_file;
 				}
 			}
@@ -1484,6 +1554,7 @@ parse_main(FILE *in, FILE *out, const char *file)
 			continue;
 		}
 		Line ln;
+		ln.file = diag_file;
 		int ind = 0;
 		char *s = raw;
 		while (*s == ' ' || *s == '\t') {
@@ -1502,8 +1573,36 @@ parse_main(FILE *in, FILE *out, const char *file)
 	 * pipe, still report errors and find files relative to it */
 	Node *doc = node_new("document", 0, 0, first_file ? first_file : file);
 	section_stack[0] = doc;
+	for (size_t i = 0; i < package_lines.n; i++)
+		node_add(doc, "package", 0, 0, package_lines.v[i]);
+	diag_file = first_file ? first_file : file;
 	blocks(doc, 0, 0, true);
+	diag_file = first_file ? first_file : file;
 	bibliography(doc, first_file ? first_file : file);
-	tree_write(out, doc, 0);
+	if (filters.n == 0 || nerrors) {
+		tree_write(out, doc, 0);
+		return nerrors ? 1 : 0;
+	}
+	/* the packages' filters, in order, each reading the tree the one
+	 * before it wrote: in-house programs extending tekx */
+	char *buf = NULL;
+	size_t len = 0;
+	FILE *mem = open_memstream(&buf, &len);
+	if (mem == NULL)
+		die("open_memstream failed");
+	tree_write(mem, doc, 0);
+	fclose(mem);
+	for (size_t i = 0; i < filters.n; i++) {
+		char *err = NULL;
+		size_t n = 0;
+		char *next = pkg_filter(filters.v[i].program, filters.v[i].dir, buf, len, &n, &err);
+		if (next == NULL) {
+			error_at(0, 0, "package filter: %s", err);
+			break;
+		}
+		buf = next;
+		len = n;
+	}
+	fwrite(buf, 1, len, out);
 	return nerrors ? 1 : 0;
 }

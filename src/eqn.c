@@ -2838,7 +2838,13 @@ walk(Node *n)
 		return;
 	}
 	if (streq(n->kind, "define")) {
+		/* a package's definitions are reported against the package's file */
+		Node *from = child(n, "from");
+		const char *saved = diag_file;
+		if (from)
+			diag_file = from->rest;
 		eqn_define(n->rest, n->line, n->col);
+		diag_file = saved;
 		return;
 	}
 	if (streq(n->kind, "math")) {

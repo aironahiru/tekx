@@ -582,6 +582,17 @@ define axiom2 like theorem titled "Postulate"
 The new block `axiom2` is numbered and styled like a theorem, under the given
 name.
 
+### Packages
+
+```
+use house-notation 1.2
+```
+
+takes in a package's definitions: notation, environments and macros shared by
+a group's documents. A package may also bring blocks of its own, implemented
+by programs that rewrite the document. Packages are pinned by content hash in
+`tekx.lock` and managed with `tekx pkg`; see [packages.md](packages.md).
+
 ## Errors
 
 Errors name the file, line and column, and say how to fix what they can:

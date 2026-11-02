@@ -2139,6 +2139,9 @@ blocks(Node *n, Box_ bx)
 		} else if (streq(kd, "contents")) {
 			contents_block(bx);
 			after_heading = true;
+		} else if (streq(kd, "custom")) {
+			error_at(k->line, 0, "the %s block belongs to package %s, and its filter did not turn it "
+			    "into document content", field(k, 0), field(k, 1));
 		} else if (streq(kd, "newpage")) {
 			V *v = vline(0, 0, 0, 0, NULL);
 			v->newpage = true;
