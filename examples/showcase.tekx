@@ -42,6 +42,8 @@ section Algebra
 definition
   A matrix $A in RR^(n times n)$ is *orthogonal* when $A^T A = I$.
 
+Determinants of small matrices are written out directly:
+
     det [a, b; c, d] = a d - b c
 
     A = matrix

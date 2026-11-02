@@ -90,9 +90,9 @@ document test/golden/alpha.tekx
         ref@39:18 comp
         text , Lemma 
         ref@39:31 c
-        text  holds.
+        text  holds:
       display@41
-        line@41:5 bound g(x) <= 2 x^(1/4)
+        line@41:7 bound g(x) <= 2 x^(1/4)
   refs
     entry erdos
       label ET+65

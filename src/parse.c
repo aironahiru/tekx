@@ -1171,6 +1171,18 @@ blocks(Node *parent, int i, int base, bool top)
 				if (stop < end)
 					error_at(L[stop].no, L[stop].indent + 1,
 					    "this line is indented less than the %s it belongs to (expected %d spaces)", w, ind);
+				/* a display that ends the block after a blank line, indented
+				 * only a little past its text, often meant to stand after it */
+				Node *last = b->kids.n ? b->kids.v[b->kids.n - 1] : NULL;
+				if (last && streq(last->kind, "display") && b->kids.n > 1 && !streq(w, "proof"))
+					for (int j = i + 1; j < end; j++)
+						if (L[j].no == last->line && j > 0 && is_blank(j - 1) && L[j].indent - ind < 4) {
+							warn_at(L[j].no, L[j].indent + 1, "this display ends the %s above it; if it "
+							    "should follow the %s, put a line of text before it or close the %s "
+							    "with do ... end (indent it 4 spaces past the text to keep it and "
+							    "silence this)", w, w, w);
+							break;
+						}
 			}
 			i = end;
 			after_display = false;
@@ -1497,6 +1509,7 @@ bibliography(Node *doc, const char *source)
 			VPUSH(keys, db.v[k].key);
 		}
 	}
+	bib_resolve(&db);
 	resolve_refs(doc, &labels, &keys, &cited);
 
 	/* the cited BibTeX entries, in alphabetical order by author, year, title */

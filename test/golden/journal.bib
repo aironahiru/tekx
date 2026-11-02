@@ -65,3 +65,26 @@
   title  = {Never cited, never printed},
   year   = {2000},
 }
+
+% DBLP writes proceedings papers with crossref
+@inproceedings{dblp,
+  author    = {Knuth, Donald E.},
+  title     = {Breaking paragraphs into lines},
+  pages     = {1--10},
+  crossref  = {dblp-proc},
+}
+@proceedings{dblp-proc,
+  title     = {Proceedings of the Symposium on Typesetting},
+  editor    = {Plass, Michael F.},
+  publisher = {ACM},
+  year      = {1981},
+}
+% Zotero and biblatex write journaltitle, date and location
+@article{biblatex,
+  author       = {Lamport, Leslie},
+  title        = {A document preparation system},
+  journaltitle = {J. Typography},
+  volume       = {4},
+  date         = {1986-05-01},
+  pages        = {11--20},
+}

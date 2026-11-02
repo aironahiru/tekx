@@ -36,6 +36,6 @@ appendix
 section Computations #comp
 
 lemma #c
-  As in Appendix @comp, Lemma @c holds.
+  As in Appendix @comp, Lemma @c holds:
 
-    g(x) <= 2 x^(1/4)   #bound
+      g(x) <= 2 x^(1/4)   #bound

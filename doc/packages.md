@@ -47,6 +47,7 @@ It refuses any source whose content no longer matches the lock.
 |---|---|
 | `tekx pkg add SOURCE` | add a package: SOURCE is a directory, a git URL (`--rev REV`, `--path DIR` for one in a subdirectory), or a name looked up in the registries |
 | `tekx pkg install` | install what `tekx.lock` pins, checking every hash |
+| `tekx pkg update [NAME]` | fetch the newest content of each source (the default branch of a git source) and lock it |
 | `tekx pkg verify` | check the installed packages against `tekx.lock` |
 | `tekx pkg lock` | accept changes you made to an installed package; it becomes `local`, so commit `.tekx/packages/NAME` |
 | `tekx pkg list` | the locked packages and registries |

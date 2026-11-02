@@ -19,7 +19,7 @@ Landau [@landau] proved
     B(x) ~ K x/sqrt(log x)   #asym
 
 By Theorem @main and Lemmas @a and @b, see (@asym) and Section @intro;
-also [@vallee; @erdos; @thesis; @arxiv; @parens] and [@arxiv, §2].
+also [@vallee; @erdos; @thesis; @arxiv; @parens; @dblp; @biblatex] and [@arxiv, §2].
 The paper @hooley and the formula (@asym) are different things.
 
 theorem "Main" #main
@@ -36,6 +36,6 @@ appendix
 section Computations #comp
 
 lemma #c
-  As in Appendix @comp, Lemma @c holds.
+  As in Appendix @comp, Lemma @c holds:
 
-    g(x) <= 2 x^(1/4)   #bound
+      g(x) <= 2 x^(1/4)   #bound

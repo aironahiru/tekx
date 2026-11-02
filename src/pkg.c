@@ -1150,11 +1150,37 @@ cmd_search(Lock *L, const char *word)
 	return 0;
 }
 
+/* fetch the newest content of each package's source (or of one) */
+static int
+cmd_update(Lock *L, const char *only)
+{
+	size_t n = L->e.n;
+	Entry *e = xcalloc(n + 1, sizeof *e);
+	int done = 0;
+
+	memcpy(e, L->e.v, n * sizeof *e);
+	for (size_t i = 0; i < n; i++) {
+		if (only && !streq(e[i].name, only))
+			continue;
+		done++;
+		if (streq(e[i].kind, "local")) {
+			printf("%s is local (accepted with tekx pkg lock): nothing to fetch\n", e[i].name);
+			continue;
+		}
+		const char *sub = e[i].subdir && !streq(e[i].subdir, ".") ? e[i].subdir : NULL;
+		cmd_add_one(L, e[i].where, NULL, streq(e[i].kind, "git") ? sub : NULL, 0);
+	}
+	if (only && done == 0)
+		die("%s is not in tekx.lock", only);
+	return 0;
+}
+
 static const char pkg_usage[] =
     "usage: tekx pkg new NAME                 make a package skeleton\n"
     "       tekx pkg add SOURCE [--rev REV] [--path DIR]\n"
     "                                         SOURCE: a directory, a git URL, or a name in a registry\n"
     "       tekx pkg install                  install what tekx.lock pins, verifying every hash\n"
+    "       tekx pkg update [NAME]            fetch the newest content of the sources and lock it\n"
     "       tekx pkg verify                   check the installed packages against tekx.lock\n"
     "       tekx pkg lock                     accept changes made to installed packages\n"
     "       tekx pkg list | remove NAME | search [WORD]\n"
@@ -1208,6 +1234,8 @@ pkg_main(int argc, char **argv)
 		return cmd_list(&L);
 	if (streq(cmd, "remove") && argc == 2)
 		return cmd_remove(&L, argv[1]);
+	if (streq(cmd, "update") && argc <= 2)
+		return cmd_update(&L, argc == 2 ? argv[1] : NULL);
 	fputs(pkg_usage, stderr);
 	return 2;
 }

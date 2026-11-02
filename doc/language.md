@@ -201,6 +201,12 @@ the right-hand side:
 A trailing `#label` numbers the line, as in (1), and makes it a target. Only
 labelled lines are numbered.
 
+Inside a theorem or other block, a display is indented further than the
+block's text. A display that ends a block after a blank line, indented only a
+little past the text, draws a warning. Such a display is usually meant to
+follow the block. Put a line of text before it to move it out, or indent it 4
+spaces past the text to keep it in.
+
 A line that ends with `cases` or a matrix keyword (`matrix`, `pmatrix`,
 `bmatrix`, `vmatrix`, `Vmatrix`, `Bmatrix`) takes the lines indented below it as
 rows:

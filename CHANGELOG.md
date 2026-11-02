@@ -44,6 +44,13 @@ The release from which the compatibility promise holds.
   - A citation key that is also a label is an error.
   - So are an unknown author detail, a missing `.bib` file and a custom block
     no filter replaced.
+- **BibTeX as the ecosystem writes it.** Entries inherit through `crossref`
+  (as DBLP writes them), and biblatex's `journaltitle`, `date` and `location`
+  are read (as Zotero writes them).
+- **A warning for an ambiguous display**: one that ends a block after a blank
+  line, indented as if it stood outside the block. It found two such displays
+  in tekx's own examples.
+- `tekx pkg update [NAME]`.
 - **Tests.**
   - The tag tree is pinned by golden files, because a validator can't judge
     meaning.

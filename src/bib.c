@@ -16,6 +16,7 @@
 #include "bib.h"
 
 #include <ctype.h>
+#include <strings.h>
 
 /* ---- reading ---- */
 
@@ -270,6 +271,67 @@ bib_read(const char *path, BibEntries *out)
 		VPUSH(*out, e);
 	}
 	return true;
+}
+
+static void
+set_field(BibEntry *e, const char *name, const char *value)
+{
+	BibField f = {xstrdup(name), xstrdup(value)};
+
+	VPUSH(e->f, f);
+}
+
+/*
+ * After reading: biblatex's names for BibTeX's fields (journaltitle,
+ * date, location), and crossref, by which an entry inherits the fields
+ * it lacks from another, its proceedings' title becoming its booktitle.
+ * DBLP and Zotero write both.
+ */
+void
+bib_resolve(BibEntries *db)
+{
+	static const char *const alias[][2] = {
+		{"journaltitle", "journal"}, {"location", "address"}, {"institution", "school"},
+	};
+
+	for (size_t i = 0; i < db->n; i++) {
+		BibEntry *e = &db->v[i];
+		for (size_t k = 0; k < NELEM(alias); k++) {
+			const char *v = bib_get(e, alias[k][0]);
+			if (v && !bib_get(e, alias[k][1]) && !(streq(alias[k][1], "school") && !streq(e->type, "phdthesis") &&
+			    !streq(e->type, "mastersthesis") && !streq(e->type, "thesis")))
+				set_field(e, alias[k][1], v);
+		}
+		const char *date = bib_get(e, "date");
+		if (date && !bib_get(e, "year") && strlen(date) >= 4)
+			set_field(e, "year", xstrndup(date, 4));
+		if (streq(e->type, "thesis")) {
+			const char *ty = bib_get(e, "type");
+			e->type = ty && (strstr(ty, "phd") || strstr(ty, "PhD") || strstr(ty, "Ph.D")) ? "phdthesis" : "mastersthesis";
+		}
+		if (streq(e->type, "online") || streq(e->type, "electronic") || streq(e->type, "www"))
+			e->type = "misc";
+	}
+	for (size_t i = 0; i < db->n; i++) {
+		BibEntry *e = &db->v[i];
+		const char *xr = bib_get(e, "crossref");
+		if (xr == NULL)
+			continue;
+		BibEntry *parent = NULL;
+		for (size_t k = 0; k < db->n; k++)
+			if (strcasecmp(db->v[k].key, xr) == 0)
+				parent = &db->v[k];
+		if (parent == NULL)
+			continue;
+		if (!bib_get(e, "booktitle") && bib_get(parent, "title"))
+			set_field(e, "booktitle", bib_get(parent, "title"));
+		for (size_t k = 0; k < parent->f.n; k++) {
+			const char *name = parent->f.v[k].name;
+			if (streq(name, "title") || streq(name, "crossref") || bib_get(e, name))
+				continue;
+			set_field(e, name, parent->f.v[k].value);
+		}
+	}
 }
 
 const char *

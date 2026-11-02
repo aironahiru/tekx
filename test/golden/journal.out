@@ -51,9 +51,11 @@ document test/golden/journal.tekx
         item@22:24 thesis
         item@22:33 arxiv
         item@22:41 parens
+        item@22:50 dblp
+        item@22:57 biblatex
       text  and 
-      cite@22:54
-        item@22:55 arxiv
+      cite@22:72
+        item@22:73 arxiv
           text §2
       text . The paper 
       cite@23:11
@@ -89,9 +91,9 @@ document test/golden/journal.tekx
         ref@39:18 comp
         text , Lemma 
         ref@39:31 c
-        text  holds.
+        text  holds:
       display@41
-        line@41:5 bound g(x) <= 2 x^(1/4)
+        line@41:7 bound g(x) <= 2 x^(1/4)
   refs
     entry erdos
       text Paul Erdős, Pál Turán, et al., 
@@ -109,6 +111,19 @@ document test/golden/journal.tekx
       link https://doi.org/10.1007/BF02392056
         text doi:10.1007/BF02392056
       text .
+    entry dblp
+      text Donald E. Knuth, 
+      emph
+        text Breaking paragraphs into lines
+      text , Proceedings of the Symposium on Typesetting (Michael F. Plass, ed.), ACM, 1981, pp. 1–10.
+    entry biblatex
+      text Leslie Lamport, 
+      emph
+        text A document preparation system
+      text , J. Typography 
+      strong
+        text 4
+      text  (1986), 11–20.
     entry landau
       text Edmund Landau, 
       emph
@@ -191,7 +206,7 @@ pdf2:Document
       pdf2:Formula
         mathml:math
       pdf2:Link link="Reference 2" to=LI
-      pdf2:Link link="Reference 3" to=LI
+      pdf2:Link link="Reference 5" to=LI
   tekx:msc
     pdf2:Em
   tekx:keywords
@@ -199,7 +214,7 @@ pdf2:Document
   tekx:section
     tekx:section-heading
     pdf2:P
-      pdf2:Link link="Reference 3" to=LI
+      pdf2:Link link="Reference 5" to=LI
     tekx:equation
       pdf2:Formula ident="asym"
         mathml:math
@@ -211,9 +226,11 @@ pdf2:Document
       pdf2:Link link="Equation 1.1" to=Formula
       pdf2:Link link="Section 1" to=section
       pdf2:Link link="Reference 1" to=LI
+      pdf2:Link link="Reference 3" to=LI
       pdf2:Link link="Reference 4" to=LI
-      pdf2:Link link="Reference 7" to=LI
       pdf2:Link link="Reference 6" to=LI
+      pdf2:Link link="Reference 9" to=LI
+      pdf2:Link link="Reference 8" to=LI
       pdf2:Link link="Reference 2" to=LI
       pdf2:Link link="Equation 1.1" to=Formula
     tekx:theorem
@@ -227,7 +244,7 @@ pdf2:Document
     tekx:theorem
       pdf2:P
         tekx:theorem-head
-        pdf2:Link link="Reference 3" to=LI
+        pdf2:Link link="Reference 5" to=LI
         pdf2:Formula
           mathml:math
   tekx:section
@@ -256,6 +273,17 @@ pdf2:Document
             pdf2:Em
             pdf2:Strong
             pdf2:Link link="doi:10.1007/BF02392056" url=https%3A//doi.org/10.1007/BF02392056
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+      pdf2:LI
+        pdf2:Lbl
+        pdf2:LBody
+          pdf2:P
+            pdf2:Em
+            pdf2:Strong
       pdf2:LI
         pdf2:Lbl
         pdf2:LBody
