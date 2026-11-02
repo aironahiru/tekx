@@ -771,12 +771,23 @@ add_cite(HList *hl, Node *k, Ctx c)
 	}
 	if (v.n == 0)
 		return;
+	bool numeric = true;	/* alphabetic labels (Hoo71) are neither sorted nor ranged */
+	for (size_t i = 0; i < v.n; i++)
+		numeric &= v.v[i].l->number[0] >= '0' && v.v[i].l->number[0] <= '9';
+	if (!numeric)
+		notes = true;
 	if (!notes)
 		qsort(v.v, v.n, sizeof *v.v, by_number);
+	/* a citation stays on the line of the word before it: Landau [4] */
+	if (hl->n && hl->v[hl->n - 1].kind == H_GLUE) {
+		H g = hl->v[--hl->n];
+		hpen(hl, 10000, false, 0, NULL, -1);
+		VPUSH(*hl, g);
+	}
 	add_word(hl, "[", c);
 	for (size_t i = 0; i < v.n; i++) {
 		if (i > 0) {
-			add_word(hl, notes ? ";" : ",", c);
+			add_word(hl, notes && (!numeric ? v.v[i - 1].item->kids.n > 0 : true) ? ";" : ",", c);
 			space_glue(hl, c);
 		}
 		size_t j = i;
@@ -1653,7 +1664,9 @@ static void
 theorem(Node *t, Box_ bx)
 {
 	char *kind = field(t, 0), *label = field(t, 1);
-	Env *env = find_env(kind);
+	size_t kl = strlen(kind);
+	bool starred = kl > 1 && kind[kl - 1] == '*';
+	Env *env = find_env(starred ? xstrndup(kind, kl - 1) : kind);
 	int style = env ? env->style : 0;
 	const char *title = env ? env->title : kind;
 	int div = el(bx.el, "tekx", "theorem");
@@ -1668,7 +1681,7 @@ theorem(Node *t, Box_ bx)
 	int he = el(p, "tekx", "theorem-head");
 	HList hl = {0};
 	Ctx c = {style == 2 ? FACE_IT : FACE_BF, bx.size, he, -1, true};
-	add_text(&hl, fmt("%s %s", title, t->num ? t->num : "?"), c);
+	add_text(&hl, t->num ? fmt("%s %s", title, t->num) : title, c);
 	if (h) {
 		Ctx n = c;
 		n.face = FACE_REG;

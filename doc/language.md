@@ -38,6 +38,7 @@ and the document's metadata (PDF title, authors, language, XMP).
 | `msc TEXT` | the 2020 Mathematics Subject Classification, printed after the abstract |
 | `numbering by section` | theorems and equations numbered within sections: Theorem 2.3, (2.3); the default is `numbering continuous` |
 | `bibliography "refs.bib"` | read a BibTeX database (several may be listed, separated by commas) |
+| `citations alphabetic` | AMS alphabetic labels, [Hoo71], [BC47], instead of numbers (`citations numeric`, the default) |
 | `paper a4` | `a4` (default), `a5` or `letter` |
 | `size 11` | the body type size in points, 6 to 24 (default 11) |
 | `font ROLE FILE` | replace a built-in font; ROLE is `text`, `italic`, `bold`, `bolditalic`, `math` or `mono` |
@@ -134,6 +135,9 @@ The theorem-like blocks are `theorem`, `lemma`, `proposition`, `corollary`,
 `example`, `exercise`, `problem`, `solution`, `notation`, `assumption` (upright
 body), and `remark`, `note`, `observation` (italic head, upright body). They
 share one counter and take an optional quoted title and `#label`.
+
+A star makes any of them unnumbered: `theorem* "Main Theorem"` sets "Theorem
+(Main Theorem)." and a reference to it reads its title.
 
 `proof` sets "Proof." and ends with ∎ at the right margin; `proof "Proof of
 @fermat"` replaces the head. Define new kinds with
@@ -516,6 +520,12 @@ year and title, in the style of the AMS:
 
 > Christopher Hooley, *On the intervals between numbers that are sums of two
 > squares*, Acta Math. **127** (1971), 279–297, doi:10.1007/BF02392056.
+
+With `citations alphabetic` the labels are those of the AMS alphabetic style:
+the first three letters of a single author's name and the year (Hoo71), the
+initials of two to four authors (BC47), three initials and a plus for more
+(ABC+99), and a, b for labels that would repeat. Alphabetic citations keep the
+order they are written in.
 
 Articles, books, collections, proceedings, theses, reports and miscellaneous
 entries are supported. DOIs and arXiv identifiers become links. The list is set

@@ -22,5 +22,6 @@ bool bib_read(const char *path, BibEntries *out);	/* false if unreadable; errors
 const char *bib_get(const BibEntry *e, const char *field);
 char *bib_format(const BibEntry *e);	/* the entry as tekx inline text */
 char *bib_sort_key(const BibEntry *e);
+char *bib_alpha_label(const BibEntry *e);	/* amsalpha: Hoo71, BC47, ABC+99 */
 
 #endif

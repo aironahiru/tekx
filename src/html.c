@@ -157,12 +157,17 @@ cite(Buf *b, Node *k)
 	}
 	if (v.n == 0)
 		return;
+	bool numeric = true;	/* alphabetic labels (Hoo71) are neither sorted nor ranged */
+	for (size_t i = 0; i < v.n; i++)
+		numeric &= v.v[i].l->number[0] >= '0' && v.v[i].l->number[0] <= '9';
+	if (!numeric)
+		notes = true;
 	if (!notes)
 		qsort(v.v, v.n, sizeof *v.v, by_number);
 	bputc(b, '[');
 	for (size_t i = 0; i < v.n; i++) {
 		if (i > 0)
-			bputs(b, notes ? "; " : ", ");
+			bputs(b, notes && (!numeric ? v.v[i - 1].item->kids.n > 0 : true) ? "; " : ", ");
 		size_t j = i;
 		while (!notes && j + 1 < v.n && v.v[j + 1].n == v.v[j].n + 1)
 			j++;
@@ -281,12 +286,15 @@ static void
 theorem(Node *t)
 {
 	char *kind = field(t, 0), *label = field(t, 1);
-	Env *env = find_env(kind);
+	size_t kl = strlen(kind);
+	bool starred = kl > 1 && kind[kl - 1] == '*';
+	Env *env = find_env(starred ? xstrndup(kind, kl - 1) : kind);
 	Label *l = streq(label, "-") ? NULL : find_label(label);
 	Node *h = child(t, "heading");
 	int style = env ? env->style : 0;
 	const char *styles[] = {"plain", "definition", "remark"};
-	const char *num = t->num ? t->num : "?";
+	const char *num = t->num ? t->num : "";
+	const char *sp = t->num ? " " : "";
 
 	fprintf(out, "<div class=\"theorem %s\" role=\"group\"", styles[style]);
 	if (l) {
@@ -294,9 +302,9 @@ theorem(Node *t)
 		esc(out, l->name);
 		fputc('"', out);
 	}
-	fprintf(out, " aria-label=\"%s %s\">\n", env ? env->title : kind, num);
+	fprintf(out, " aria-label=\"%s%s%s\">\n", env ? env->title : kind, sp, num);
 	Buf head = {0};
-	bprintf(&head, "<span class=\"thead\">%s %s</span>", env ? env->title : kind, num);
+	bprintf(&head, "<span class=\"thead\">%s%s%s</span>", env ? env->title : kind, sp, num);
 	if (h) {
 		bputs(&head, " <span class=\"tnote\">(");
 		inlines(&head, h);

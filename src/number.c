@@ -200,10 +200,20 @@ number(Node *n)
 			add_label(section_key(k), text, numbered ? k->num : "", k->line);
 			number(k);
 		} else if (streq(k->kind, "theorem")) {
-			thm++;
-			k->num = counted(thm);
-			Env *e = find_env(field(k, 0));
-			add_label(field(k, 1), fmt("%s %s", e ? e->title : field(k, 0), k->num), k->num, k->line);
+			char *kind = field(k, 0);
+			size_t kl = strlen(kind);
+			bool starred = kl > 1 && kind[kl - 1] == '*';
+			Env *e = find_env(starred ? xstrndup(kind, kl - 1) : kind);
+			const char *title = e ? e->title : kind;
+			if (starred) {
+				/* unnumbered: a reference reads its title, "Main Theorem", or "Theorem" */
+				Node *h = child(k, "heading");
+				add_label(field(k, 1), h ? plain_text(h) : title, "", k->line);
+			} else {
+				thm++;
+				k->num = counted(thm);
+				add_label(field(k, 1), fmt("%s %s", title, k->num), k->num, k->line);
+			}
 			number(k);
 		} else if (streq(k->kind, "line")) {
 			char *label = field(k, 0);
@@ -218,9 +228,10 @@ number(Node *n)
 			add_label(field(k, 2), fmt("Figure %d", fig), k->num, k->line);
 			number(k);
 		} else if (streq(k->kind, "entry")) {
+			Node *lb = child(k, "label");
 			bib++;
-			k->num = fmt("%d", bib);
-			add_label(cite_label(k->rest), fmt("[%d]", bib), k->num, k->line);
+			k->num = lb ? lb->rest : fmt("%d", bib);
+			add_label(cite_label(k->rest), fmt("[%s]", k->num), k->num, k->line);
 		} else {
 			number(k);
 		}
@@ -273,6 +284,11 @@ tidy_refs(Node *n)
 		    next && next->rest[0] == ')') {
 			prev->rest[strlen(prev->rest) - 1] = 0;
 			next->rest++;
+		} else if (sp && word_before(prev->rest, strrchr(l->text, ' ') + 1, &at) &&
+		    !word_before(prev->rest, xstrndup(l->text, (size_t)(sp - l->text)), &at)) {
+			/* "Theorem @main" for an unnumbered "Main Theorem" */
+			word_before(prev->rest, strrchr(l->text, ' ') + 1, &at);
+			prev->rest[at] = 0;
 		} else if (sp) {
 			char *word = xstrndup(l->text, (size_t)(sp - l->text));
 			if (word_before(prev->rest, word, &at)) {

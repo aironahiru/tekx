@@ -834,6 +834,95 @@ bib_format(const BibEntry *e)
 	return bstr(&b);
 }
 
+/* the letters of a name, accents folded: "Erdős" -> "Erdos" */
+static char *
+fold(const char *s)
+{
+	Buf b = {0};
+
+	for (size_t i = 0; s[i];) {
+		u32 cp;
+		i += (size_t)utf8_dec(s + i, strlen(s + i), &cp);
+		cp = decompose(cp);
+		if (cp < 0x80 && isalpha((int)cp))
+			bputc(&b, (int)cp);
+		else if (cp == 0xDF)
+			bputs(&b, "ss");
+		else if (cp >= 0x80)
+			utf8_enc(&b, cp);
+	}
+	return bstr(&b);
+}
+
+/*
+ * The label of amsalpha: one author, the first three letters of the last
+ * name and the year's last two digits (Hoo71); two or three authors,
+ * their initials (BC47); more, three initials and a plus (ABC+99).
+ */
+char *
+bib_alpha_label(const BibEntry *e)
+{
+	const char *who = bib_get(e, "author") ? bib_get(e, "author") : bib_get(e, "editor");
+	const char *year = bib_get(e, "year");
+	Buf b = {0};
+
+	if (who) {
+		Words *v = split_top(who, "and");
+		size_t n = v->n;
+		bool others = n > 1 && streq(v->v[n - 1], "others");
+		if (n == 1) {
+			/* the initials of the von and last parts (de la Vallée Poussin:
+			 * dlVP), or, when that is one letter, the last name's first three */
+			Name nm = parse_name(v->v[0]);
+			char *parts = fmt("%s %s", nm.von, nm.last);
+			Words *w = split_top(parts, " ");
+			Buf ini = {0};
+			for (size_t i = 0; i < w->n; i++) {
+				char *f = fold(tex_convert(w->v[i], false));
+				for (char *h = f; *h; ) {
+					u32 cp;
+					size_t k = (size_t)utf8_dec(h, strlen(h), &cp);
+					utf8_enc(&ini, cp);
+					char *dash = strchr(h, '-');
+					if (dash == NULL)
+						break;
+					h = dash + 1;
+					(void)k;
+				}
+			}
+			if (utf8_len(bstr(&ini)) >= 2) {
+				bputs(&b, bstr(&ini));
+			} else {
+				char *last = fold(tex_convert(nm.last, false));
+				u32 cp;
+				for (size_t i = 0, k = 0; last[i] && k < 3; k++)
+					i += (size_t)utf8_dec(last + i, strlen(last + i), &cp), utf8_enc(&b, cp);
+			}
+		} else {
+			size_t take = n > 4 || others ? 3 : n;
+			for (size_t i = 0; i < take && i < n; i++) {
+				if (streq(v->v[i], "others"))
+					break;
+				char *last = fold(tex_convert(parse_name(v->v[i]).last, false));
+				u32 cp;
+				if (*last) {
+					utf8_dec(last, strlen(last), &cp);
+					utf8_enc(&b, cp);
+				}
+			}
+			if (n > 4 || others)
+				bputc(&b, '+');
+		}
+	} else {
+		bputs(&b, "Anon");
+	}
+	if (year) {
+		size_t yl = strlen(year);
+		bputs(&b, yl >= 2 ? year + yl - 2 : year);
+	}
+	return bstr(&b);
+}
+
 /* last names, year and title, folded to plain lowercase letters */
 char *
 bib_sort_key(const BibEntry *e)

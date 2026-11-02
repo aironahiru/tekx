@@ -139,6 +139,12 @@ first_word(const char *s, const char **rest)
 static bool
 is_theorem_kind(const char *w)
 {
+	size_t n = strlen(w);
+	if (n > 1 && w[n - 1] == '*') {
+		/* theorem*: the same block, unnumbered */
+		char *base = xstrndup(w, n - 1);
+		return is_theorem_kind(base);
+	}
 	for (size_t i = 0; i < NELEM(theorem_kinds); i++)
 		if (streq(w, theorem_kinds[i]))
 			return true;
@@ -873,7 +879,7 @@ static Node *section_stack[4];
 /* the settings a document may open with; anything else that looks like one
  * (a word followed by a quoted value) is an error, not silently prose */
 static const char *settings[] = {"title", "subtitle", "author", "date", "language", "lang",
-    "keywords", "subject", "paper", "size", "font", "msc", "numbering", "bibliography"};
+    "keywords", "subject", "paper", "size", "font", "msc", "numbering", "bibliography", "citations"};
 
 static bool
 is_setting(const char *w)
@@ -1056,6 +1062,10 @@ blocks(Node *parent, int i, int base, bool top)
 				KVs v = kwargs(rest);
 				for (size_t k = 0; k < v.n; k++)
 					node_add(section_stack[0], "bibfile", ln->no, col, v.v[k].val);
+			} else if (streq(w, "citations") && !streq(unquote(rest), "numeric") &&
+			    !streq(unquote(rest), "alphabetic")) {
+				error_at(ln->no, col, "unknown citation style '%s' (expected: citations numeric, or "
+				    "citations alphabetic)", unquote(rest));
 			} else if (streq(w, "numbering") && !streq(unquote(rest), "by section") &&
 			    !streq(unquote(rest), "continuous")) {
 				error_at(ln->no, col, "unknown numbering '%s' (expected: numbering by section, or "
@@ -1506,8 +1516,32 @@ bibliography(Node *doc, const char *source)
 	Node *refs = find_kind(doc, "refs");
 	if (refs == NULL)
 		refs = node_add(doc, "refs", 0, 0, "");
+	bool alpha = false;
+	for (size_t i = 0; i < doc->kids.n; i++)
+		if (streq(doc->kids.v[i]->kind, "meta") && streq(field(doc->kids.v[i], 0), "citations"))
+			alpha = streq(field_rest(doc->kids.v[i], 1), "alphabetic");
+	Names labels_used = {0};
 	for (size_t i = 0; i < list.n; i++) {
 		Node *e = node_add(refs, "entry", 0, 0, list.v[i].e->key);
+		if (alpha) {
+			/* amsalpha: Hoo71, BC47, ABC+99; a second Hoo71 becomes Hoo71a */
+			char *l = bib_alpha_label(list.v[i].e);
+			int same = 0;
+			for (size_t k = 0; k < labels_used.n; k++)
+				if (strncmp(labels_used.v[k], l, strlen(l)) == 0)
+					same++;
+			VPUSH(labels_used, l);
+			node_add(e, "label", 0, 0, same ? fmt("%s%c", l, 'a' + same) : l);
+			if (same == 1) {
+				/* the first of the pair becomes ...a */
+				for (size_t k = 0; k + 1 < refs->kids.n; k++) {
+					Node *lb = child(refs->kids.v[k], "label");
+					if (lb && streq(lb->rest, l))
+						lb->rest = fmt("%sa", l);
+				}
+				child(e, "label")->rest = fmt("%sb", l);
+			}
+		}
 		inline_text(e, bib_format(list.v[i].e), 0, 0);
 	}
 }
