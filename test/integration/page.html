@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Everything at Once</title>
+<meta name="author" content="Ada Lovelace">
+<meta name="author" content="Charles Babbage">
+<meta name="generator" content="tekx 0.2.0">
+<style>
+:root{color-scheme:light dark;--ink:#1b1f23;--paper:#fdfdfb;--muted:#5d6670;--rule:#d8dbd6;--link:#1d4f91}
+@media (prefers-color-scheme:dark){:root{--ink:#e6e7e3;--paper:#141719;--muted:#9aa3ab;--rule:#2c3339;--link:#8fb6ee}}
+body{margin:0;background:var(--paper);color:var(--ink);font:1.1rem/1.6 "STIX Two Text","STIX Two Math",Georgia,serif;padding:2rem max(1rem,env(safe-area-inset-left))}
+main,header{max-width:38rem;margin:0 auto}
+math{font-family:"STIX Two Math",math}
+a{color:var(--link)}
+header{text-align:center;margin-bottom:2.5rem}
+header h1{font-size:1.9rem;line-height:1.2;margin:0 0 .4rem}
+header p{margin:.2rem 0}.subtitle{font-style:italic}.author{font-size:1.1rem}.date{color:var(--muted)}
+h2,h3,h4{line-height:1.25;margin:2rem 0 .6rem}.num{margin-right:.6em}
+p{margin:.5rem 0;text-align:justify;hyphens:auto}
+.affiliation{font-style:italic;font-size:.85rem;margin:.1rem 0}.contact{font-size:.85rem;margin:.1rem 0 .8rem}
+.classification{font-size:.85rem;margin:.3rem 2rem}
+.abstract{margin:0 2rem 2rem;font-size:.95rem}.abstract h2{text-align:center;font-size:1rem;margin:0}
+.display{margin:1rem 0;overflow-x:auto}
+.equation{display:flex;align-items:center;justify-content:center;gap:1rem;position:relative;min-height:2em}
+.eqno{position:absolute;right:0}
+.theorem,.proof{margin:1rem 0}.theorem .thead{font-weight:700}.theorem.remark .thead{font-weight:400;font-style:italic}
+.theorem.plain p{font-style:italic}.theorem.plain .tnote,.theorem.plain .thead{font-style:normal}
+.qed{float:right}
+.qedline{text-align:right}
+table{border-collapse:collapse;margin:1rem auto;border-top:2px solid;border-bottom:2px solid}
+th,td{padding:.3rem .7rem;text-align:left}thead th{border-bottom:1px solid}.c{text-align:center}.r{text-align:right}
+pre{font-size:.9rem;overflow-x:auto;padding-left:1.5rem}
+code{font-size:.92em}
+blockquote{margin:1rem 2rem}
+figure{margin:1.5rem 0;text-align:center}figure img{max-width:100%;height:auto}
+figcaption{font-size:.95rem;margin-top:.5rem}
+.references ol{list-style:none;padding:0}.references li{padding-left:2.5rem;text-indent:-2.5rem;margin:.3rem 0}.lbl{display:inline-block;width:2.5rem;text-indent:0}
+.contents ol{list-style:none;padding-left:1.5rem}.contents>ol{padding-left:0}
+.endnotes{margin-top:3rem;border-top:1px solid var(--rule);font-size:.92rem}
+sup.fn a{text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+<h1>Everything at Once</h1>
+<p class="author">Ada Lovelace</p>
+<p class="affiliation">University of London</p>
+<p class="contact"><a href="mailto:ada@example.org">ada@example.org</a></p>
+<p class="author">Charles Babbage</p>
+<p class="affiliation">Cambridge</p>
+<p class="date">2 November 2026</p>
+</header>
+<main>
+<section class="abstract" aria-labelledby="tekx-abstract">
+<h2 id="tekx-abstract">Abstract</h2>
+<p>We test that every part of tekx agrees with every other [<a href="#cite:hooley" role="doc-biblioref" aria-label="Reference 2">2</a>; <a href="#cite:landau" role="doc-biblioref" aria-label="Reference 3">3</a>, p. 3].</p>
+</section>
+<p class="classification"><em>2020 Mathematics Subject Classification.</em> 11N36 (primary)</p>
+<p class="classification"><em>Key words and phrases.</em> integration, consistency</p>
+<nav class="contents" aria-labelledby="tekx-contents">
+<h2 id="tekx-contents">Contents</h2>
+<ol>
+<li><a href="#intro"><span class="num">1</span> Introduction</a><ol>
+</ol></li>
+<li><a href="#structure"><span class="num">2</span> Structure</a><ol>
+</ol></li>
+<li><a href="#app"><span class="num">Appendix A</span> Tables of values</a><ol>
+</ol></li>
+</ol>
+</nav>
+<section id="intro">
+<h2><span class="num">1</span> Introduction</h2>
+<p>Work at the Analytical Engine Laboratory showed<sup class="fn"><a href="#fn-1" id="fnref-1" role="doc-noteref" aria-label="Footnote 1">1</a></sup> that</p>
+<div class="display">
+<div class="equation" id="gauss"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the integral from negative infinity to infinity of e raised to the power negative x squared, end power d x equals the square root of pi"><semantics><mrow><mrow><msubsup><mo largeop="true">∫</mo><mrow><mo form="prefix">−</mo><mi>∞</mi></mrow><mi>∞</mi></msubsup><mrow><msup><mi>𝑒</mi><mrow><mo form="prefix">−</mo><msup><mi>𝑥</mi><mn>2</mn></msup></mrow></msup><mspace width="0.167em"/><mi mathvariant="normal">d</mi><mi>𝑥</mi></mrow></mrow><mo>=</mo><msqrt><mi>𝜋</mi></msqrt></mrow><annotation encoding="application/x-tekx">integral of e^(-x^2) dx from -infinity to infinity = sqrt pi</annotation></semantics></math><span class="eqno">(1.1)</span></div>
+</div>
+<p>and, by <a href="#main">Theorem 1.1</a> and <a href="#gauss" aria-label="Equation 1.1">(1.1)</a>, the variance <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="Var capital X"><semantics><mrow><mi>Var</mi><mo rspace="0.1667em">⁡</mo><mi>𝑋</mi></mrow><annotation encoding="application/x-tekx">Var X</annotation></semantics></math> and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the norm of 2 v"><semantics><mrow><mrow><mo fence="true">‖</mo><mn>2</mn><mo fence="true">‖</mo></mrow><mo>⁢</mo><mrow><mo fence="true">(</mo><mi>𝑣</mi><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">norm2(v)</annotation></semantics></math> behave.</p>
+<div class="theorem plain" role="group" id="main" aria-label="Theorem 1.1">
+<p><span class="thead">Theorem 1.1</span> <span class="tnote">(Main)</span><span class="thead">.</span> For every <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="n is greater than or equal to 1"><semantics><mrow><mi>𝑛</mi><mo>≥</mo><mn>1</mn></mrow><annotation encoding="application/x-tekx">n &gt;= 1</annotation></semantics></math>, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the sum from k equals 1 to n of k equals the fraction with numerator n open paren n plus 1 close paren and denominator 2 end fraction"><semantics><mrow><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑘</mi><mo>=</mo><mn>1</mn></mrow><mi>𝑛</mi></munderover><mi>𝑘</mi></mrow><mo>=</mo><mrow><mrow><mo fence="true">(</mo><mrow><mi>𝑛</mi><mo>⁢</mo><mrow><mo fence="true">(</mo><mrow><mi>𝑛</mi><mo>+</mo><mn>1</mn></mrow><mo fence="true">)</mo></mrow></mrow><mo fence="true">)</mo></mrow><mo lspace="0" rspace="0">/</mo><mn>2</mn></mrow></mrow><annotation encoding="application/x-tekx">sum k for k from 1 to n = n(n + 1)/2</annotation></semantics></math>.</p>
+</div>
+<div class="proof">
+<p><em class="phead">Proof.</em> Induction on <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="n"><semantics><mrow><mi>𝑛</mi></mrow><annotation encoding="application/x-tekx">n</annotation></semantics></math>.<span class="qed" role="img" aria-label="End of proof">∎</span></p>
+</div>
+<div class="theorem plain" role="group" id="lem" aria-label="Lemma 1.2">
+<p><span class="thead">Lemma 1.2</span><span class="thead">.</span> The long identity</p>
+<div class="display">
+<div class="equation" id="binom4"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="open paren a plus b close paren to the power 4 equals open paren a plus b close paren squared open paren a plus b close paren squared equals open paren a squared plus 2 a b plus b squared close paren open paren a squared plus 2 a b plus b squared close paren equals a to the power 4 plus 4 a cubed b plus 6 a squared b squared plus 4 a b cubed plus b to the power 4"><semantics><mrow><mrow><mrow><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>4</mn></msup><mo>=</mo><mrow><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>2</mn></msup><mo>⁢</mo><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>2</mn></msup></mrow></mrow><mo>=</mo><mrow><mrow><mo fence="true">(</mo><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo fence="true">)</mo></mrow><mo>⁢</mo><mrow><mo fence="true">(</mo><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo fence="true">)</mo></mrow></mrow></mrow><mo>=</mo><mrow><mrow><mrow><mrow><msup><mi>𝑎</mi><mn>4</mn></msup><mo>+</mo><mrow><mn>4</mn><mo>⁢</mo><msup><mi>𝑎</mi><mn>3</mn></msup><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><mrow><mn>6</mn><mo>⁢</mo><msup><mi>𝑎</mi><mn>2</mn></msup><mo>⁢</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow></mrow><mo>+</mo><mrow><mn>4</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><msup><mi>𝑏</mi><mn>3</mn></msup></mrow></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>4</mn></msup></mrow></mrow><annotation encoding="application/x-tekx">(a + b)^4 = (a + b)^2 (a + b)^2 = (a^2 + 2 a b + b^2)(a^2 + 2 a b + b^2) = a^4 + 4 a^3 b + 6 a^2 b^2 + 4 a b^3 + b^4</annotation></semantics></math><span class="eqno">(1.2)</span></div>
+</div>
+<p>holds.</p>
+</div>
+<div class="theorem plain" role="group" aria-label="Theorem">
+<p><span class="thead">Theorem</span> <span class="tnote">(Unnumbered)</span><span class="thead">.</span> An unnumbered statement, cited by Lemmas <a href="#lem">1.2</a> and <a href="#main2">2.1</a>.</p>
+</div>
+<div class="theorem plain" role="group" id="post" aria-label="Postulate 1.3">
+<p><span class="thead">Postulate 1.3</span><span class="thead">.</span> Every integral converges.</p>
+</div>
+</section>
+<section id="structure">
+<h2><span class="num">2</span> Structure</h2>
+<ul>
+<li>a bullet with <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="alpha"><semantics><mrow><mi>𝛼</mi></mrow><annotation encoding="application/x-tekx">alpha</annotation></semantics></math></li>
+<li><p>another</p>
+<ol>
+<li>nested</li>
+<li>numbered</li>
+</ol>
+</li>
+</ul>
+<table>
+<thead>
+<tr><th scope="col" class="c">Symbol</th><th scope="col">Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td class="c"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the natural numbers"><semantics><mrow><mi>ℕ</mi></mrow><annotation encoding="application/x-tekx">NN</annotation></semantics></math></td><td>natural numbers</td></tr>
+<tr><td class="c"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the real numbers"><semantics><mrow><mi>ℝ</mi></mrow><annotation encoding="application/x-tekx">RR</annotation></semantics></math></td><td>real numbers</td></tr>
+</tbody>
+</table>
+<figure id="fig"><img src="parabola.png" alt="The parabola y equals x squared." style="width: 40%"><figcaption><strong>Figure 1.</strong> The graph of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="y equals x squared"><semantics><mrow><mi>𝑦</mi><mo>=</mo><msup><mi>𝑥</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">y = x^2</annotation></semantics></math>.</figcaption></figure>
+<p>See <a href="#fig">Figure 1</a> and <a href="#structure">Section 2</a>, and [<a href="#cite:erdos" role="doc-biblioref" aria-label="Reference 1">1</a>, <a href="#cite:thesis" role="doc-biblioref" aria-label="Reference 4">4</a>, <a href="#cite:arxiv" role="doc-biblioref" aria-label="Reference 5">5</a>].</p>
+<div class="theorem plain" role="group" id="main2" aria-label="Theorem 2.1">
+<p><span class="thead">Theorem 2.1</span><span class="thead">.</span> A second theorem: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the absolute value of x equals x if x is greater than or equal to 0 negative x otherwise"><semantics><mrow><mrow><mo fence="true">|</mo><mi>𝑥</mi><mo fence="true">|</mo></mrow><mo>=</mo><mrow><mo fence="true">{</mo><mtable columnalign="left"><mtr><mtd><mrow><mi>𝑥</mi><mtext> if </mtext><mrow><mi>𝑥</mi><mo>≥</mo><mn>0</mn></mrow></mrow></mtd><mtd><mrow><mrow><mo form="prefix">−</mo><mi>𝑥</mi></mrow><mtext> otherwise </mtext></mrow></mtd></mtr></mtable></mrow></mrow><annotation encoding="application/x-tekx">abs(x) = cases(x if x &gt;= 0, -x otherwise)</annotation></semantics></math>.</p>
+</div>
+</section>
+<section id="app">
+<h2><span class="num">Appendix A</span> Tables of values</h2>
+<div class="theorem plain" role="group" id="applem" aria-label="Lemma A.1">
+<p><span class="thead">Lemma A.1</span><span class="thead">.</span> In <a href="#app">Appendix A</a>, <a href="#applem">Lemma A.1</a> holds:</p>
+<div class="display">
+<div class="equation" id="bound"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="g of x is less than or equal to 2 x raised to the power one quarter, end power"><semantics><mrow><mrow><mi>𝑔</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow></mrow><mo>≤</mo><mrow><mn>2</mn><mo>⁢</mo><msup><mi>𝑥</mi><mrow><mn>1</mn><mo lspace="0" rspace="0">/</mo><mn>4</mn></mrow></msup></mrow></mrow><annotation encoding="application/x-tekx">g(x) &lt;= 2 x^(1/4)</annotation></semantics></math><span class="eqno">(A.1)</span></div>
+</div>
+</div>
+</section>
+<section class="references" aria-labelledby="tekx-references">
+<h2 id="tekx-references">References</h2>
+<ol>
+<li id="cite:erdos"><span class="lbl">[1]</span> Paul Erdős, Pál Turán, et al., <em>On some problems of a statistical group-theory</em>, Proceedings of a Colloquium (John Smith and Mary Jones, Jr., eds.), Springer, 1965, pp. 1–20.</li>
+<li id="cite:hooley"><span class="lbl">[2]</span> Christopher Hooley, <em>On the intervals between numbers that are sums of two squares</em>, Acta Math. <strong>127</strong> (1971), 279–297, <a href="https://doi.org/10.1007/BF02392056">doi:10.1007/BF02392056</a>.</li>
+<li id="cite:landau"><span class="lbl">[3]</span> Edmund Landau, <em>Über die Einteilung der positiven ganzen Zahlen in vier Klassen</em>, Arch. Math. Phys. <strong>13</strong> (1908), 305–312.</li>
+<li id="cite:thesis"><span class="lbl">[4]</span> Jörg Müller, <em><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="capital L"><semantics><mrow><mi>𝐿</mi></mrow><annotation encoding="application/x-tekx">L</annotation></semantics></math>-functions and the Selberg class</em>, Ph.D. thesis, Universität Göttingen, 2001.</li>
+<li id="cite:arxiv"><span class="lbl">[5]</span> Terence Tao, <em>A remark on primes of the form <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="n squared plus 1"><semantics><mrow><msup><mi>𝑛</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tekx">n^2 + 1</annotation></semantics></math></em>, 2024, <a href="https://arxiv.org/abs/2401.01234">arXiv:2401.01234</a>.</li>
+<li id="cite:vallee"><span class="lbl">[6]</span> Charles de la Vallée Poussin, <em>Cours d’analyse infinitésimale</em>, 2nd ed., Gauthier-Villars, Paris, 1909.</li>
+</ol>
+</section>
+<section class="endnotes" role="doc-endnotes" aria-label="Footnotes">
+<ol>
+<li id="fn-1" role="doc-endnote">A footnote with <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x squared"><semantics><mrow><msup><mi>𝑥</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">x^2</annotation></semantics></math> and a citation [<a href="#cite:vallee" role="doc-biblioref" aria-label="Reference 6">6</a>]. <a href="#fnref-1" role="doc-backlink" aria-label="Back to the text">↩</a></li>
+</ol>
+</section>
+</main>
+</body>
+</html>

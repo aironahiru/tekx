@@ -175,6 +175,37 @@ only from a package whose content matches its locked hash (or from
 `TEKX_PATH`, when you develop it), so what runs is exactly what the project
 locked.
 
+## What a package can and can't do
+
+These rules are checked by tekx and by its tests:
+- **Lock entries:** every name read from `tekx.lock` must be a package name.
+  No entry can name a path outside `.tekx/packages`, pass for a git option,
+  or appear twice.
+- **Paths:** `provides` and `filter` paths are relative and stay inside the
+  package, so everything a document takes in, and every program it runs, is
+  covered by the package's hash. Symbolic links inside a package are refused.
+- **Built-in blocks:** a package can't take over one of tekx's own blocks or
+  settings (`theorem`, `proof`, `title` …).
+- **git:** git runs with `--` before every URL, with only the file, git, http,
+  https and ssh transports allowed, and never stops to ask for a password. A
+  source or revision that starts with `-` is refused.
+- **Versions:** versions are `MAJOR.MINOR.PATCH`, and dependency cycles are
+  reported as cycles.
+- **Atomic adds:** an add is all or nothing. The package and its dependencies
+  are staged and checked before any of them is installed, and an add that fails
+  leaves the lock and the store as they were.
+- **Concurrency:** commands that change a project take an exclusive lock on
+  `.tekx/lock`, so two at once can't lose each other's entries.
+- **Recovery:** a command interrupted halfway is cleaned up by the next one.
+  That covers leftover staging directories, and a package caught between its
+  two renames is put back.
+
+Two things to know:
+- A hard-linked file in a package's source is an ordinary file. Its content is
+  copied in at `add`, and from then on it is covered by the hash.
+- A source directory given to `add` that is itself a symbolic link is followed,
+  since it is your own argument.
+
 ## The lock file
 
 ```

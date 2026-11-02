@@ -1,0 +1,79 @@
+// One document that uses everything, put through every back end; see
+// test/integration.sh.  The back ends must agree on every number.
+tekx 0.2
+title "Everything at Once"
+author "Ada Lovelace", affiliation: "University of London", email: "ada@example.org"
+author "Charles Babbage", affiliation: "Cambridge"
+date today
+msc "11N36 (primary)"
+keywords "integration, consistency"
+numbering by section
+running "Everything"
+bibliography "refs.bib"
+
+define operator Var
+define norm2(v) as ||v||_2 read as "the two-norm of {v}"
+define postulate like axiom titled "Postulate"
+define lab as "the Analytical Engine Laboratory"
+
+abstract
+  We test that every part of tekx agrees with every other [@hooley; @landau, p. 3].
+
+contents
+
+section Introduction #intro
+
+Work at {lab} showed^[A footnote with $x^2$ and a citation [@vallee].] that
+
+    integral of e^(-x^2) dx from -infinity to infinity = sqrt pi   #gauss
+
+and, by Theorem @main and (@gauss), the variance $Var X$ and $norm2(v)$ behave.
+
+theorem "Main" #main
+  For every $n >= 1$, $sum k for k from 1 to n = n(n + 1)/2$.
+
+proof
+  Induction on $n$.
+
+lemma #lem
+  The long identity
+
+      (a + b)^4 = (a + b)^2 (a + b)^2 = (a^2 + 2 a b + b^2)(a^2 + 2 a b + b^2) = a^4 + 4 a^3 b + 6 a^2 b^2 + 4 a b^3 + b^4   #binom4
+
+  holds.
+
+theorem* "Unnumbered"
+  An unnumbered statement, cited by Lemmas @lem and @main2.
+
+postulate #post
+  Every integral converges.
+
+section Structure #structure
+
+- a bullet with $alpha$
+- another
+  1. nested
+  2. numbered
+
+| Symbol | Meaning |
+|:------:|---------|
+| $NN$   | natural numbers |
+| $RR$   | real numbers |
+
+figure "parabola.png" width 40% #fig
+  alt "The parabola y equals x squared."
+  The graph of $y = x^2$.
+
+See Figure @fig and Section @structure, and [@erdos; @thesis; @arxiv].
+
+theorem #main2
+  A second theorem: $abs(x) = cases(x if x >= 0, -x otherwise)$.
+
+appendix
+
+section Tables of values #app
+
+lemma #applem
+  In Appendix @app, Lemma @applem holds:
+
+      g(x) <= 2 x^(1/4)   #bound

@@ -171,6 +171,99 @@ valid_name(const char *n)
 	return true;
 }
 
+/* MAJOR.MINOR.PATCH (or fewer parts where a requirement allows), each a
+ * plain number below a million: "v1", "1.2.3.4" and "1e9" are refused */
+static bool
+valid_version(const char *v, int min_parts, int max_parts)
+{
+	int parts = 0;
+
+	while (*v) {
+		if (*v < '0' || *v > '9')
+			return false;
+		char *e;
+		long n = strtol(v, &e, 10);
+		if (n < 0 || n >= 1000000 || e - v > 6)
+			return false;
+		parts++;
+		v = e;
+		if (*v == '.') {
+			v++;
+			if (!*v)
+				return false;
+		} else if (*v) {
+			return false;
+		}
+	}
+	return parts >= min_parts && parts <= max_parts;
+}
+
+/* a path inside a package: relative, no empty, "." or ".." component, no
+ * control characters or backslashes.  With symbolic links refused in every
+ * package tree, such a path cannot leave the tree, so its content is
+ * always covered by the package's hash. */
+static bool
+inside_path(const char *p)
+{
+	if (!*p || *p == '/')
+		return false;
+	for (const char *q = p; *q; q++)
+		if ((unsigned char)*q < 0x20 || *q == '\\' || *q == 0x7f)
+			return false;
+	for (const char *c = p; *c;) {
+		size_t n = strcspn(c, "/");
+		if (n == 0 || (n == 1 && c[0] == '.') || (n == 2 && c[0] == '.' && c[1] == '.'))
+			return false;
+		c += n;
+		if (*c == '/')
+			c++;
+	}
+	return true;
+}
+
+/* names a package's block may not take: tekx's own keywords */
+static bool
+reserved_block(const char *b)
+{
+	static const char *const words[] = {
+		"section", "subsection", "subsubsection", "section*", "subsection*", "subsubsection*",
+		"theorem", "lemma", "proposition", "corollary", "definition", "example", "remark", "note",
+		"conjecture", "claim", "exercise", "solution", "axiom", "problem", "observation", "notation",
+		"assumption", "hypothesis", "fact", "proof", "abstract", "quote", "let", "figure",
+		"references", "bibliography", "contents", "newpage", "pagebreak", "appendix", "define",
+		"use", "env", "document", "tekx", "title", "subtitle", "author", "date", "language", "lang",
+		"keywords", "subject", "paper", "size", "font", "msc", "numbering", "citations", "running",
+		"linenumbers", "notation", "do", "end",
+	};
+	size_t n = strlen(b);
+	if (n > 1 && b[n - 1] == '*')
+		return true;
+	for (size_t i = 0; i < NELEM(words); i++)
+		if (streq(b, words[i]))
+			return true;
+	return false;
+}
+
+static bool
+all_hex(const char *s, size_t n)
+{
+	if (strlen(s) != n)
+		return false;
+	for (; *s; s++)
+		if (!((*s >= '0' && *s <= '9') || (*s >= 'a' && *s <= 'f')))
+			return false;
+	return true;
+}
+
+/* the one way to name a package's directory: the name is checked, so no
+ * path built here can leave .tekx/packages */
+static char *
+store_path(const char *root, const char *name)
+{
+	INVARIANT(valid_name(name));
+	return path_join(root, path_join(STORE, name));
+}
+
 /* ---- processes ---- */
 
 /* run argv; with `capture`, its standard output is returned there */
@@ -194,6 +287,10 @@ run(char *const argv[], char **capture)
 			if (null >= 0)
 				dup2(null, 1);
 		}
+		/* git may only use these transports (no ext::, no fd::), and may
+		 * not stop to ask for a password */
+		setenv("GIT_ALLOW_PROTOCOL", "file:git:http:https:ssh", 1);
+		setenv("GIT_TERMINAL_PROMPT", "0", 1);
 		execvp(argv[0], argv);
 		fprintf(stderr, "tekx: cannot run %s: %s\n", argv[0], strerror(errno));
 		_exit(127);
@@ -469,20 +566,42 @@ read_manifest(const char *dir, char **err)
 		*err = fmt("%s: needs package \"name\" (lowercase letters, digits and -)", path);
 		return NULL;
 	}
-	if (!p->version) {
-		*err = fmt("%s: needs version \"1.0.0\"", path);
+	if (!p->version || !valid_version(p->version, 3, 3)) {
+		*err = fmt("%s: needs version \"MAJOR.MINOR.PATCH\", such as \"1.0.0\"%s%s", path,
+		    p->version ? ", not " : "", p->version ? p->version : "");
 		return NULL;
+	}
+	if (p->requires && !valid_version(p->requires, 1, 3)) {
+		*err = fmt("%s: requires \"tekx 0.2\", not \"%s\"", path, p->requires);
+		return NULL;
+	}
+	for (size_t i = 0; i < p->depends.n; i++) {
+		char *d = xstrdup(p->depends.v[i]), *sp = strchr(d, ' ');
+		if (sp)
+			*sp = 0;
+		if (!valid_name(d) || (sp && !valid_version(trim(sp + 1), 1, 3))) {
+			*err = fmt("%s: depends \"NAME VERSION\", not \"%s\"", path, p->depends.v[i]);
+			return NULL;
+		}
 	}
 	if (p->provides.n == 0 && is_file(path_join(dir, "main.tekx")))
 		VPUSH(p->provides, "main.tekx");
 	for (size_t i = 0; i < p->provides.n; i++)
-		if (!is_file(path_join(dir, p->provides.v[i]))) {
-			*err = fmt("%s: provides %s, which is missing", path, p->provides.v[i]);
+		if (!inside_path(p->provides.v[i]) || !is_file(path_join(dir, p->provides.v[i]))) {
+			*err = fmt("%s: provides %s, which is %s", path, p->provides.v[i],
+			    inside_path(p->provides.v[i]) ? "missing" : "outside the package");
 			return NULL;
 		}
 	for (size_t i = 0; i < p->filters.n; i++)
-		if (access(path_join(dir, p->filters.v[i]), X_OK) != 0) {
-			*err = fmt("%s: filter %s is missing or not executable", path, p->filters.v[i]);
+		if (!inside_path(p->filters.v[i]) || access(path_join(dir, p->filters.v[i]), X_OK) != 0) {
+			*err = fmt("%s: filter %s is %s", path, p->filters.v[i],
+			    inside_path(p->filters.v[i]) ? "missing or not executable" : "outside the package");
+			return NULL;
+		}
+	for (size_t i = 0; i < p->blocks.n; i++)
+		if (!valid_name(p->blocks.v[i]) || reserved_block(p->blocks.v[i])) {
+			*err = fmt("%s: block %s %s", path, p->blocks.v[i], valid_name(p->blocks.v[i]) ?
+			    "is one of tekx's own keywords" : "is not a name (lowercase letters, digits and -)");
 			return NULL;
 		}
 	if (p->requires && version_cmp(TEKX_VERSION, p->requires) < 0) {
@@ -526,6 +645,8 @@ find_root(const char *start)
 	}
 }
 
+static Entry *lock_find(Lock *L, const char *name);
+
 static bool
 read_lock(const char *root, Lock *L, char **err)
 {
@@ -547,17 +668,37 @@ read_lock(const char *root, Lock *L, char **err)
 		int n = 0;
 		for (char *t = strtok(s, " \t"); t && n < 9; t = strtok(NULL, " \t"))
 			fld[n++] = pct_unescape(t);
+		const char *why = NULL;
 		if (n == 4 && streq(fld[0], "registry")) {
 			Registry r = {fld[1], fld[2], fld[3]};
-			VPUSH(L->r, r);
-		} else if (n >= 6 && streq(fld[0], "package")) {
-			Entry e = {fld[1], fld[2], fld[3], fld[4], fld[5], n > 6 ? fld[6] : NULL, n > 7 ? fld[7] : NULL};
-			VPUSH(L->e, e);
-		} else if (n >= 5 && streq(fld[0], "package") && streq(fld[4], "local")) {
-			Entry e = {fld[1], fld[2], fld[3], fld[4], NULL, NULL, NULL};
-			VPUSH(L->e, e);
+			if (!(streq(r.kind, "dir") || streq(r.kind, "git")) || !*r.where || r.where[0] == '-')
+				why = "a registry is: registry NAME dir|git LOCATION";
+			else
+				VPUSH(L->r, r);
+		} else if (n >= 5 && streq(fld[0], "package")) {
+			Entry e = {fld[1], fld[2], fld[3], fld[4], n > 5 ? fld[5] : NULL, n > 6 ? fld[6] : NULL,
+			    n > 7 ? fld[7] : NULL};
+			/* nothing read here may name a path outside the store, or pass
+			 * for a git option */
+			if (!valid_name(e.name))
+				why = "the package name must be lowercase letters, digits and -";
+			else if (lock_find(L, e.name))
+				why = "this package is already listed";
+			else if (!valid_version(e.version, 3, 3))
+				why = "the version must be MAJOR.MINOR.PATCH";
+			else if (!startswith(e.hash, "sha256:") || !all_hex(e.hash + 7, 64))
+				why = "the hash must be sha256: and 64 hexadecimal digits";
+			else if (streq(e.kind, "local") ? n != 5 : streq(e.kind, "dir") ? n != 6 || !*e.where :
+			    streq(e.kind, "git") ? n != 8 || e.where[0] == '-' || !all_hex(e.commit, 40) ||
+			    !(streq(e.subdir, ".") || inside_path(e.subdir)) : true)
+				why = "the source must be: local, dir PATH, or git URL COMMIT SUBDIR";
+			else
+				VPUSH(L->e, e);
 		} else {
-			*err = fmt("%s:%d: cannot read this line", path, no);
+			why = "expected a registry or package line";
+		}
+		if (why) {
+			*err = fmt("%s:%d: %s", path, no, why);
 			fclose(f);
 			return false;
 		}
@@ -613,6 +754,14 @@ lock_find(Lock *L, const char *name)
 Package *
 pkg_use(const char *docfile, const char *name, const char *want, char **err)
 {
+	if (!valid_name(name)) {
+		*err = fmt("'%s' is not a package name (lowercase letters, digits and -)", name);
+		return NULL;
+	}
+	if (want && !valid_version(want, 1, 3)) {
+		*err = fmt("'%s' is not a version (write use %s 1.2)", want, name);
+		return NULL;
+	}
 	char *root = find_root(dirname_of(absolute(docfile)));
 
 	if (root) {
@@ -625,7 +774,7 @@ pkg_use(const char *docfile, const char *name, const char *want, char **err)
 			    path_join(root, LOCK), name);
 			return NULL;
 		}
-		char *dir = path_join(root, path_join(STORE, name));
+		char *dir = store_path(root, name);
 		if (!is_dir(dir)) {
 			*err = fmt("package %s is locked but not installed (run: tekx pkg install)", name);
 			return NULL;
@@ -682,13 +831,23 @@ looks_like_git(const char *s)
 static bool
 git_fetch(const char *url, const char *rev, const char *dir, char **commit, char **err)
 {
-	char *clone[] = {"git", "clone", "--quiet", "--no-checkout", (char *)url, (char *)dir, NULL};
+	const char *r = rev && *rev ? rev : "HEAD";
+	if (url[0] == '-' || r[0] == '-') {
+		*err = fmt("refusing %s: a git URL or revision may not start with -", url[0] == '-' ? url : r);
+		return false;
+	}
+	char *clone[] = {"git", "clone", "--quiet", "--no-checkout", "--", (char *)url, (char *)dir, NULL};
 	if (run(clone, NULL) != 0) {
 		*err = fmt("git clone %s failed", url);
 		return false;
 	}
-	const char *r = rev && *rev ? rev : "HEAD";
-	char *checkout[] = {"git", "-C", (char *)dir, "checkout", "--quiet", "--detach", (char *)r, NULL};
+	char *head[] = {"git", "-C", (char *)dir, "rev-parse", "--quiet", "--verify", "HEAD", NULL};
+	char *ignored = NULL;
+	if (run(head, &ignored) != 0) {
+		*err = fmt("%s has no commits", url);
+		return false;
+	}
+	char *checkout[] = {"git", "-C", (char *)dir, "checkout", "--quiet", "--detach", (char *)r, "--", NULL};
 	if (run(checkout, NULL) != 0) {
 		*err = fmt("%s has no revision %s", url, r);
 		return false;
@@ -707,7 +866,7 @@ fetch(Entry *e, const char *root, const char *dst, char **err)
 {
 	if (streq(e->kind, "local")) {
 		*err = fmt("package %s was accepted locally (tekx pkg lock) and exists only in %s: "
-		    "copy or commit that directory", e->name, path_join(root, path_join(STORE, e->name)));
+		    "copy or commit that directory", e->name, store_path(root, e->name));
 		return false;
 	}
 	if (streq(e->kind, "dir")) {
@@ -750,6 +909,17 @@ open_project(bool create)
 	return L;
 }
 
+/* staging directories this process made: whatever was not moved into
+ * place is removed at exit, even when tekx stops with an error */
+static Paths staged_dirs;
+
+static void
+remove_staged(void)
+{
+	for (size_t i = 0; i < staged_dirs.n; i++)
+		remove_tree(staged_dirs.v[i]);
+}
+
 static char *
 staging(Lock *L, const char *what)
 {
@@ -757,14 +927,62 @@ staging(Lock *L, const char *what)
 	mkdirs(store);
 	char *d = path_join(store, fmt(".staging-%s-%d", what, (int)getpid()));
 	remove_tree(d);
+	if (staged_dirs.n == 0)
+		atexit(remove_staged);
+	VPUSH(staged_dirs, d);
 	return d;
+}
+
+/*
+ * Commands that change the project hold an exclusive lock on
+ * .tekx/lock for as long as they run, so two at once cannot lose each
+ * other's entries.  Holding it, a command also clears what an
+ * interrupted one left: staging directories, and a package caught
+ * between its two renames (NAME.old without NAME) is put back.
+ */
+static void
+lock_project(Lock *L)
+{
+	char *dot = path_join(L->root, ".tekx");
+	mkdirs(dot);
+	int fd = open(path_join(dot, "lock"), O_RDWR | O_CREAT, 0644);
+	struct flock fl = {.l_type = F_WRLCK, .l_whence = SEEK_SET};
+	if (fd < 0 || fcntl(fd, F_SETLKW, &fl) != 0)
+		die("cannot lock %s/lock: %s", dot, strerror(errno));
+	/* fd stays open: the lock lasts until tekx exits.  Read tekx.lock
+	 * again now that it is ours: another command may just have changed it */
+	char *err = NULL, *root = L->root;
+	if (!read_lock(root, L, &err))
+		die("%s", err);
+	char *store = path_join(L->root, STORE);
+	DIR *d = opendir(store);
+	struct dirent *e;
+	Paths names = {0};
+	while (d && (e = readdir(d)) != NULL)
+		VPUSH(names, xstrdup(e->d_name));
+	if (d)
+		closedir(d);
+	for (size_t i = 0; i < names.n; i++) {
+		char *n = names.v[i];
+		size_t len = strlen(n);
+		if (startswith(n, ".staging-")) {
+			remove_tree(path_join(store, n));
+		} else if (len > 4 && streq(n + len - 4, ".old")) {
+			char *base = xstrndup(n, len - 4);
+			if (valid_name(base) && !is_dir(path_join(store, base)) &&
+			    rename(path_join(store, n), path_join(store, base)) == 0)
+				fprintf(stderr, "tekx: restored %s, left half-installed by an interrupted command\n", base);
+			else
+				remove_tree(path_join(store, n));
+		}
+	}
 }
 
 /* move a verified package into place */
 static void
 install_dir(Lock *L, const char *name, const char *staged)
 {
-	char *dst = path_join(L->root, path_join(STORE, name)), *old = fmt("%s.old", dst);
+	char *dst = store_path(L->root, name), *old = fmt("%s.old", dst);
 
 	remove_tree(old);
 	if (is_dir(dst) && rename(dst, old) != 0)
@@ -807,7 +1025,6 @@ user_registries(Lock *L, Registries *out)
 		fclose(f);
 }
 
-static int cmd_add_one(Lock *L, const char *source, const char *rev, const char *sub, int depth);
 
 /* find `name` in the registries; an entry describing where it is */
 static bool
@@ -850,29 +1067,70 @@ from_registry(Lock *L, const char *name, Entry *out, char **staged, char **err)
 	return false;
 }
 
-static int
-cmd_add_one(Lock *L, const char *source, const char *rev, const char *sub, int depth)
+/*
+ * An add is a transaction: the package and everything it depends on are
+ * staged, hashed and checked first; only when all of them are good are
+ * they moved into place, and the lock is written once.  An add that
+ * fails changes nothing (its staging directories go at exit).
+ */
+typedef struct {
+	Entry e;
+	char *staged;
+} Staged;
+
+typedef VEC(Staged) Plan;
+
+static Paths adding;	/* the packages being added, outermost first */
+
+static Staged *
+plan_find(Plan *pl, const char *name)
+{
+	for (size_t i = 0; i < pl->n; i++)
+		if (streq(pl->v[i].e.name, name))
+			return &pl->v[i];
+	return NULL;
+}
+
+static void
+die_cycle(const char *name)
+{
+	Buf b = {0};
+	size_t from = 0;
+	for (size_t i = 0; i < adding.n; i++)
+		if (streq(adding.v[i], name))
+			from = i;
+	for (size_t i = from; i < adding.n; i++)
+		bprintf(&b, "%s → ", adding.v[i]);
+	die("dependency cycle: %s%s", bstr(&b), name);
+}
+
+static void
+stage_one(Lock *L, Plan *pl, const char *source, const char *rev, const char *sub, int depth)
 {
 	Entry e = {0};
 	char *staged = NULL, *err = NULL;
 
-	if (depth > 32)
-		die("package dependencies nested too deeply at %s", source);
+	if (depth > 64)
+		die("package dependencies nested more than 64 deep at %s", source);
 	if (is_dir(source)) {
+		if (sub && !inside_path(sub))
+			die("--path %s must be a directory inside %s", sub, source);
 		char *src = sub ? path_join(source, sub) : xstrdup(source);
 		e = (Entry){NULL, NULL, NULL, "dir", absolute(src), NULL, NULL};
-		staged = staging(L, "dir");
+		staged = staging(L, fmt("dir%zu", pl->n));
 		if (!copy_tree(src, staged, &err))
 			die("%s", err);
 	} else if (looks_like_git(source)) {
-		char *tmp = staging(L, "clone"), *commit = NULL;
+		if (sub && !inside_path(sub))
+			die("--path %s must be a directory inside the repository", sub);
+		char *tmp = staging(L, fmt("clone%zu", pl->n)), *commit = NULL;
 		if (!git_fetch(source, rev, tmp, &commit, &err))
 			die("%s", err);
 		char *src = sub ? path_join(tmp, sub) : tmp;
 		if (!is_dir(src))
 			die("%s has no directory %s", source, sub);
 		e = (Entry){NULL, NULL, NULL, "git", xstrdup(source), commit, xstrdup(sub ? sub : ".")};
-		staged = staging(L, "git");
+		staged = staging(L, fmt("git%zu", pl->n));
 		if (!copy_tree(src, staged, &err))
 			die("%s", err);
 		remove_tree(tmp);
@@ -883,44 +1141,69 @@ cmd_add_one(Lock *L, const char *source, const char *rev, const char *sub, int d
 			die("%s", err);
 	}
 	Package *p = read_manifest(staged, &err);
-	if (p == NULL) {
-		remove_tree(staged);
+	if (p == NULL)
 		die("%s", err);
-	}
-	if (e.name && !streq(e.name, p->name)) {
-		remove_tree(staged);
+	if (e.name && !streq(e.name, p->name))
 		die("the registry's %s calls itself %s", e.name, p->name);
-	}
+	for (size_t i = 0; i < adding.n; i++)
+		if (streq(adding.v[i], p->name))
+			die_cycle(p->name);
 	e.name = p->name;
 	e.version = p->version;
 	e.hash = tree_hash(staged, &err);
 	if (e.hash == NULL)
 		die("%s", err);
-	/* dependencies first, from the registries unless already locked */
+	VPUSH(adding, p->name);
+	/* dependencies: already locked, already staged, or fetched now */
 	for (size_t i = 0; i < p->depends.n; i++) {
 		char *d = xstrdup(p->depends.v[i]), *sp = strchr(d, ' ');
 		char *want = sp ? trim(sp + 1) : NULL;
 		if (sp)
 			*sp = 0;
+		Staged *pend = plan_find(pl, d);
 		Entry *have = lock_find(L, d);
-		if (have && version_ok(have->version, want))
+		if (pend ? version_ok(pend->e.version, want) : have && version_ok(have->version, want))
 			continue;
-		if (have)
-			die("%s needs %s %s, but %s %s is locked", p->name, d, want, d, have->version);
-		cmd_add_one(L, d, NULL, NULL, depth + 1);
-		have = lock_find(L, d);
-		if (have == NULL || !version_ok(have->version, want))
-			die("%s needs %s %s, which no registry provides", p->name, d, want ? want : "");
+		if (pend || have)
+			die("%s needs %s %s, but %s %s is %s", p->name, d, want, d, pend ? pend->e.version : have->version,
+			    pend ? "needed by another package being added" : "locked");
+		for (size_t k = 0; k < adding.n; k++)
+			if (streq(adding.v[k], d))
+				die_cycle(d);
+		stage_one(L, pl, d, NULL, NULL, depth + 1);
+		pend = plan_find(pl, d);
+		if (pend == NULL || !version_ok(pend->e.version, want))
+			die("%s needs %s %s, but the registries have %s %s", p->name, d, want ? want : "",
+			    d, pend ? pend->e.version : "nothing");
 	}
-	install_dir(L, p->name, staged);
-	Entry *old = lock_find(L, p->name);
-	if (old)
-		*old = e;
-	else
-		VPUSH(L->e, e);
+	adding.n--;
+	Staged st = {e, staged};
+	VPUSH(*pl, st);	/* dependencies before the packages that need them */
+}
+
+static int
+cmd_add(Lock *L, const char *source, const char *rev, const char *sub)
+{
+	Plan pl = {0};
+
+	if (rev && rev[0] == '-')
+		die("refusing --rev %s: a revision may not start with -", rev);
+	stage_one(L, &pl, source, rev, sub, 0);
+	for (size_t i = 0; i < pl.n; i++) {
+		Entry *e = &pl.v[i].e;
+		install_dir(L, e->name, pl.v[i].staged);
+		Entry *old = lock_find(L, e->name);
+		if (old)
+			*old = *e;
+		else
+			VPUSH(L->e, *e);
+	}
 	write_lock(L);
-	printf("added %s %s (%.19s…) from %s%s%s\n", e.name, e.version, e.hash, e.where,
-	    e.commit ? " at " : "", e.commit ? fmt("%.12s", e.commit) : "");
+	for (size_t i = 0; i < pl.n; i++) {
+		Entry *e = &pl.v[i].e;
+		printf("added %s %s (%.19s…) from %s%s%s\n", e->name, e->version, e->hash, e->where,
+		    e->commit ? " at " : "", e->commit ? fmt("%.12s", e->commit) : "");
+	}
 	return 0;
 }
 
@@ -931,7 +1214,7 @@ cmd_install(Lock *L)
 
 	for (size_t i = 0; i < L->e.n; i++) {
 		Entry *e = &L->e.v[i];
-		char *dst = path_join(L->root, path_join(STORE, e->name)), *err = NULL;
+		char *dst = store_path(L->root, e->name), *err = NULL;
 		if (is_dir(dst)) {
 			char *h = tree_hash(dst, &err);
 			if (h && streq(h, e->hash))
@@ -965,7 +1248,7 @@ cmd_verify(Lock *L, bool quiet)
 
 	for (size_t i = 0; i < L->e.n; i++) {
 		Entry *e = &L->e.v[i];
-		char *dst = path_join(L->root, path_join(STORE, e->name)), *err = NULL;
+		char *dst = store_path(L->root, e->name), *err = NULL;
 		const char *state = "ok";
 		if (!is_dir(dst)) {
 			state = "missing (tekx pkg install)";
@@ -989,7 +1272,7 @@ cmd_lock(Lock *L)
 {
 	for (size_t i = 0; i < L->e.n; i++) {
 		Entry *e = &L->e.v[i];
-		char *dst = path_join(L->root, path_join(STORE, e->name)), *err = NULL;
+		char *dst = store_path(L->root, e->name), *err = NULL;
 		char *h = is_dir(dst) ? tree_hash(dst, &err) : NULL;
 		if (h == NULL || streq(h, e->hash))
 			continue;
@@ -1011,7 +1294,7 @@ cmd_list(Lock *L)
 	for (size_t i = 0; i < L->e.n; i++) {
 		Entry *e = &L->e.v[i];
 		Package *p = NULL;
-		char *err = NULL, *dst = path_join(L->root, path_join(STORE, e->name));
+		char *err = NULL, *dst = store_path(L->root, e->name);
 		if (is_dir(dst))
 			p = read_manifest(dst, &err);
 		printf("%-20s %-10s %s%s%s\n", e->name, e->version, streq(e->kind, "local") ? "(local)" : e->where,
@@ -1030,14 +1313,14 @@ cmd_remove(Lock *L, const char *name)
 	if (e == NULL)
 		die("%s is not in tekx.lock", name);
 	for (size_t i = 0; i < L->e.n; i++) {
-		char *err = NULL, *dst = path_join(L->root, path_join(STORE, L->e.v[i].name));
+		char *err = NULL, *dst = store_path(L->root, L->e.v[i].name);
 		Package *p = is_dir(dst) ? read_manifest(dst, &err) : NULL;
 		for (size_t k = 0; p && k < p->depends.n; k++)
 			if (startswith(p->depends.v[k], name) &&
 			    (p->depends.v[k][strlen(name)] == 0 || p->depends.v[k][strlen(name)] == ' '))
 				die("%s depends on %s", p->name, name);
 	}
-	remove_tree(path_join(L->root, path_join(STORE, name)));
+	remove_tree(store_path(L->root, name));
 	*e = L->e.v[--L->e.n];
 	write_lock(L);
 	printf("removed %s\n", name);
@@ -1168,7 +1451,7 @@ cmd_update(Lock *L, const char *only)
 			continue;
 		}
 		const char *sub = e[i].subdir && !streq(e[i].subdir, ".") ? e[i].subdir : NULL;
-		cmd_add_one(L, e[i].where, NULL, streq(e[i].kind, "git") ? sub : NULL, 0);
+		cmd_add(L, e[i].where, NULL, streq(e[i].kind, "git") ? sub : NULL);
 	}
 	if (only && done == 0)
 		die("%s is not in tekx.lock", only);
@@ -1209,10 +1492,14 @@ pkg_main(int argc, char **argv)
 			}
 		}
 		Lock L = open_project(true);
-		return cmd_add_one(&L, argv[1], rev, sub, 0);
+		lock_project(&L);
+		return cmd_add(&L, argv[1], rev, sub);
 	}
 	if (streq(cmd, "registry")) {
-		Lock L = open_project(argc >= 2 && streq(argv[1], "add"));
+		bool change = argc >= 2 && (streq(argv[1], "add") || streq(argv[1], "remove"));
+		Lock L = open_project(change && streq(argv[1], "add"));
+		if (change)
+			lock_project(&L);
 		return cmd_registry(&L, argc - 1, argv + 1);
 	}
 	if (streq(cmd, "search")) {
@@ -1224,6 +1511,8 @@ pkg_main(int argc, char **argv)
 		return cmd_search(&L, argc > 1 ? argv[1] : NULL);
 	}
 	Lock L = open_project(false);
+	if (streq(cmd, "install") || streq(cmd, "lock") || streq(cmd, "remove") || streq(cmd, "update"))
+		lock_project(&L);
 	if (streq(cmd, "install") && argc == 1)
 		return cmd_install(&L);
 	if (streq(cmd, "verify") && argc == 1)

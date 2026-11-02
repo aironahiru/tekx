@@ -148,6 +148,86 @@ cd "$W" || exit 2
 "$T" pkg new fresh >/dev/null || fail "pkg new"
 (cd "$W/paper" && "$T" pkg add "$W/fresh" >/dev/null 2>&1) || fail "add the new package"
 
+# --- hostile and broken input: what the adversarial review found ---
+H=$W/hostile
+mkdir -p "$H/victim/data" "$H/src/p" "$H/reg"
+echo precious >"$H/victim/data/keep.txt"
+printf 'package "p"\nversion "1.0.0"\nprovides "main.tekx"\n' >"$H/src/p/package.tekx"
+echo 'define lab as "x"' >"$H/src/p/main.tekx"
+mkpkg() {	# mkpkg DIR NAME EXTRA-MANIFEST-LINES
+	mkdir -p "$1"
+	printf 'package "%s"\nversion "1.0.0"\nprovides "main.tekx"\n%b' "$2" "$3" >"$1/package.tekx"
+	echo 'define lab as "x"' >"$1/main.tekx"
+}
+# a lock whose package name climbs out of the store must not touch anything
+mkdir -p "$H/proj1" && cd "$H/proj1" || exit 2
+"$T" pkg add "$H/src/p" >/dev/null 2>&1 || fail "add p"
+hash=$(awk '/^package/ {print $4}' tekx.lock)
+rm -rf .tekx tekx.lock
+printf 'package ../../../victim/data 1.0.0 %s dir %s\n' "$hash" "$H/src/p" >tekx.lock
+"$T" pkg install >out.txt 2>&1 && fail "a lock naming ../../ must be refused"
+expect "package name must be" out.txt
+[ -f "$H/victim/data/keep.txt" ] || fail "install destroyed a directory outside the project"
+# duplicate entries, bad versions, a short hash
+printf 'package p 1.0.0 %s dir %s\npackage p 1.0.0 %s dir %s\n' "$hash" "$H/src/p" "$hash" "$H/src/p" >tekx.lock
+"$T" pkg list >out.txt 2>&1 && fail "a duplicated lock entry must be refused"
+expect "already listed" out.txt
+printf 'package p v1 %s dir %s\n' "$hash" "$H/src/p" >tekx.lock
+"$T" pkg list >out.txt 2>&1 && fail "a lock version v1 must be refused"
+printf 'package p 1.0.0 sha256:abc dir %s\n' "$H/src/p" >tekx.lock
+"$T" pkg list >out.txt 2>&1 && fail "a short hash must be refused"
+rm -f tekx.lock
+# provides and filters must stay inside the package, and so its hash
+echo SECRET >"$H/secret"
+mkpkg "$H/reg/evil" evil 'provides "../../secret"\n'
+"$T" pkg add "$H/reg/evil" >out.txt 2>&1 && fail "provides ../ must be refused"
+expect "outside the package" out.txt
+mkdir -p "$H/tools" && printf '#!/bin/sh\ncat\n' >"$H/tools/t" && chmod +x "$H/tools/t"
+mkpkg "$H/reg/ff" ff 'filter "../../tools/t"\n'
+"$T" pkg add "$H/reg/ff" >out.txt 2>&1 && fail "a filter outside the package must be refused"
+expect "outside the package" out.txt
+# a package may not take over tekx's own blocks
+mkpkg "$H/reg/sh" sh 'block "theorem"\n'
+"$T" pkg add "$H/reg/sh" >out.txt 2>&1 && fail "block theorem must be refused"
+expect "tekx's own keywords" out.txt
+# versions
+mkdir -p "$H/reg/bv" && printf 'package "bv"\nversion "1.2.3.4"\n' >"$H/reg/bv/package.tekx"
+"$T" pkg add "$H/reg/bv" >out.txt 2>&1 && fail "version 1.2.3.4 must be refused"
+# git: nothing that looks like an option
+"$T" pkg add -- '--upload-pack=x .git' >out.txt 2>&1 && fail "an option-like git source must be refused"
+# a failed add changes nothing: a diamond with conflicting versions
+mkdir -p "$H/reg2" "$H/proj2"
+mkdir -p "$H/reg2/b" && printf 'package "b"\nversion "2.0.0"\nprovides "main.tekx"\n' >"$H/reg2/b/package.tekx" &&
+    echo x >"$H/reg2/b/main.tekx"
+mkpkg "$H/reg2/c" c 'depends "b 2.0"\n'
+mkpkg "$H/reg2/a" a 'depends "c 1.0"\ndepends "b 1.0"\n'
+cd "$H/proj2" || exit 2
+"$T" pkg registry add r "$H/reg2" >/dev/null 2>&1
+"$T" pkg add a >out.txt 2>&1 && fail "a version conflict must fail the add"
+[ "$(grep -c '^package' tekx.lock)" -eq 0 ] || fail "a failed add must leave the lock unchanged"
+[ -z "$(ls -A .tekx/packages 2>/dev/null)" ] || fail "a failed add must leave no packages or staging behind"
+# cycles are named as cycles
+mkpkg "$H/reg2/x" x 'depends "y 1.0"\n'
+mkpkg "$H/reg2/y" y 'depends "x 1.0"\n'
+"$T" pkg add x >out.txt 2>&1 && fail "a dependency cycle must fail"
+expect "dependency cycle: x → y → x" out.txt
+# concurrent adds keep every entry
+for q in d1 d2 d3 d4; do mkpkg "$H/reg2/$q" $q ''; done
+"$T" pkg add d1 & "$T" pkg add d2 & "$T" pkg add d3 & "$T" pkg add d4 & wait
+[ "$(grep -c '^package d' tekx.lock)" -eq 4 ] || fail "concurrent adds lost lock entries"
+# an interrupted install is repaired by the next command
+mv .tekx/packages/d1 .tekx/packages/d1.old && mkdir -p .tekx/packages/.staging-junk-1
+"$T" pkg install >/dev/null 2>&1 || fail "install after an interruption"
+[ -d .tekx/packages/d1 ] && [ ! -e .tekx/packages/d1.old ] && [ ! -e .tekx/packages/.staging-junk-1 ] ||
+    fail "an interrupted install was not repaired"
+# a project path with a blank in it, and a package with a filter
+mkdir -p "$H/my project" && cp "$W/paper/paper.tekx" "$H/my project/" && cd "$H/my project" || exit 2
+"$T" pkg registry add house "$R" >/dev/null 2>&1 && "$T" pkg add house-notation >/dev/null 2>&1 &&
+    "$T" pkg add callouts >/dev/null 2>&1 || fail "adds in a directory with a blank"
+"$T" -P paper.tekx >tree.txt 2>&1 || fail "a filter in a directory with a blank"
+expect "quote@" tree.txt
+cd "$W" || exit 2
+
 for f in "$W"/san.*; do
 	[ -e "$f" ] || continue
 	fail "sanitizer report $f"

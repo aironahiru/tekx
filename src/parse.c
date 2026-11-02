@@ -1128,7 +1128,9 @@ blocks(Node *parent, int i, int base, bool top)
 			i++;
 			continue;
 		}
-		Custom *cu = find_custom(w);
+		/* a package's block, never one of tekx's own (those win) */
+		Custom *cu = is_theorem_kind(w) || streq(w, "proof") || streq(w, "abstract") || streq(w, "quote") ||
+		    streq(w, "let") ? NULL : find_custom(w);
 		if (cu) {
 			/* a package's block: its header and raw body go to the package's filter */
 			int end = body_end(i, base), ind = first_body_indent(i, end);
@@ -1603,7 +1605,7 @@ parse_main(FILE *in, FILE *out, const char *file)
 			continue;
 		}
 		if (startswith(raw, "#package ")) {
-			VPUSH(package_lines, xstrdup(raw + 9));
+			VPUSH(package_lines, pct_unescape(raw + 9));
 			free(raw);
 			continue;
 		}
@@ -1617,10 +1619,10 @@ parse_main(FILE *in, FILE *out, const char *file)
 			continue;
 		}
 		if (startswith(raw, "#filter ")) {
-			char *t = xstrdup(raw + 8), *sp = strrchr(t, ' ');
-			Filter f = {t, sp ? sp + 1 : "."};
+			char *t = xstrdup(raw + 8), *sp = strchr(t, ' ');
 			if (sp)
 				*sp = 0;
+			Filter f = {pct_unescape(t), sp ? pct_unescape(sp + 1) : "."};
 			VPUSH(filters, f);
 			free(raw);
 			continue;

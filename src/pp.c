@@ -580,11 +580,17 @@ use_package(Package *p, Lines *into, int no)
 		} else
 			use_package(q, into, no);
 	}
-	VPUSH(markers, fmt("#package %s %s %s", p->name, p->version, p->dir));
+	/* fields are %-escaped: a project path may contain blanks */
+	Buf dir = {0}, prog = {0};
+	pct_escape(&dir, p->dir);
+	VPUSH(markers, fmt("#package %s %s %s", p->name, p->version, bstr(&dir)));
 	for (size_t i = 0; i < p->blocks.n; i++)
 		VPUSH(markers, fmt("#block %s %s", p->blocks.v[i], p->name));
-	for (size_t i = 0; i < p->filters.n; i++)
-		VPUSH(markers, fmt("#filter %s/%s %s", p->dir, p->filters.v[i], p->dir));
+	for (size_t i = 0; i < p->filters.n; i++) {
+		breset(&prog);
+		pct_escape(&prog, fmt("%s/%s", p->dir, p->filters.v[i]));
+		VPUSH(markers, fmt("#filter %s %s", bstr(&prog), bstr(&dir)));
+	}
 	for (size_t i = 0; i < p->provides.n; i++) {
 		char *path = fmt("%s/%s", p->dir, p->provides.v[i]);
 		FILE *f = fopen(path, "rb");
