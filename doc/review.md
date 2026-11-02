@@ -17,8 +17,12 @@ Each kind of critic got their own attack:
 - the language was probed with the inputs people actually write;
 - LaTeX was pasted in as-is;
 - the accessibility claims were checked against the source code of pdf.js;
-- the compiler was fuzzed with 32,000 mutated documents and images under
-  AddressSanitizer and UBSan;
+- the compiler was fuzzed with 42,000 mutated documents, images and BibTeX
+  databases under AddressSanitizer and UBSan;
+- a journal paper was written the way a mathematician would write it, and
+  every place tekx failed or got in the way was recorded;
+- copy and paste was measured in the engines behind Chrome, Firefox and
+  Evince;
 - the same document was built with the conventional LaTeX toolchain on the same
   machine, for comparison.
 
@@ -76,19 +80,42 @@ It gives the same tree, MathML, speech and copy text as tekx notation.
 
 **"Significant indentation is fragile: a display after a theorem can end up
 inside the theorem."**
-*Open.* This is inherent to the rule that a block's body is everything
+*Answered* (86ca947). The rule is inherent: a block's body is everything
 indented more deeply than its header.
-- Two things already remove the ambiguity:
-  - `do … end`, which pp turns into an explicit end of block;
-  - a line of prose between the block and the display.
-- **Plan:** a warning when a block's body ends in a display after a blank line,
-  the pattern that usually means the display was meant to stand outside.
+- tekx now warns when a block ends in a display after a blank line, indented
+  only a little past the block's text. That is the pattern that usually means
+  the display was meant to stand outside.
+- The warning found two such displays in tekx's own examples. Both had been
+  silently tagged as part of the block before them.
+- `do … end`, or a line of prose between the block and the display, removes
+  the ambiguity.
+
+**"A probe paper written the way a mathematician writes fails in ways no
+validator sees."**
+*Fixed* (8616514; test/golden/journal.tekx, test/errors/journal.tekx). The
+probe found lines that were silently set as prose:
+- `author "…", affiliation: …` became a mangled name;
+- `msc`, `numbering` and `appendix` became paragraphs;
+- `[@landau]` resolved to the *equation* labelled `#landau`.
+
+Each is now either a feature or an error with a suggestion:
+- author details, MSC, numbering by section and appendices are features;
+- an unknown setting is an error with a suggestion;
+- citation keys and labels live in separate namespaces, and a bare `@key`
+  that could be either is an error.
+
+LaTeX habits are understood: `Theorem @main` reads "Theorem 1.1", not
+"Theorem Theorem 1.1".
 
 **"Without a specification, a language is whatever the one implementation does
 this week."**
-*Open.* doc/language.md describes the language and the golden tests pin its
-behaviour, but neither is a specification.
-- **Plan:** a versioned specification, an optional `tekx 0.1` first line, and
+*Partly answered* (d036b13).
+- doc/compatibility.md promises what stays true from 0.2 on: structure,
+  numbering, references and the meaning of every formula.
+- A `tekx 0.2` line declares the version a document is written for.
+- The golden files are the contract, and CHANGELOG.md lists every change to
+  output.
+- **Open:** a versioned specification separate from the implementation, and
   the golden tests published as a conformance suite.
 
 ## 2. Mathematics and typography
@@ -100,9 +127,14 @@ behaviour, but neither is a specification.
     constants;
   - paragraphs are broken by Knuth and Plass's total-fit algorithm;
   - words are hyphenated by Liang's algorithm with TeX's US English patterns.
+- **Fixed:** fractions written `a/b` are set on the line in running text and
+  scripts, and stacked only in displays (x^{1/4}, (1 + √5)/2), as journals set
+  them. Before, inline fractions stacked and disturbed the line spacing.
 - **Open:** none of these exist yet:
   - microtypography (character protrusion and font expansion);
   - line breaking inside displayed equations, so a long display overflows;
+  - breaks inside a parenthesised group in an inline formula, which TeX
+    allows after a binary operator;
   - testing with math fonts other than STIX Two.
 - **Plan:** protrusion first, as the most visible gain, then display breaking.
 
@@ -154,6 +186,22 @@ readers (NVDA with MathCAT, JAWS, VoiceOver).
 - **Plan:** a written test protocol, then sessions with screen-reader users.
   This is the most important item in this document.
 
+**"Copy and paste from a PDF is broken in the viewers people actually use."**
+*Fixed for Chrome and Evince, nearly so for Firefox* (9c1e743;
+test/paste.sh). Measured with the engines themselves:
+
+| pastes back as itself | poppler (Evince) | PDFium (Chrome, Edge) | pdf.js (Firefox) |
+|---|---|---|---|
+| 50 formulas, inline and displayed | 50 | 50 (was 0) | 47 |
+| hyphenated words | whole | whole (was missing) | split |
+
+- PDFium reads ActualText only from the innermost marked-content level. tekx
+  now repeats it there, under a property poppler ignores. This was verified
+  against both engines' source.
+- pdf.js ignores ActualText, so its remaining failures are listed in
+  `test/paste/limits`.
+- Acrobat and macOS Preview could not be tested here.
+
 **"PDF is a poor format for accessible mathematics. The web is better."**
 *Fixed* (dc08546; step 7 of test/run.sh). `tekx -o paper.html paper.tekx`
 writes the same document as semantic HTML with native MathML.
@@ -179,10 +227,10 @@ red and white pass through it unchanged.
 **"A C program that parses documents, fonts and images is a security
 liability."**
 *Answered, with work remaining* (bc2b3ad).
-- tools/mutate.c and test/fuzz.sh (`make fuzz`) have run 32,000 mutated
-  documents and PNG images under the sanitizers:
+- tools/mutate.c and test/fuzz.sh (`make fuzz`) have run 42,000 mutated
+  documents, PNG images and BibTeX databases under the sanitizers:
   - 26,000 through the PDF back end;
-  - 6,000 through both the PDF and HTML back ends.
+  - 16,000 through both the PDF and HTML back ends.
 - The first runs found three bugs in five failing cases. All three are fixed,
   and each now has a regression test:
   - set cut node text in place, so a formula laid out twice read truncated data
@@ -196,7 +244,9 @@ liability."**
   The code was restructured so that the pointer is taken after the
   allocation, and the 1,200-file document that drives the same path is now in
   the suite.
-- The 3,000 cases run since then are clean.
+- The cases run since then are clean. In one run, five consecutive cases
+  timed out while the machine was loaded by parallel builds, and the same
+  seeds pass when rerun alone.
 - Fonts are read through a bounds-checked reader whose error flag is sticky.
 - **Open:** fuzzing doesn't run continuously (no OSS-Fuzz), and user-supplied
   fonts are not mutated.
@@ -210,8 +260,11 @@ stages are the interface, and anything that reads lines can use them.
 - **Plan:** arenas when the language server is built.
 
 **"One maintainer, one implementation."**
-*Open.* This is the risk every new tool starts with. It is reduced by the
-discipline already in place:
+*Open, and now easier to live with.* Packages (ce17ad1) let a group extend
+tekx without changing it. A package can bring notation, environments, macros
+and filters, which are programs in any language that rewrite the document
+tree. It is pinned by content hash, so it can't drift. The risk is also
+reduced by the discipline already in place:
 - small files, libc only, no dependencies;
 - a man page, and a machinery document that describes every format;
 - reproducible builds;
@@ -224,13 +277,25 @@ discipline already in place:
 - **Plan:** a LaTeX back end. It would read the same tree as the HTML back end
   and write LaTeX for submission.
 
-**"There is no TikZ, no beamer, no BibLaTeX, and no hyphenation for my
-language."**
-*Open, and some of it will stay that way.* tekx 0.1 typesets articles:
-figures, footnotes, theorems, references, contents.
-- Bibliography databases and more languages are on the roadmap below.
+**"My bibliography is a .bib file. I'm not retyping it."**
+*Fixed* (8616514, 86ca947; test/golden/journal.bib, fuzzed).
+`bibliography "refs.bib"` reads BibTeX as BibTeX does:
+- `@string` macros, `#` concatenation and month names;
+- accents and mathematics in titles;
+- all three name forms;
+- crossref inheritance, as DBLP writes it;
+- biblatex field names, as Zotero writes them.
+
+Only cited entries are printed, in AMS style. Citations come in three styles:
+numeric (sorted and ranged), in citation order, or amsalpha ([Hoo71]).
+
+**"There is no TikZ, no beamer, and no hyphenation for my language."**
+*Open, and some of it will stay that way.* tekx 0.2 typesets journal
+articles.
+- More languages are on the roadmap below.
 - A drawing language is a larger question. Figures from any tool, as PNG or
-  JPEG, already work.
+  JPEG, already work. A package filter can turn a block of its own into a
+  figure, so a group can plug in its own drawing tool.
 
 **"Copy text in tekx's own syntax is yet another standard."**
 *Partly answered.*
@@ -245,6 +310,13 @@ figures, footnotes, theorems, references, contents.
 ## 6. Strengths to amplify
 
 These are the places where tekx can lead, not catch up.
+
+0. **A journal paper from the first minute.**
+   - `tekx new paper` writes a paper that builds, with front matter,
+     citations and an appendix.
+   - `tekx -w` rebuilds in tens of milliseconds on every save.
+   - Running heads and referee line numbers are one line each.
+   - Vim and VS Code highlight the source.
 
 1. **Meaning is the core, and every output is derived from it.** One tree
    gives all of these, so they cannot disagree:
@@ -292,12 +364,12 @@ These are the places where tekx can lead, not catch up.
 | | item | answers |
 |---|---|---|
 | 1 | screen-reader test protocol and sessions with users | the accessibility claim itself |
-| 2 | UnicodeMath copy text | interoperability with Office |
-| 3 | LaTeX back end | journal and arXiv submission |
-| 4 | character protrusion; breaking long displays | typography |
+| 2 | Acrobat and Preview in the paste matrix | copy and paste where it can't yet be measured |
+| 3 | UnicodeMath copy text | interoperability with Office |
+| 4 | character protrusion; breaking long displays; breaks inside inline groups | typography |
 | 5 | language server and WebAssembly build | the editing loop, adoption |
 | 6 | ClearSpeak-aligned, localised speech | speech quality |
 | 7 | continuous fuzzing, font mutation | security |
-| 8 | warning for displays that may belong outside a block | indentation |
+| 8 | a registry of public packages beside the private ones | the ecosystem |
 | 9 | versioned language specification | longevity |
-| 10 | bibliography databases, more hyphenation languages | breadth |
+| 10 | more hyphenation languages; multiple columns | breadth |
