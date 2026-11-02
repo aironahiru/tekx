@@ -1,0 +1,25 @@
+% Legacy baseline: identical body, no \DocumentMetadata, no alt key.
+% Output: PDF 1.7, OT1/CM fonts, no StructTreeRoot, no marked content.
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\title{Tagged PDF Audit Probe}
+\author{Stack Auditor}
+\begin{document}
+\maketitle
+\section{Introduction}
+Ligature probe: office, affine, flow. Inline math $a^2+b^2=c^2$ and a
+link to \url{https://www.latex-project.org}.
+\[ \int_0^1 f(x)\,\mathrm{d}x = F(1)-F(0) \]
+\begin{itemize}
+  \item First item
+  \item Second item
+\end{itemize}
+\begin{tabular}{ll}
+  Key & Value \\
+  A   & 1
+\end{tabular}
+
+\includegraphics[width=2cm]{example-image}
+\end{document}

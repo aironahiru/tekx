@@ -1,0 +1,13 @@
+% PDF management (pdfmanagement bundle) WITHOUT the tagging code.
+% Since LaTeX 2025-11-01, \DocumentMetadata always loads all latex-lab
+% modules; this is the documented replacement when only PDF management is
+% wanted (source: documentmetadata-support.dtx, LaTeX News 42).
+% Output: PDF 1.7, XMP for PDF/A-3b, no StructTreeRoot, legacy OT1 fonts.
+\RequirePackage{pdfmanagement}
+\SetKeys[document/metadata]{pdfversion=1.7, pdfstandard=a-3b}
+\documentclass{article}
+\title{Modes}
+\begin{document}
+\section{A}
+Office text.
+\end{document}

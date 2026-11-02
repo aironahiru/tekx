@@ -1,0 +1,191 @@
+
+===== veraPDF =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true
+profile: PDF/A-4f validation profile
+compliant: true
+profile: WTPDF 1.0 Accessibility validation profile
+compliant: true
+
+===== Catalog / StructTreeRoot =====
+PDF version: 2.0
+Catalog keys: /AF /Lang /MarkInfo /Metadata /Names /OpenAction /Outlines /OutputIntents /PageLabels /PageMode /Pages /StructTreeRoot /Type /ViewerPreferences
+  /MarkInfo = {'/Marked': 'True'}
+  /Lang = en-US
+  /ViewerPreferences = {'/DisplayDocTitle': 'True'}
+Trailer /Info present: False
+StructTreeRoot keys: /ClassMap /IDTree /K /Namespaces /ParentTree /RoleMap /Type
+  Namespace http://iso.org/pdf/ssn  RoleMapNS entries=0
+  Namespace http://iso.org/pdf2/ssn  RoleMapNS entries=0
+  Namespace http://www.w3.org/1998/Math/MathML  RoleMapNS entries=0
+  Namespace https://www.latex-project.org/ns/dflt  RoleMapNS entries=43
+  Namespace https://www.latex-project.org/ns/book  RoleMapNS entries=7
+  Namespace data:,455B1960-CD1C-6B9C-EA1C-132AD7DA1908  RoleMapNS entries=0
+  Fallback /RoleMap entries: 55
+
+===== XMP =====
+pdfuaid:part: ['2']
+pdfuaid:rev: ['2024']
+pdfaid:part: ['4']
+pdfaid:conformance: ['F']
+pdfaid:rev: ['2020']
+dc:title: ['Tagged PDF Audit Probe Tagged PDF Audit Probe']
+dc:language: ['en-US']
+pdfd:conformsTo: ['http://pdfa.org/declarations/wtpdf#accessibility1.0', 'http://pdfa.org/declarations/wtpdf#reuse1.0']
+pdf:Producer: ['luahbtex-1.24.0']
+xmp:CreatorTool: ['LaTeX with hyperref']
+
+===== Structure tree =====
+Document [pdf2]
+  title-block [latex]  attrs=class:/aria-banner,/O:/ARIA-1.1,/role:banner
+    title-text [latex] (+1 MC)  attrs=class:/center,/O:/Layout,/TextAlign:/Center
+    title-author [latex] (+1 MC)  attrs=class:/center,/O:/Layout,/TextAlign:/Center
+    title-date [latex] (+1 MC)  attrs=class:/center,/O:/Layout,/TextAlign:/Center
+  section [latex]
+    section-heading [latex] (+2 MC)
+      heading-number [latex] (+1 MC)
+    semantic-para [latex]
+      text-block [latex] (+3 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+        Formula [pdf2] (+2 MC)  attrs=class:/inline,/O:/Layout,/Placement:/Inline
+          math [mathml]
+            msup [mathml]
+              mi [mathml] (+1 MC)
+              mn [mathml] (+1 MC)
+            mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0.222em,/rspace:0.222em
+            msup [mathml]
+              mi [mathml] (+1 MC)
+              mn [mathml] (+1 MC)
+            mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0.278em,/rspace:0.278em
+            msup [mathml]
+              mi [mathml] (+1 MC)
+              mn [mathml] (+1 MC)
+        Link [pdf2] (+1 MC)
+      Formula [pdf2]  attrs=class:/display,/O:/Layout,/Placement:/Block
+        math [mathml]  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/display:block
+          msubsup [mathml]
+            mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0,/rspace:0.167em
+            mn [mathml] (+1 MC)
+            mn [mathml] (+1 MC)
+          mi [mathml] (+1 MC)
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0,/rspace:0,/stretchy:false
+          mi [mathml] (+1 MC)
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0,/rspace:0,/stretchy:false
+          mspace [mathml]  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/width:0.167em
+          mi [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/mathvariant:normal
+          mi [mathml] (+1 MC)
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0.278em,/rspace:0.278em
+          mi [mathml] (+1 MC)
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0,/rspace:0,/stretchy:false
+          mn [mathml] (+1 MC)
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0,/rspace:0,/stretchy:false
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0.222em,/rspace:0.222em
+          mi [mathml] (+1 MC)
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0,/rspace:0,/stretchy:false
+          mn [mathml] (+1 MC)
+          mo [mathml] (+1 MC)  attrs=/NS:pikepdf.Dictionary(Type="/Namespace")({
+  "/NS": "http://www.w3.org/1998/Math/MathML",
+  "/Type": "/Namespace"
+}),/O:/NSO,/lspace:0,/rspace:0,/stretchy:false
+      itemize [latex]  attrs=class:/itemize,/ListNumbering:/Unordered,/O:/List
+        item [latex]
+          itemlabel [latex] (+1 MC)
+          itembody [latex]
+            semantic-para [latex]
+              text-block [latex] (+1 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+        item [latex]
+          itemlabel [latex] (+1 MC)
+          itembody [latex]
+            semantic-para [latex]
+              text-block [latex] (+1 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+      text-block [latex]  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+      Table [pdf2]
+        TR [pdf2]
+          TD [pdf2] (+1 MC)
+          TD [pdf2] (+1 MC)
+        TR [pdf2]
+          TD [pdf2] (+1 MC)
+          TD [pdf2] (+1 MC)
+      text-block [latex]
+    semantic-para [latex]
+      text-block [latex]  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+        Figure [pdf2] (+1 MC)  /Alt='Grey placeholder rectangle' attrs=/BBox:pikepdf.Array([ Decimal('148.71233'), Decimal('332.2536'), Decimal('205.40525'), Decimal('374.7706') ]),/O:/Layout
+
+===== Role maps =====
+https://www.latex-project.org/ns/dflt (43 entries)
+  codeline->pdf2:Sub, description->pdf2:L, enumerate->pdf2:L, figures->pdf2:Sect, float->pdf2:Aside, footnote->pdf2:FENote, footnotelabel->pdf2:Lbl, footnotemark->pdf2:Lbl, heading-fragment->pdf2:Span, heading-minipage->pdf2:Span, heading-number->pdf2:Lbl, heading-parbox->pdf2:Span, item->pdf2:LI, itembody->pdf2:LBody, itemize->pdf2:L, itemlabel->pdf2:Lbl, list->pdf2:L, paragraph->pdf2:Sect, paragraph-heading->pdf2:H4, part->pdf2:Part, part-heading->pdf2:Title, quotation->pdf:BlockQuote, quote->pdf:BlockQuote, section->pdf2:Sect, section-heading->pdf2:H1, semantic-para->pdf2:Part, subparagraph->pdf2:Sect, subparagraph-heading->pdf2:H5, subsection->pdf2:Sect, subsection-heading->pdf2:H2, subsubsection->pdf2:Sect, subsubsection-heading->pdf2:H3, tables->pdf2:Sect, text-block->pdf2:P, text-fragment->pdf2:Span, text-minipage->pdf2:Div, text-parbox->pdf2:Div, theorem-like->pdf2:Sect, title-author->pdf2:P, title-block->pdf2:Div, title-date->pdf2:P, title-text->pdf2:Title, verbatim->pdf:Code
+https://www.latex-project.org/ns/book (7 entries)
+  chapter->pdf2:Sect, chapter-heading->pdf2:H1, paragraph-heading->pdf2:H5, section-heading->pdf2:H2, subparagraph-heading->pdf2:H6, subsection-heading->pdf2:H3, subsubsection-heading->pdf2:H4
+Fallback /RoleMap: Artifact->Private, Aside->Note, DocumentFragment->Art, Em->Span, FENote->Note, H10->H6, H7->H6, H8->H6, H9->H6, Strong->Span, Sub->Span, Title->P, codeline->Span, description->L, enumerate->L, figures->Sect, float->Note, footnote->Note, footnotelabel->Lbl, footnotemark->Lbl, heading-fragment->Span, heading-minipage->Span, heading-number->Lbl, heading-parbox->Span, item->LI, itembody->LBody, itemize->L, itemlabel->Lbl, list->L, paragraph->Sect, paragraph-heading->H4, part->Part, part-heading->P, quotation->BlockQuote, quote->BlockQuote, section->Sect, section-heading->H1, semantic-para->Part, subparagraph->Sect, subparagraph-heading->H5, subsection->Sect, subsection-heading->H2, subsubsection->Sect, subsubsection-heading->H3, tables->Sect, text-block->P, text-fragment->Span, text-minipage->Div, text-parbox->Div, theorem-like->Sect, title-author->P, title-block->Div, title-date->P, title-text->P, verbatim->Code
+ClassMap: /aria-banner, /TH-col, /TH-both, /TH-row, /display, /itemize, /justify, /center, /inline
+
+===== Marked content, page 1 (first 14 operators) =====
+  /Artifact BMC
+  EMC
+  /title-text <</MCID 0>> BDC
+  EMC
+  /title-author <</MCID 1>> BDC
+  EMC
+  /title-date <</MCID 2>> BDC
+  EMC
+  /Artifact BMC
+  EMC
+  /heading-number <</MCID 3>> BDC
+  EMC
+  /section-heading <</MCID 4>> BDC
+  EMC
+Marked-content operator counts: {'BDC': 48, 'BMC': 10, 'EMC': 58}
+Page /StructParents: 0 | /Tabs: /S
+
+===== Fonts =====
+  /F15: /XQKSSG+LMRoman10-Regular Subtype=/Type0 ToUnicode=True
+  /F20: /SMVVOG+LatinModernMath-Regular Subtype=/Type0 ToUnicode=True
+  /F21: /DFHRMV+LatinModernMath-Regular Subtype=/Type0 ToUnicode=True
+  /F32: /CFFSXR+LMRoman17-Regular Subtype=/Type0 ToUnicode=True
+  /F33: /EJWRAN+LMRoman12-Regular Subtype=/Type0 ToUnicode=True
+  /F35: /KGHTJH+LMRoman12-Bold Subtype=/Type0 ToUnicode=True
+  /F36: /OGJFWH+LMMono10-Regular Subtype=/Type0 ToUnicode=True
+
+===== Embedded files =====
+  Filespec latex-list-css.html AFRelationship=/Supplement Subtype=/text/html Desc=None
+  Filespec latex-align-css.html AFRelationship=/Supplement Subtype=/text/html Desc=None
+  Filespec pdf-A4f.txt AFRelationship=/Unspecified Subtype=/text/plain Desc=note about PDF/A-4F
+Total file specifications: 3

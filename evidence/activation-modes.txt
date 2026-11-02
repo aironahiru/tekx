@@ -1,0 +1,21 @@
+m0-none.pdf  PDF 1.7  StructTreeRoot=False  Marked=False  BDC=0 BMC=0  XMP=False  Lang=None  space-font-selections=0  fonts=['CMBX12', 'CMR10']
+m1-empty.pdf PDF 2.0  StructTreeRoot=False  Marked=False  BDC=0 BMC=0  XMP=True  Lang=en  space-font-selections=1  fonts=['PdfTeX-Space', 'SFBX1440', 'SFRM1000']
+m2-off.pdf   PDF 2.0  StructTreeRoot=False  Marked=False  BDC=0 BMC=0  XMP=True  Lang=en  space-font-selections=1  fonts=['PdfTeX-Space', 'SFBX1440', 'SFRM1000']
+m3-draft.pdf PDF 2.0  StructTreeRoot=False  Marked=False  BDC=4 BMC=2  XMP=True  Lang=en  space-font-selections=2  fonts=['PdfTeX-Space', 'SFBX1440', 'SFRM1000']
+m4-on.pdf    PDF 2.0  StructTreeRoot=True  Marked=True  BDC=4 BMC=2  XMP=True  Lang=en  space-font-selections=2  fonts=['PdfTeX-Space', 'SFBX1440', 'SFRM1000']
+
+===== Text operators, m2-off vs m4-on (interword space glyph only with tagging=on) =====
+-- m2-off
+  TJ '1'
+  TJ ' '
+  TJ 'A'
+  TJ 'O\x1ecetext.'
+  TJ '1'
+-- m4-on
+  TJ '1'
+  TJ ' '
+  TJ 'A'
+  TJ 'O\x1ece'
+  Tj ' '
+  TJ 'text.'
+  TJ '1'

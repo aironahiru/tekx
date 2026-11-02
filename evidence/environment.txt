@@ -1,0 +1,25 @@
+
+===== Toolchain =====
+This is LuaHBTeX, Version 1.24.0 (TeX Live 2026)
+pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)
+veraPDF 1.30.3
+pdftotext version 24.02.0
+pikepdf 10.17.0
+pdfjs-dist 6.5.438
+
+===== Format and component versions (from 01-ua2-lualatex-mathml-se.log) =====
+LaTeX2e <2026-11-01>
+L3 programming layer <2026-09-09>
+File: hgeneric-testphase.def 2026-10-06 v0.97d generic Hyperref driver for the 
+File: l3backend-pdf-luatex.def 2026-10-06 v0.97d LaTeX PDF management bundle ba
+File: tagpdf-luatex.def 2026-10-29 v1.0i tagpdf driver for luatex
+Package: fontspec 2026/08/11 v2.9h Font selection for XeLaTeX and LuaLaTeX
+Package: hyperref 2026-10-09 v7.01s Hypertext links for LaTeX
+Package: latex-lab-testphase-latest 2026-08-06 v0.1h latex-lab modules
+Package: latex-lab-testphase-math 2025-03-10 v0.8d code related to the math tag
+Package: latex-lab-testphase-table 2026-09-24 v0.85v Code related to the taggin
+Package: luamml 2026-10-30 v0.9.3 Automatically generate presentational MathML 
+Package: pdfmanagement-init 2026-10-06 v0.97d LaTeX PDF management bundle
+Package: tagpdf 2026-10-29 v1.0i  LaTeX kernel code for PDF tagging 
+Package: unicode-math 2023/08/13 v0.8r Unicode maths in XeLaTeX and LuaLaTeX
+\def\documentmetadatasupportversion{1.1f}

@@ -1,0 +1,13 @@
+% Friction reproducer: soul (status "currently-incompatible").
+% soul re-typesets its argument token by token; the paragraph hooks fire
+% inside its measuring boxes and open nested text-block (P) structures.
+% Verified: compile errors "automatic begin (3) and end (1) ... para hooks
+% differ"; veraPDF ua2 FAIL: ISO/TS 32005:2023 Table 5 P-P and P-Part.
+\DocumentMetadata{lang=en-US, pdfstandard=UA-2, tagging=on}
+\documentclass{article}
+\title{Probe}
+\usepackage{soul}
+\begin{document}
+\section{S}
+Here is \hl{highlighted} and \so{spaced} text.
+\end{document}

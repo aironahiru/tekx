@@ -1,0 +1,10 @@
+
+===== v1-standard-then-version: % pdfstandard before pdfversion: version stays 1.7, warning at begin document =====
+PDF version:     1.7
+Package pdf Warning: PDF version 1.7 is too low for standard 'pdf/UA-2'.
+(pdf)                Check if there are conflicting PDF standard
+(pdf)                and PDF version settings!
+
+===== v2-version-then-standard: % pdfversion before pdfstandard: UA-2 raises the version to 2.0 =====
+PDF version:     2.0
+(no pdf warning)

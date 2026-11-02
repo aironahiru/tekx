@@ -1,0 +1,154 @@
+
+===== poppler pdftotext -raw: c1-legacy-pdftex =====
+'1 Probe'
+'Ligatures: office affine flow.'
+'Characteristically in-'
+'ternationalization in-'
+'comprehensibilities notwith-'
+'standing.'
+'Math: α ≤ β. Symbol: Image'
+
+===== poppler pdftotext -raw: c2-tagged-pdftex =====
+'1 Probe'
+'Ligatures: office affine flow.'
+'Characteristically in-'
+'ternationalization in-'
+'comprehensibilities notwith-'
+'standing.'
+'Math: α ≤ β. Symbol: Image'
+
+===== poppler pdftotext -raw: c3-tagged-lua =====
+'1 Probe'
+'Ligatures: office affine flow.'
+'Characteristically in-'
+'ternationalization in-'
+'comprehensibilities notwith-'
+'standing.'
+'Math: 𝛼 ≤ 𝛽. Symbol: Image'
+
+===== poppler pdftotext -raw: c4-tagged-lua-softhyphen =====
+'1 Probe'
+'Ligatures: office affine flow.'
+'Characteristically in\xad'
+'ternationalization in\xad'
+'comprehensibilities notwith\xad'
+'standing.'
+'Math: 𝛼 ≤ 𝛽. Symbol: Image'
+
+===== poppler pdftotext default mode (dehyphenation): c1-legacy-pdftex =====
+1
+
+Probe
+
+Ligatures: office affine flow.
+Characteristically internationalization incomprehensibilities notwithstanding.
+
+===== content-stream /ActualText span (c5): poppler =====
+Before XYZ after.
+
+===== content-stream /ActualText span (c5): pdf.js getTextContent() =====
+Before abc after.
+
+===== pdf.js: c2-tagged-pdftex =====
+--- getTextContent() ---
+1 Probe
+Ligatures: office affine flow.
+Characteristically in-
+ternationalization in-
+comprehensibilities notwith-
+standing.
+Math: α ≤ β. Symbol:Image .
+1
+--- marked-content tags (first 12) ---
+Artifact heading-number section-heading section-heading text-block text-block text-block Formula text-block Span text-block Artifact
+--- getStructTree() ---
+Root
+  Document
+    Sect
+      H1
+        Lbl
+      Part
+        P
+      Part
+        P
+      Part
+        P
+          Formula
+          Span alt="X"
+--- metadata ---
+Language: en-US | PDFFormatVersion: 2.0
+
+===== pdf.js: c3-tagged-lua =====
+--- getTextContent() ---
+1 Probe
+Ligatures: office affine flow.
+Characteristically in-
+ternationalization in-
+comprehensibilities notwith-
+standing.
+Math: 𝛼 ≤ 𝛽. Symbol:Image .
+1
+--- marked-content tags (first 12) ---
+Artifact heading-number section-heading section-heading Artifact text-block text-block Artifact text-block Artifact text-block Artifact
+--- getStructTree() ---
+Root
+  Document
+    Sect
+      H1
+        Lbl
+      Part
+        P
+      Part
+        P
+      Part
+        P
+          Formula mathML="<math xmlns=\"http://www.w3.org/1998/Math/MathML\"> <mi>𝛼</mi"...
+          Span alt="X"
+--- metadata ---
+Language: en-US | PDFFormatVersion: 2.0
+
+===== pdf.js: 01-ua2-lualatex-mathml-se (MathML structure elements) =====
+--- getStructTree() ---
+Root
+  Document
+    Div
+      P
+      P
+      P
+    Sect
+      H1
+        Lbl
+      Part
+        P
+          Formula
+            math
+              msup
+                mi
+                mn
+              mo
+              msup
+                mi
+                mn
+              mo
+              msup
+                mi
+                mn
+          Link
+        Formula
+          math
+            msubsup
+              mo
+
+===== Structure of c3-tagged-lua =====
+Document [pdf2]
+  section [latex]
+    section-heading [latex] (+2 MC)
+      heading-number [latex] (+1 MC)
+    semantic-para [latex]
+      text-block [latex] (+1 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+    semantic-para [latex]
+      text-block [latex] (+4 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+    semantic-para [latex]
+      text-block [latex] (+3 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+        Formula [pdf2] (+1 MC)  AF[/Supplement /application/mathml+xml] AF[/Source /application/x-tex] attrs=class:/inline,/O:/Layout,/Placement:/Inline
+        Span [pdf2] (+1 MC)  /ActualText='X'

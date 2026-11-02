@@ -1,0 +1,34 @@
+% pdfLaTeX route: generic (non-Lua) tagpdf mode.  MathML cannot be generated
+% by pdfTeX; it is read from an HTML file keyed by the MD5 hash of each
+% formula's source.  Here the file written by example 02 (LuaLaTeX/luamml)
+% is reused.  Formula sources must be byte-identical for the hash to match.
+% Verified: veraPDF ua2 + 4f -> PASS after pass 2 (pass 1 fails 8.2.2).
+\DocumentMetadata{
+  lang          = en-US,
+  pdfstandard   = {UA-2, A-4F},
+  tagging       = on,
+  tagging-setup = {math/mathml/sources = {02-ua2-lualatex-mathml-af-luamml-mathml}},
+}
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\title{Tagged PDF Audit Probe}
+\author{Stack Auditor}
+\begin{document}
+\maketitle
+\section{Introduction}
+Ligature probe: office, affine, flow. Inline math $a^2+b^2=c^2$ and a
+link to \url{https://www.latex-project.org}.
+\[ \int_0^1 f(x)\,\mathrm{d}x = F(1)-F(0) \]
+\begin{itemize}
+  \item First item
+  \item Second item
+\end{itemize}
+\begin{tabular}{ll}
+  Key & Value \\
+  A   & 1
+\end{tabular}
+
+\includegraphics[width=2cm,alt={Grey placeholder rectangle}]{example-image}
+\end{document}

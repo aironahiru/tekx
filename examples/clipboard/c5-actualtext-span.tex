@@ -1,0 +1,7 @@
+% Content-stream /ActualText span (the mechanism luaotfload's HarfBuzz mode
+% and accsupp-style code use). The glyphs "abc" are replaced by "XYZ" for
+% consumers that honour marked-content ActualText during text extraction.
+\documentclass{article}
+\begin{document}
+Before \pdfliteral page{/Span <</ActualText (XYZ)>> BDC}abc\pdfliteral page{EMC} after.
+\end{document}

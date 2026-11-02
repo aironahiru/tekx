@@ -1,0 +1,20 @@
+
+===== Compile errors =====
+! Package tagpdf Error: The number of automatic begin (3) and end (1)
+(tagpdf)                text-block para hooks differ!
+--
+! Package tagpdf Error: The number of automatic begin (3) and end (1)
+(tagpdf)                semantic-para para hooks differ!
+
+===== tagpdf warnings =====
+      1 Package tagpdf Warning: Neither unicode-math nor lua-unicode-math has been
+      2 Package tagpdf Warning: Parent-Child 'pdf2:P' --> 'pdf2:P'.
+      2 Package tagpdf Warning: Parent-Child 'pdf2:P' --> 'pdf2:Part'.
+      2 Package tagpdf Warning: The structure section can not be closed.
+      1 Package tagpdf Warning: There are still open structures on the stack!
+
+===== veraPDF ua2 =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: false
+  FAIL ISO 32005:2023 clause Table 5. P-P test 1 (x2): <P> shall not contain <P>
+  FAIL ISO 32005:2023 clause Table 5. P-Part test 1 (x2): <P> shall not contain <Part>

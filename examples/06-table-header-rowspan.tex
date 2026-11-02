@@ -1,0 +1,16 @@
+% Native table tagging (latex-lab-table): header rows and RowSpan.
+% table/multirow must be set INSIDE the spanning cell; the author must keep
+% the covered cells empty (the code neither checks nor suppresses content).
+% Verified: veraPDF ua2 PASS; TH carries /Scope /Column via attribute class,
+% the spanning TD carries /RowSpan 2 and the covered TD is not emitted.
+\DocumentMetadata{lang=en-US, pdfstandard=UA-2, tagging=on}
+\documentclass{article}
+\title{Table probe}
+\begin{document}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{ll}
+  Key & Value \\
+  \tagpdfsetup{table/multirow=2}Merged & a \\
+                                       & b
+\end{tabular}
+\end{document}

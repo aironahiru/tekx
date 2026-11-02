@@ -1,0 +1,44 @@
+
+===== 06 native table tagging =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true
+    Table
+      TR
+        TH  [{'class': '/TH-col', '/O': '/Table', '/Scope': '/Column'}]
+        TH  [{'class': '/TH-col', '/O': '/Table', '/Scope': '/Column'}]
+      TR
+        TD  [{'class': '/rowspan-2', '/O': '/Table', '/RowSpan': '2'}]
+        TD
+      TR
+        TD
+
+===== 08 multirow package =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true
+      Table
+        TR
+          TD
+          TD
+        TR
+          TD
+          TD
+
+===== pdf.js getStructTree: 06-table-header-rowspan =====
+      Table
+        TR
+          TH scope="Column"
+          TH scope="Column"
+        TR
+          TD rowSpan=2
+          TD
+        TR
+          TD
+
+===== pdf.js getStructTree: 08-friction-multirow =====
+        Table
+          TR
+            TD
+            TD
+          TR
+            TD
+            TD

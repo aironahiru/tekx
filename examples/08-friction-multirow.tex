@@ -1,0 +1,12 @@
+% Friction reproducer: multirow (status "currently-incompatible").
+% Compiles cleanly and PASSES veraPDF ua2, but the semantics are wrong:
+% the merged cell is a plain TD without /RowSpan and an extra empty TD is
+% emitted for the covered cell. Compare with 06-table-header-rowspan.tex.
+\DocumentMetadata{lang=en-US, pdfstandard=UA-2, tagging=on}
+\documentclass{article}
+\title{Probe}
+\usepackage{multirow}
+\begin{document}
+\section{S}
+\begin{tabular}{ll}\multirow{2}{*}{Merged} & a \\ & b\end{tabular}
+\end{document}

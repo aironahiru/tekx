@@ -1,0 +1,20 @@
+% Compatibility report: check-tagging-status writes a classification of the
+% class and every loaded package to the terminal/log at \end{document}.
+% Requires the latex-tagging-status package (TeX Live collection-latexextra);
+% if latex-tagging-status.ltx is absent the key silently produces no report.
+\DocumentMetadata{
+  lang = en-US, pdfstandard = UA-2, tagging = on,
+  check-tagging-status,
+}
+\documentclass{article}
+\usepackage{soul}
+\usepackage{ulem}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{enumitem}   % not loaded: emulated by latex-lab-enumitem
+\usepackage{hyperxmp}   % loading suppressed by pdfmanagement
+\title{Friction probe}
+\begin{document}
+\section{Text decoration}
+Plain text only.
+\end{document}

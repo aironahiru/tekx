@@ -1,0 +1,66 @@
+
+===== Pass 1 (no <jobname>-luamml-mathml.html yet) =====
+  Filespec tag-AFfile1.tex AFRelationship=/Source Subtype=/application/x-tex Desc=TeX source
+  Filespec tag-AFfile2.tex AFRelationship=/Source Subtype=/application/x-tex Desc=TeX source
+  Filespec latex-list-css.html AFRelationship=/Supplement Subtype=/text/html Desc=None
+  Filespec latex-align-css.html AFRelationship=/Supplement Subtype=/text/html Desc=None
+  Filespec pdf-A4f.txt AFRelationship=/Unspecified Subtype=/text/plain Desc=note about PDF/A-4F
+Total file specifications: 5
+
+===== Pass 2 =====
+  Filespec mathml-1.xml AFRelationship=/Supplement Subtype=/application/mathml+xml Desc=mathml-1
+  Filespec mathml-2.xml AFRelationship=/Supplement Subtype=/application/mathml+xml Desc=mathml-2
+  Filespec tag-AFfile1.tex AFRelationship=/Source Subtype=/application/x-tex Desc=TeX source
+  Filespec tag-AFfile2.tex AFRelationship=/Source Subtype=/application/x-tex Desc=TeX source
+  Filespec latex-list-css.html AFRelationship=/Supplement Subtype=/text/html Desc=None
+  Filespec latex-align-css.html AFRelationship=/Supplement Subtype=/text/html Desc=None
+Total file specifications: 6
+MathML statistic
+================
+==> 2 MathML fragments read
+==> 2 different MathML fragments
+==> 2 math fragments found
+==> 2 fitting MathML AF found
+==> 2 MathML AF attached
+
+===== veraPDF =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true
+profile: PDF/A-4f validation profile
+compliant: true
+
+===== Structure tree (formulas) =====
+Document [pdf2]
+  section [latex]
+        Formula [pdf2] (+1 MC)  AF[/Supplement /application/mathml+xml] AF[/Source /application/x-tex] attrs=class:/inline,/O:/Layout,/Placement:/Inline
+      Formula [pdf2] (+1 MC)  AF[/Supplement /application/mathml+xml] AF[/Source /application/x-tex] attrs=class:/display,/O:/Layout,/Placement:/Block
+
+===== Head of 02-ua2-lualatex-mathml-af-luamml-mathml.html =====
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<div>
+<h2>\mml 1</h2>
+<p>$a^2+b^2=c^2$</p>
+<p>E1AFFC0A43F89AE2DA953B789D29E42C</p>
+
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+ <msup>
+ <mi>𝑎</mi>
+ <mn>2</mn>
+ </msup>
+ <mo lspace="0.222em" rspace="0.222em">+</mo>
+ <msup>
+ <mi>𝑏</mi>
+ <mn>2</mn>
+ </msup>
+ <mo lspace="0.278em" rspace="0.278em">=</mo>
+ <msup>
+ <mi>𝑐</mi>
+ <mn>2</mn>
+ </msup>
+</math>
+</div>
+
+<div>
+<h2>\mml 2</h2>

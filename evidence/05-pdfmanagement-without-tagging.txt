@@ -1,0 +1,12 @@
+
+===== Catalog =====
+PDF version: 1.7
+Catalog keys: /Metadata /OutputIntents /Pages /Type
+Trailer /Info present: True
+StructTreeRoot: absent
+
+===== XMP =====
+pdfaid:part: ['3']
+pdfaid:conformance: ['B']
+pdf:Producer: ['pdftex-1.40.29']
+xmp:CreatorTool: ['LaTeX']

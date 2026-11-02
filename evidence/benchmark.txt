@@ -1,0 +1,7 @@
+40 sections, ~49 pages, article class; median of 3 warm runs (after 2 priming runs)
+CPU threads: 4
+b1-pdftex-legacy   pdflatex  pages=49 median=0.23s size=166KiB struct-elems=0 ua2=FAIL
+b2-pdftex-tagged   pdflatex  pages=49 median=6.06s size=331KiB struct-elems=1643 ua2=PASS
+b3-lua-legacy      lualatex  pages=49 median=1.85s size=126KiB struct-elems=0 ua2=FAIL
+b4-lua-tagged-af   lualatex  pages=49 median=7.93s size=260KiB struct-elems=1604 ua2=PASS
+b5-lua-tagged-se   lualatex  pages=49 median=13.05s size=316KiB struct-elems=4684 ua2=PASS

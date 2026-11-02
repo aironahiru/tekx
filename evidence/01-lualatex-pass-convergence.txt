@@ -1,0 +1,8 @@
+
+===== lualatex pass 1 =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true
+
+===== lualatex pass 2 =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true

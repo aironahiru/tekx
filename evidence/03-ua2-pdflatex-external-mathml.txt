@@ -1,0 +1,77 @@
+
+===== pdflatex pass 1 =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: false
+  FAIL ISO 14289-2:2024 clause 8.2.2 test 1 (x79): Content that is not considered real shall be an artifact
+rerun warnings: 1
+
+===== pdflatex pass 2 =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true
+rerun warnings: 1
+
+===== pdflatex pass 3 =====
+profile: PDF/UA-2 + Tagged PDF validation profile
+compliant: true
+rerun warnings: 0
+MathML statistic
+================
+==> 2 MathML fragments read
+==> 2 different MathML fragments
+==> 2 math fragments found
+==> 2 fitting MathML AF found
+==> 2 MathML AF attached
+
+===== veraPDF 4f =====
+profile: PDF/A-4f validation profile
+compliant: true
+
+===== Fonts (T1 / cm-super + PdfTeX-Space) =====
+  /F25: /UYVLXV+CMEX10 Subtype=/Type1 ToUnicode=True
+  /F31: /ZEOTZW+CMR7 Subtype=/Type1 ToUnicode=True
+  /F32: /CEWTZD+CMR10 Subtype=/Type1 ToUnicode=True
+  /F35: /SHJQFJ+CMMI10 Subtype=/Type1 ToUnicode=True
+  /F38: /FXXUVH+CMSY10 Subtype=/Type1 ToUnicode=True
+  /F45: /NFPBGK+SFRM1000 Subtype=/Type1 ToUnicode=True
+  /F46: /ALOSXF+SFRM1728 Subtype=/Type1 ToUnicode=True
+  /F47: /RAMGNZ+SFRM1200 Subtype=/Type1 ToUnicode=True
+  /F49: /NLRVKI+SFBX1440 Subtype=/Type1 ToUnicode=True
+  /F52: /PPPBGQ+SFTT1000 Subtype=/Type1 ToUnicode=True
+  /F53: /NFPBGK+SFRM1000 Subtype=/Type1 ToUnicode=True
+  /F54: /MUQHVU+PdfTeX-Space Subtype=/Type1 ToUnicode=True
+
+===== Structure tree =====
+Document [pdf2]
+  title-block [latex]  attrs=class:/aria-banner,/O:/ARIA-1.1,/role:banner
+    title-text [latex] (+1 MC)  attrs=class:/center,/O:/Layout,/TextAlign:/Center
+    title-author [latex] (+1 MC)  attrs=class:/center,/O:/Layout,/TextAlign:/Center
+    title-date [latex] (+1 MC)  attrs=class:/center,/O:/Layout,/TextAlign:/Center
+  section [latex]
+    section-heading [latex] (+2 MC)
+      heading-number [latex] (+1 MC)
+    semantic-para [latex]
+      text-block [latex] (+3 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+        Formula [pdf2] (+1 MC)  AF[/Supplement /application/mathml+xml] AF[/Source /application/x-tex] attrs=class:/inline,/O:/Layout,/Placement:/Inline
+        Link [pdf2] (+1 MC)
+      Formula [pdf2] (+1 MC)  AF[/Supplement /application/mathml+xml] AF[/Source /application/x-tex] attrs=class:/display,/O:/Layout,/Placement:/Block
+      itemize [latex]  attrs=class:/itemize,/ListNumbering:/Unordered,/O:/List
+        item [latex]
+          itemlabel [latex] (+1 MC)
+          itembody [latex]
+            semantic-para [latex]
+        item [latex]
+          itemlabel [latex] (+1 MC)
+          itembody [latex]
+            semantic-para [latex]
+      text-block [latex] (+1 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+      Table [pdf2]
+        TR [pdf2]
+          TD [pdf2] (+1 MC)
+          TD [pdf2] (+1 MC)
+        TR [pdf2]
+          TD [pdf2] (+1 MC)
+          TD [pdf2] (+1 MC)
+      text-block [latex] (+1 MC)
+    semantic-para [latex]
+      text-block [latex] (+2 MC)  attrs=class:/justify,/O:/Layout,/TextAlign:/Justify
+        Figure [pdf2] (+1 MC)  /Alt='Grey placeholder rectangle' attrs=/BBox:pikepdf.Array([ Decimal('148.71233'), Decimal('334.47922'), Decimal('205.40525'), Decimal('376.99622') ]),/O:/Layout
