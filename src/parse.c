@@ -147,9 +147,24 @@ inlines(Node *parent, Src *src, size_t a, size_t b)
 			continue;
 		}
 		if (c == '$') {
-			size_t e = find_close(s, i + 1, b, "$");
+			/* Pandoc's rule keeps prices out of mathematics: the opening $
+			 * touches the formula, and the closing $ has no blank before it
+			 * and no digit after it.  "$5 and $10" stays text. */
+			size_t e = (size_t)-1;
+			if (i + 1 < b && s[i + 1] != ' ' && s[i + 1] != '$')
+				for (size_t k = i + 1; k < b; k++) {
+					if (s[k] == '\\') {
+						k++;
+						continue;
+					}
+					if (s[k] == '$') {
+						/* the next $ closes the formula, or this $ was money */
+						if (s[k - 1] != ' ' && !(k + 1 < b && s[k + 1] >= '0' && s[k + 1] <= '9'))
+							e = k;
+						break;
+					}
+				}
 			if (e == (size_t)-1) {
-				error_at(src->line[i], src->col[i], "unterminated inline math: missing closing $");
 				bputc(&t, c);
 				i++;
 				continue;

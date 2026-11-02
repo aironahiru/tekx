@@ -188,6 +188,7 @@ static int cur_line;	/* source line of the block being set, for warnings */
 typedef struct {
 	char *name;
 	char *text;	/* how a reference reads: "Section 2", "(3)", "[1]" */
+	char *spoken;	/* what a link to it says to a screen reader: "Equation 3" */
 	int el;		/* destination element, -1 until laid out */
 	int line;
 } Label;
@@ -213,7 +214,11 @@ add_label(const char *name, const char *text, int line)
 		error_at(line, 0, "label #%s is already used (line %d)", name, old->line);
 		return;
 	}
-	Label l = {xstrdup(name), xstrdup(text), -1, line};
+	Label l = {xstrdup(name), xstrdup(text), xstrdup(text), -1, line};
+	if (text[0] == '(')
+		l.spoken = fmt("Equation %.*s", (int)strlen(text) - 2, text + 1);
+	else if (text[0] == '[')
+		l.spoken = fmt("Reference %.*s", (int)strlen(text) - 2, text + 1);
 	VPUSH(labels, l);
 }
 
@@ -811,7 +816,7 @@ add_inline(HList *hl, Node *k, Ctx c)
 			return;
 		}
 		Ctx e = c;
-		e.link = new_link(c.el, NULL, l->name, l->text);
+		e.link = new_link(c.el, NULL, l->name, l->spoken);
 		e.el = links.v[e.link].el;
 		e.nohyph = true;
 		/* keep "Theorem 3" together */

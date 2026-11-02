@@ -1743,6 +1743,11 @@ word(P *p, Tok *t)
 		return op("∀", ORD);
 	if (streq(w, "forall"))
 		return op("∀", ORD);
+	if (streq(w, "quad") || streq(w, "qquad")) {
+		M *sp = mnew(M_SPACE);
+		sp->num = streq(w, "quad") ? 1000 : 2000;
+		return sp;
+	}
 	if (streq(w, "exists") || (streq(w, "there") && (accept(p, "exists") || accept(p, "exist") ||
 	    (is(peek(p), "is") && (advance(p), true))))) {
 		if (accept(p, "unique") || accept(p, "!"))
@@ -1777,8 +1782,13 @@ word(P *p, Tok *t)
 			return apply(p, f, false);
 		return f;
 	}
+	if (strlen(w) >= 4 && (unsigned char)w[0] < 0x80) {
+		/* a longer unknown word is a name, set upright as one identifier:
+		 * velocity = distance/time */
+		return ident(w, V_NORMAL);
+	}
 	if (strlen(w) > 1 && (unsigned char)w[0] < 0x80) {
-		/* an unknown word: a product of single-letter variables */
+		/* a short unknown word: a product of single-letter variables, abc */
 		M *r = mrow();
 		r->times = true;
 		for (const char *c = w; *c; c++) {

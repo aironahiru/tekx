@@ -149,7 +149,7 @@ static void
 mml_row_kids(Buf *b, M *m)
 {
 	for (size_t i = 0; i < m->kids.n; i++) {
-		if (i > 0 && m->times)
+		if (i > 0 && m->times && m->kids.v[i]->kind != M_SPACE && m->kids.v[i - 1]->kind != M_SPACE)
 			bputs(b, "<mo>⁢</mo>");
 		if (i > 0 && m->apply)
 			bputs(b, "<mo>⁡</mo>");
@@ -333,6 +333,31 @@ eqn_mathml(M *m, bool display, const char *source)
 /* ---- speech ---- */
 
 static void say(Buf *b, M *m);
+static void word(Buf *b, const char *w);
+
+/* set while speaking a factor of a product or a function's argument, where a
+ * fraction must say where it ends */
+static bool embedded;
+
+/* small numeric fractions read as words: one half, three quarters, two fifths */
+static bool
+numeric_fraction(Buf *b, M *m)
+{
+	static const char *ones[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"};
+	static const char *den1[] = {NULL, NULL, "half", "third", "quarter", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"};
+	static const char *denn[] = {NULL, NULL, "halves", "thirds", "quarters", "fifths", "sixths", "sevenths", "eighths", "ninths", "tenths"};
+
+	if (!m->a || !m->b || m->a->kind != M_NUM || m->b->kind != M_NUM)
+		return false;
+	if (strlen(m->a->text) > 2 || strlen(m->b->text) > 2 || strchr(m->a->text, '.') || strchr(m->b->text, '.'))
+		return false;
+	int n = atoi(m->a->text), d = atoi(m->b->text);
+	if (n < 1 || n > 10 || d < 2 || d > 10)
+		return false;
+	word(b, ones[n]);
+	word(b, n == 1 ? den1[d] : denn[d]);
+	return true;
+}
 
 static void
 word(Buf *b, const char *w)
@@ -490,12 +515,22 @@ say(Buf *b, M *m)
 				word(b, "of");
 				say_fence_body(b, arg);
 			} else {
+				bool saved = embedded;
+				embedded = true;
 				say(b, arg);
+				embedded = saved;
 			}
 			return;
 		}
-		for (size_t i = 0; i < m->kids.n; i++)
+		for (size_t i = 0; i < m->kids.n; i++) {
+			bool saved = embedded;
+			if (m->times)
+				embedded = true;
+			else if (m->kids.v[i]->kind == M_FRAC)
+				embedded = false;	/* bounded by operators: "a over b plus c" is clear */
 			say(b, m->kids.v[i]);
+			embedded = saved;
+		}
 		return;
 	case M_ID:
 		say_id(b, m);
@@ -519,6 +554,17 @@ say(Buf *b, M *m)
 		word(b, m->text);
 		return;
 	case M_FRAC:
+		if (!m->thin && numeric_fraction(b, m))
+			return;
+		if (!m->thin && embedded && simple_part(m->a) && simple_part(m->b)) {
+			/* "a over b c" would be ambiguous: mark where the fraction ends */
+			word(b, "the fraction");
+			say(b, m->a);
+			word(b, "over");
+			say(b, m->b);
+			word(b, "end fraction");
+			return;
+		}
 		if (m->thin) {
 			say(b, m->a);
 			word(b, "choose");
@@ -719,6 +765,9 @@ say(Buf *b, M *m)
 		}
 		return;
 	case M_SPACE:
+		if (m->num >= 1000)
+			bputc(b, ',');	/* a quad is a pause */
+		return;
 	case M_ALIGN:
 		return;
 	}
@@ -1116,7 +1165,7 @@ lin(Buf *b, M *m, bool compact)
 		}
 		return;
 	case M_SPACE:
-		bputc(b, ' ');
+		bputs(b, m->num >= 2000 ? " qquad " : m->num >= 1000 ? " quad " : " ");
 		return;
 	case M_ALIGN:
 		return;

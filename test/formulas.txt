@@ -43,3 +43,6 @@ x_(n+1) = x_n - f(x_n)/f'(x_n)
 alpha + beta + gamma = pi
 floor(x) + ceil(y) <= abs(z)
 {1, 2, 3}
+velocity = distance / time
+f(x) = x quad x > 0
+3/4 + n/2
