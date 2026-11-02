@@ -2365,6 +2365,8 @@ eqn_main(FILE *in, FILE *out, const char *file)
 {
 	diag_file = file;
 	Node *doc = tree_read(in);
+	if (*doc->rest)
+		diag_file = doc->rest;	/* the source file, named by parse */
 	walk(doc);
 	tree_write(out, doc, 0);
 	return nerrors ? 1 : 0;

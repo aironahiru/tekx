@@ -1,5 +1,5 @@
 == tree
-document
+document test/golden/math.tekx
   define@1:8 function phi
   define@2:8 operator Tr
   define@3:8 norm2(v) as ||v||_2 read as "the two-norm of {v}"

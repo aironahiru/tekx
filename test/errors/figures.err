@@ -1,0 +1,4 @@
+test/errors/figures.tekx:1:1: error: a figure needs a text alternative for readers who cannot see it: add a line  alt "what the figure shows"
+test/errors/figures.tekx:4:1: error: cannot read test/errors/images/missing.png: No such file or directory
+test/errors/figures.tekx:7:1: error: interlaced PNG is not supported; save it without interlacing
+test/errors/figures.tekx:10:1: error: unknown width 'huge' (use 60%, 8cm, 80mm, 3in or 200pt)

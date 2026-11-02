@@ -1,0 +1,11 @@
+figure "images/parabola.png"
+  No alt text here.
+
+figure "images/missing.png"
+  alt "A file that does not exist."
+
+figure "images/interlaced.png" width 30%
+  alt "Interlaced."
+
+figure "images/parabola.png" width huge
+  alt "A bad width."

@@ -14,10 +14,10 @@ DEFS     = -D_POSIX_C_SOURCE=200809L
 LDLIBS   = -lm
 
 SRC  = main.c util.c pp.c parse.c tree.c eqn.c eqnlayout.c eqnsem.c set.c hyph.c \
-       pdf.c font.c cff.c ttf.c otl.c mathtab.c deflate.c md5.c assets.c
+       pdf.c img.c font.c cff.c ttf.c otl.c mathtab.c deflate.c md5.c assets.c
 OBJ  = $(SRC:%.c=obj/%.o)
 DOBJ = $(SRC:%.c=obj-debug/%.o)
-HDR  = src/tekx.h src/font.h src/tree.h src/eqn.h
+HDR  = src/tekx.h src/font.h src/tree.h src/eqn.h src/img.h
 
 ASSETS = assets/fonts/STIXTwoText-Regular.otf assets/fonts/STIXTwoText-Italic.otf \
          assets/fonts/STIXTwoText-Bold.otf assets/fonts/STIXTwoText-BoldItalic.otf \

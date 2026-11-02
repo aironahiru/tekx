@@ -90,6 +90,7 @@ The absolute value is a function defined by cases:
   - **Letters and symbols:** Greek by name, `RR` `NN` `ZZ`, every Unicode symbol, `x1` for x₁.
   - **Spacing groups:** `1/2 x` means ½·x and `h/2pi` means h/(2π).
 - **Structure:** `section` or `#`, theorem-like blocks with numbering, `proof` with ∎, lists, tables, quotes, code, `abstract`, `contents`, `references`.
+- **Figures:** PNG or JPEG with a numbered caption. Alt text is required, so a figure cannot be inaccessible.
 - **Cross-references:** mark a target with `#label` and refer to it with `@label`. The reference reads "Section 2", "Theorem 3", "(4)" or "[1]" and links to its target.
 - **Macros:**
   - text macros, `{name}`;
@@ -153,9 +154,8 @@ bytes.
 ## Status
 
 tekx 0.1 typesets articles: titles, abstracts, sections, theorems and proofs,
-lists, tables, code, displayed and inline mathematics, cross-references,
-contents and references. It does not yet do:
-- images or figures;
+lists, tables, figures, code, displayed and inline mathematics,
+cross-references, contents and references. It does not yet do:
 - footnotes;
 - multiple columns;
 - bibliography databases;
@@ -168,7 +168,7 @@ of them with `font text|italic|bold|bolditalic|math|mono FILE`.
 
 | path | contents |
 |---|---|
-| `src/` | the compiler: one file per stage, plus the font engine (`font.c`, `cff.c`, `ttf.c`, `otl.c`, `mathtab.c`), `deflate.c`, `md5.c` and `hyph.c` |
+| `src/` | the compiler: one file per stage, plus the font engine (`font.c`, `cff.c`, `ttf.c`, `otl.c`, `mathtab.c`), images (`img.c`), `deflate.c`, `md5.c` and `hyph.c` |
 | `doc/` | language reference, machinery, manual page `tekx.1` |
 | `examples/` | example documents with their PDFs |
 | `test/` | the test suite |

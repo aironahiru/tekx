@@ -43,6 +43,12 @@ aside "Note"
 
 section Structure
 
+figure "parabola.png" width 55% #parabola
+  alt "The parabola y equals x squared: a red U-shaped curve through the origin, with axes."
+  The graph of $y = x^2$. A figure must say what it shows: tekx refuses one without alt text.
+
+Figures, like @parabola, are numbered and referenced like everything else.
+
 - Lists, with $x in RR$ inside.
 - Items long enough to wrap across more than one line keep their hanging
   indentation.

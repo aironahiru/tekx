@@ -183,6 +183,28 @@ failing those, by single blanks.
 Displays may also be written `$$ formula $$` on one line, or between lines that
 hold only `$$`.
 
+### Figures
+
+```
+figure "plot.png" width 60% #plot
+  alt "The parabola y = x squared, opening upwards through the origin."
+  The graph of $y = x^2$.
+```
+
+A figure places a PNG or JPEG image, centred, with a numbered caption: "Figure
+1. The graph of y = x²." The file name is relative to the source file.
+
+- **width:** a percentage of the text width, or `cm`, `mm`, `in` or `pt`. The
+  default is the image's own size at 96 pixels per inch, capped at the text width.
+- **alt:** required. It is what a reader who cannot see the figure is told, and
+  tekx refuses a figure without it. The lines after it form the caption.
+- **Structure:** the image is a `Figure` with its alternative text, and the
+  caption is a `Caption`; both sit inside an `Aside`.
+
+PNG images may be gray, gray and alpha, RGB, RGBA or palette, of any bit depth;
+transparency becomes a soft mask. Interlaced PNG is refused. JPEG (gray or RGB)
+is embedded as it is.
+
 ### Other blocks
 
 | block | meaning |
@@ -362,6 +384,7 @@ display line, or with a reference key. Refer to it with `@label`:
 | section | Section 2.1 |
 | theorem-like block | Theorem 3, Lemma 4 … |
 | display line | (5) |
+| figure | Figure 2 |
 | reference entry | [6] |
 
 References may point forward. Every reference is a link to a structure

@@ -406,6 +406,7 @@ starts_block(int i)
 	    streq(w, "abstract") || streq(w, "proof") || streq(w, "quote") || streq(w, "define") ||
 	    streq(w, "references") || streq(w, "bibliography") || streq(w, "contents") ||
 	    streq(w, "newpage") || streq(w, "pagebreak") || streq(w, "env") || is_theorem_kind(w) ||
+	    streq(w, "figure") ||
 	    (streq(w, "let") && !strchr(s, '$'));
 	free(w);
 	return kw;
@@ -774,6 +775,48 @@ blocks(Node *parent, int i, int base, bool top)
 			after_display = false;
 			continue;
 		}
+		if (streq(w, "figure") && *rest) {
+			/* figure "file.png" [width 60%] [#label], then alt text and a caption */
+			char *spec = xstrdup(rest), *label = take_label(spec), *path, *after;
+			if (*spec == '"') {
+				char *e = strchr(spec + 1, '"');
+				if (e == NULL) {
+					error_at(ln->no, ln->indent + 8, "missing closing \" after the figure's file name");
+					e = spec + strlen(spec);
+				}
+				path = xstrndup(spec + 1, (size_t)(e - spec - 1));
+				after = *e ? e + 1 : e;
+			} else {
+				const char *a;
+				path = first_word(spec, &a);
+				after = (char *)a;
+			}
+			after = trim(after);
+			char *width = "-";
+			if (startswith(after, "width ")) {
+				width = trim(after + 6);
+			} else if (*after) {
+				error_at(ln->no, ln->indent + 1, "unexpected '%s' after the figure's file name "
+				    "(expected: figure \"file.png\" width 60%%)", after);
+			}
+			Buf pb = {0};
+			pct_escape(&pb, path);
+			Node *fig = node_add(parent, "figure", ln->no, 0, fmt("%s %s %s", bstr(&pb), width, label ? label : "-"));
+			int end = body_end(i, base), ind = first_body_indent(i, end);
+			if (ind >= 0) {
+				for (int j = i + 1; j < end; j++)
+					if (!is_blank(j) && L[j].indent == ind && (startswith(L[j].s, "alt ") || startswith(L[j].s, "alt:"))) {
+						node_add(fig, "alt", L[j].no, 0, unquote(trim(L[j].s + 4)));
+						L[j].s = "";
+					}
+				int saved = NL;
+				NL = end;
+				blocks(fig, i + 1, ind, false);
+				NL = saved;
+			}
+			i = end;
+			continue;
+		}
 		if (streq(w, "references") || streq(w, "bibliography")) {
 			i = references(parent, i, base);
 			continue;
@@ -848,7 +891,7 @@ blocks(Node *parent, int i, int base, bool top)
 			/* a lone word over an indented body looks like a misspelled block */
 			static const char *blockwords[] = {"theorem", "lemma", "proposition", "corollary",
 			    "definition", "example", "remark", "proof", "abstract", "quote", "references",
-			    "section", "subsection", "note", "conjecture", "claim", "exercise", "contents"};
+			    "section", "subsection", "note", "conjecture", "claim", "exercise", "contents", "figure"};
 			int end = body_end(i, base);
 			if (!*rest && end > i + 1 && w[0] >= 'a' && w[0] <= 'z') {
 				const char *best = NULL;
@@ -879,6 +922,8 @@ blocks(Node *parent, int i, int base, bool top)
 int
 parse_main(FILE *in, FILE *out, const char *file)
 {
+	const char *first_file = NULL;
+
 	VEC(Line) lines = {0};
 	char *raw;
 	int no = 0;
@@ -897,8 +942,11 @@ parse_main(FILE *in, FILE *out, const char *file)
 			char *q = strchr(p, '"');
 			if (q) {
 				char *e = strrchr(q + 1, '"');
-				if (e && e > q + 1)
+				if (e && e > q + 1) {
 					diag_file = xstrndup(q + 1, (size_t)(e - q - 1));
+					if (first_file == NULL)
+						first_file = diag_file;
+				}
 			}
 			free(raw);
 			continue;
@@ -918,7 +966,9 @@ parse_main(FILE *in, FILE *out, const char *file)
 	}
 	L = lines.v;
 	NL = (int)lines.n;
-	Node *doc = node_new("document", 0, 0, "");
+	/* the root names the source, so that later stages, which may read a
+	 * pipe, still report errors and find files relative to it */
+	Node *doc = node_new("document", 0, 0, first_file ? first_file : file);
 	section_stack[0] = doc;
 	blocks(doc, 0, 0, true);
 	tree_write(out, doc, 0);

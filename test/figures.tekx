@@ -1,0 +1,35 @@
+title "Figures"
+
+The parabola appears in @fig-a.
+
+figure "images/parabola.png" width 70% #fig-a
+  alt "The parabola y equals x squared, opening upwards through the origin, with axes."
+  The graph of $y = x^2$ on $[-1.2, 1.2]$.
+
+figure "images/filtered.png" width 40%
+  alt "The same parabola, re-encoded with PNG row filters."
+  Row filters.
+
+figure "images/parabola.jpg" width 40%
+  alt "The parabola as a JPEG."
+  A JPEG, passed through untouched to the PDF, with a caption long enough to need more than one line of text to be set.
+
+figure "images/palette.png" width 30%
+  alt "Palette PNG."
+  Palette.
+
+figure "images/gray16.png" width 30%
+  alt "16-bit grayscale."
+  Sixteen bits.
+
+figure "images/grayalpha.png" width 30%
+  alt "Gray with alpha."
+  Gray and alpha.
+
+figure "images/bits.png" width 10%
+  alt "A one-bit pattern."
+  One bit.
+
+figure "images/gray.jpg" width 30%
+  alt "Gray JPEG."
+  Gray JPEG.

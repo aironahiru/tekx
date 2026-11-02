@@ -115,7 +115,7 @@ document
 
 | node | arguments and text |
 |---|---|
-| `document` | the root |
+| `document` | the root; its text is the source file's name, so that later stages reading a pipe still report errors against it and find files beside it |
 | `meta` | KEY VALUE |
 | `env` | NAME KIND TITLE |
 | `define` | a mathematical definition, verbatim |
@@ -128,6 +128,7 @@ document
 | `table` | optional `align` (l c r …), then `row` HEADER with `cell` children |
 | `code` | LANGUAGE; children `verbatim` LINE |
 | `let` | MATH; optional child `prose` |
+| `figure` | PATH (%-escaped) WIDTH LABEL; child `alt`, then caption blocks |
 | `refs` | children `entry` KEY with inline children |
 | `contents`, `newpage` | none |
 | inline | `text`, `emph`, `strong`, `code`, `math` SOURCE, `link` URL, `url`, `ref` LABEL |
@@ -241,6 +242,7 @@ l 190 120 45 13 7 d 1 0 90 Section 1
 | `t F SIZE X Y G…` | a glyph run; each G is `gid:advance:text`, text %-escaped |
 | `T …` | the same, invisible (text render mode 3) |
 | `r X Y W H` | a filled rectangle |
+| `I X Y W H PATH` | an image (PNG or JPEG) filling the rectangle |
 | `b ELEM` / `B KIND` / `s TEXT` / `E` | begin marked content for an element, an artifact (`pagination`, `layout`), an ActualText span; end |
 | `l X Y W H ELEM u URL TEXT` | a link to a URL |
 | `l X Y W H ELEM d TARGET PAGE Y TEXT` | a link to a structure element |

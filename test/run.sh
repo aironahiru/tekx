@@ -75,7 +75,16 @@ for f in examples/*.tekx; do
 done
 echo "examples: done"
 
-# 6. each stage is a filter: the pipeline by hand equals the driver
+# 6. every kind of image a figure accepts: PNG of each colour type and depth,
+#    with and without alpha and row filters, and JPEG
+$T -o test/out/figures.pdf test/figures.tekx || fail "figures"
+if [ -n "${VERAPDF:-}" ]; then
+	"$VERAPDF" --flavour ua2 --format text test/out/figures.pdf 2>/dev/null | grep -q '^PASS' ||
+	    fail "figures: not ua2 conformant"
+fi
+echo "figures: done"
+
+# 7. each stage is a filter: the pipeline by hand equals the driver
 f=examples/tour.tekx
 $T pp "$f" | $T parse | $T eqn | $T set | $T pdf >test/out/byhand.pdf &&
     $T -o test/out/driver.pdf "$f" && cmp -s test/out/byhand.pdf test/out/driver.pdf ||

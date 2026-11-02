@@ -1,5 +1,5 @@
 == tree
-document
+document test/golden/language.tekx
   meta@2 title Golden
   meta@2 author A. N. Author and B. Writer
   meta@3 date 1 January 2026

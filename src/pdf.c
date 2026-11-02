@@ -20,16 +20,18 @@
  *	t F SIZE X Y GLYPH...	glyph run, GLYPH = gid:advance:text (text %-escaped)
  *	T ...			invisible glyph run
  *	r X Y W H		filled rectangle
+ *	I X Y W H PATH		image (PNG or JPEG), PATH %-escaped
  *	b ELEM | B KIND | s TEXT | E	begin tag / artifact / actual text, end
  *	l X Y W H ELEM u URL TEXT	link to a URL
  *	l X Y W H ELEM d TARGET PAGE Y TEXT	link inside the document
  */
 #include "font.h"
+#include "img.h"
 
 #define TEKX_NS "https://github.com/aironahiru/tekx/ns/1"
 
 enum { NS_PDF2, NS_PDF, NS_MATHML, NS_TEKX };
-enum { I_TEXT, I_RULE, I_TAG, I_ART, I_SPAN, I_END, I_LINK };
+enum { I_TEXT, I_RULE, I_TAG, I_ART, I_SPAN, I_END, I_LINK, I_IMAGE };
 
 typedef struct {
 	u16 gid;
@@ -88,6 +90,31 @@ static VEC(Cont) conts;
 static VEC(Outl) outls;
 static VEC(FontUse) fonts;
 static VEC(char *) authors;
+
+typedef struct {
+	char *path;
+	Image *im;
+	int ref;
+} PImage;
+
+static VEC(PImage) images;
+
+static int
+image_index(const char *path, int line)
+{
+	for (size_t i = 0; i < images.n; i++)
+		if (streq(images.v[i].path, path))
+			return (int)i;
+	char *err = NULL;
+	Image *im = image_load(path, &err);
+	if (im == NULL) {
+		error_at(line, 0, "%s", err);
+		return -1;
+	}
+	PImage pi = {xstrdup(path), im, 0};
+	VPUSH(images, pi);
+	return (int)images.n - 1;
+}
 static char *title = "", *language = "en", *subject, *keywords;
 static i64 when;
 
@@ -422,6 +449,15 @@ read_input(FILE *in)
 			it.y = atof(next_field(&rest));
 			it.w = atof(next_field(&rest));
 			it.h = atof(next_field(&rest));
+			goto push;
+		case 'I':
+			it.kind = I_IMAGE;
+			it.x = atof(next_field(&rest));
+			it.y = atof(next_field(&rest));
+			it.w = atof(next_field(&rest));
+			it.h = atof(next_field(&rest));
+			if ((it.font = image_index(pct_unescape(next_field(&rest)), lineno)) < 0)
+				break;
 			goto push;
 		case 'b':
 			it.kind = I_TAG;
@@ -824,6 +860,21 @@ pdf_main(FILE *in, FILE *out, const char *file)
 				if (!marked)
 					bputs(c, "EMC\n");
 				break;
+			case I_IMAGE:
+				if (!marked)
+					bputs(c, "/Artifact BMC\n");
+				bputs(c, "q ");
+				bnum(c, it->w);
+				bputs(c, " 0 0 ");
+				bnum(c, it->h);
+				bputc(c, ' ');
+				bnum(c, it->x);
+				bputc(c, ' ');
+				bnum(c, pg->h - it->y - it->h);
+				bprintf(c, " cm /Im%d Do Q\n", it->font);
+				if (!marked)
+					bputs(c, "EMC\n");
+				break;
 			case I_TAG: {
 				Elem *e = &elems.v[it->elem];
 				Cont ct = {(int)pi, mcid, 0};
@@ -907,6 +958,24 @@ pdf_main(FILE *in, FILE *out, const char *file)
 	Buf fres = {0};
 	for (size_t i = 0; i < fonts.n; i++)
 		bprintf(&fres, "/F%zu %d 0 R ", i, font_ref[i]);
+	/* images: 8-bit samples (alpha as a soft mask), or JPEG passed through */
+	Buf xres = {0};
+	for (size_t i = 0; i < images.n; i++) {
+		Image *im = images.v[i].im;
+		const char *cs = im->comps == 1 ? "/DeviceGray" : "/DeviceRGB";
+		int smask = 0;
+		if (im->alpha) {
+			smask = alloc_obj();
+			stream_obj(smask, fmt("/Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray "
+			    "/BitsPerComponent 8", im->w, im->h), im->alpha, im->alen, true);
+		}
+		int r = alloc_obj();
+		char *dict = fmt("/Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace %s /BitsPerComponent 8%s%s",
+		    im->w, im->h, cs, im->jpeg ? " /Filter /DCTDecode" : "", smask ? fmt(" /SMask %d 0 R", smask) : "");
+		stream_obj(r, dict, im->data, im->len, !im->jpeg);
+		images.v[i].ref = r;
+		bprintf(&xres, "/Im%zu %d 0 R ", i, r);
+	}
 	for (size_t pi = 0; pi < pages.n; pi++) {
 		int cref = alloc_obj();
 		stream_obj(cref, "", (u8 *)contents[pi].s, contents[pi].n, true);
@@ -915,7 +984,8 @@ pdf_main(FILE *in, FILE *out, const char *file)
 		bnum(p, pages.v[pi].w);
 		bputc(p, ' ');
 		bnum(p, pages.v[pi].h);
-		bprintf(p, "] /Resources << /Font << %s>> >> /Contents %d 0 R /StructParents %zu /Tabs /S", fres.s ? fres.s : "", cref, pi);
+		bprintf(p, "] /Resources << /Font << %s>>%s%s%s >> /Contents %d 0 R /StructParents %zu /Tabs /S",
+		    fres.s ? fres.s : "", xres.s ? " /XObject << " : "", xres.s ? xres.s : "", xres.s ? ">>" : "", cref, pi);
 		if (page_annots[pi].n) {
 			bputs(p, " /Annots [");
 			for (size_t k = 0; k < page_annots[pi].n; k++)

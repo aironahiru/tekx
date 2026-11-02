@@ -11,6 +11,7 @@
  * Units are PostScript points; y grows downwards from the top of the page.
  */
 #include "font.h"
+#include "img.h"
 #include "tree.h"
 
 #include <math.h>
@@ -129,7 +130,7 @@ static VEC(Link) links;
 
 /* ---- drawing operations ---- */
 
-enum { O_GLYPH, O_INVIS, O_RULE, O_PAGEREF };
+enum { O_GLYPH, O_INVIS, O_RULE, O_PAGEREF, O_IMAGE };
 enum { ART_LAYOUT = -2, ART_PAGE = -3 };
 
 typedef struct {
@@ -137,7 +138,7 @@ typedef struct {
 	double size, x, y, adv, w, h;
 	char *text;
 	int el, span, link;
-	char *label;	/* O_PAGEREF: target */
+	char *label;	/* O_PAGEREF: target; O_IMAGE: file */
 } Op;
 
 typedef VEC(Op) Ops;
@@ -1711,6 +1712,111 @@ proof(Node *t, Box_ bx)
 	after_heading = false;
 }
 
+/* a length for a figure: 60%, 8cm, 80mm, 3in, 200pt */
+static double
+length(const char *s, double whole)
+{
+	char *end;
+	double v = strtod(s, &end);
+
+	if (streq(end, "%"))
+		return v / 100 * whole;
+	if (streq(end, "cm"))
+		return v * 72 / 2.54;
+	if (streq(end, "mm"))
+		return v * 72 / 25.4;
+	if (streq(end, "in"))
+		return v * 72;
+	if (streq(end, "pt") || *end == 0)
+		return v;
+	return -1;
+}
+
+/* resolve a file name against the directory of the source file */
+static char *
+beside_source(const char *path)
+{
+	const char *slash = diag_file ? strrchr(diag_file, '/') : NULL;
+
+	if (path[0] == '/' || slash == NULL)
+		return xstrdup(path);
+	return fmt("%.*s/%s", (int)(slash - diag_file), diag_file, path);
+}
+
+static int fig_num;
+
+static void
+figure(Node *f, Box_ bx)
+{
+	char *path = beside_source(pct_unescape(field(f, 0))), *width = field(f, 1), *label = field(f, 2);
+	Node *alt = child(f, "alt");
+	char *err = NULL;
+	Image *im = image_load(path, &err);
+
+	fig_num++;
+	if (im == NULL) {
+		error_at(f->line, 0, "%s", err);
+		return;
+	}
+	if (alt == NULL || *alt->rest == 0)
+		error_at(f->line, 0, "a figure needs a text alternative for readers who cannot see it: "
+		    "add a line  alt \"what the figure shows\"");
+	double w = MIN(bx.fr.w, im->w * 72.0 / 96);
+	if (!streq(width, "-")) {
+		double v = length(width, bx.fr.w);
+		if (v <= 0)
+			error_at(f->line, 0, "unknown width '%s' (use 60%%, 8cm, 80mm, 3in or 200pt)", width);
+		else
+			w = MIN(v, bx.fr.w);
+	}
+	double h = w * im->h / im->w;
+	int wrap = el(bx.el, "pdf2", "Aside");	/* Caption is not allowed in a Div */
+	int fe = el(wrap, "pdf2", "Figure");
+	prop(fe, "alt", alt ? alt->rest : "");
+	label_el(label, wrap);
+	dest(wrap);
+	vspace(0.8 * bx.size);
+	Ops ops = {0};
+	Op o;
+	memset(&o, 0, sizeof o);
+	o.kind = O_IMAGE;
+	o.x = (bx.fr.w - w) / 2;
+	o.y = -h;
+	o.w = w;
+	o.h = h;
+	o.el = fe;
+	o.span = o.link = -1;
+	o.label = path;
+	VPUSH(ops, o);
+	V *v = vline(h, 0, h, bx.fr.x, &ops);
+	v->keep = true;
+	/* the caption: "Figure 2. Text", centred when it fits on one line */
+	int cap = el(wrap, "pdf2", "Caption");
+	int p = el(cap, "pdf2", "P");
+	double size = bx.size * 0.92;
+	HList hl = {0};
+	Ctx c = {FACE_BF, size, el(p, "pdf2", "Strong"), -1, true};
+	add_text(&hl, fmt("Figure %d.", fig_num), c);
+	Ctx body = {FACE_REG, size, p, -1, false};
+	space_glue(&hl, body);
+	for (size_t i = 0; i < f->kids.n; i++)
+		if (streq(f->kids.v[i]->kind, "para"))
+			add_inlines(&hl, f->kids.v[i], body);
+	vspace(0.5 * bx.size);
+	Fr fr = {bx.fr.x + 1.5 * bx.size, bx.fr.w - 3 * bx.size};
+	size_t first = vl.n;
+	set_par(&hl, fr, size, 0, true, false);
+	if (vl.n == first + 1) {
+		V *line = &vl.v[first];
+		double right = 0;
+		for (size_t k = 0; k < line->ops.n; k++)
+			right = MAX(right, line->ops.v[k].x + line->ops.v[k].adv);
+		for (size_t k = 0; k < line->ops.n; k++)
+			line->ops.v[k].x += (fr.w - right) / 2;
+	}
+	vspace(0.8 * bx.size);
+}
+
 static void
 quote_block(Node *q, Box_ bx)
 {
@@ -1987,6 +2093,9 @@ blocks(Node *n, Box_ bx)
 		} else if (streq(kd, "let")) {
 			let_block(k, bx, !after_heading);
 			after_heading = false;
+		} else if (streq(kd, "figure")) {
+			figure(k, bx);
+			after_heading = true;
 		} else if (streq(kd, "refs")) {
 			references_block(k, bx);
 		} else if (streq(kd, "contents")) {
@@ -2004,7 +2113,7 @@ blocks(Node *n, Box_ bx)
 
 /* ---- numbering pre-pass ---- */
 
-static int pre_sec[4], pre_thm, pre_eq, pre_bib;
+static int pre_sec[4], pre_thm, pre_eq, pre_bib, pre_fig;
 
 static void
 number(Node *n)
@@ -2045,6 +2154,9 @@ number(Node *n)
 				pre_eq++;
 				add_label(label, fmt("(%d)", pre_eq), k->line);
 			}
+		} else if (streq(k->kind, "figure")) {
+			pre_fig++;
+			add_label(field(k, 2), fmt("Figure %d", pre_fig), k->line);
 		} else if (streq(k->kind, "entry")) {
 			pre_bib++;
 			add_label(k->rest, fmt("[%d]", pre_bib), k->line);
@@ -2495,6 +2607,22 @@ emit(void)
 					continue;
 				}
 				context(o->el, o->span);
+				if (o->kind == O_IMAGE) {
+					flush_run();
+					Buf b = {0};
+					bputs(&b, "I ");
+					bnum(&b, x0 + o->x);
+					bputc(&b, ' ');
+					bnum(&b, y + o->y);
+					bputc(&b, ' ');
+					bnum(&b, o->w);
+					bputc(&b, ' ');
+					bnum(&b, o->h);
+					bputc(&b, ' ');
+					pct_escape(&b, o->label);
+					fprintf(out, "%s\n", bstr(&b));
+					continue;
+				}
 				if (o->kind == O_RULE) {
 					flush_run();
 					Buf b = {0};
@@ -2541,6 +2669,8 @@ set_main(FILE *in, FILE *o, const char *file)
 	diag_file = file;
 	out = o;
 	Node *doc = tree_read(in);
+	if (*doc->rest)
+		diag_file = doc->rest;	/* the source file, named by parse */
 	doc_root = doc;
 	read_meta(doc);
 	init_envs();
