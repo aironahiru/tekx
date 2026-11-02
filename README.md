@@ -52,8 +52,8 @@ The test suite checks the paste in the engines behind the viewers people use
 
 | pastes back as itself | poppler (Evince, Okular) | PDFium (Chrome, Edge) | pdf.js (Firefox) |
 |---|---|---|---|
-| 48 test formulas, inline | 48 | 48 | 45 |
-| 48 test formulas, displayed | 48 | 48 | 45 |
+| 50 test formulas, inline | 50 | 50 | 47 |
+| 50 test formulas, displayed | 50 | 50 | 47 |
 | hyphenated words | whole | whole | split (pdf.js ignores ActualText) |
 
 ## The language
@@ -110,6 +110,87 @@ The absolute value is a function defined by cases:
 
 The full reference is [doc/language.md](doc/language.md).
 
+## Writing a journal paper
+
+```bash
+tekx new paper
+```
+
+```bash
+tekx -w paper.tekx
+```
+
+`tekx new` writes a paper to start from: front matter, a theorem and its proof,
+citations, a display and an appendix, with a `.bib` file beside it. `tekx -w`
+rebuilds on every save, including when the bibliography, an image or a package
+changes. A build takes tens of milliseconds.
+
+```
+title "Gaps Between Sums of Two Squares"
+author "Ada Lovelace", affiliation: "University of London", email: "ada@example.org"
+msc "11N36 (primary); 11E25 (secondary)"
+numbering by section
+bibliography "refs.bib"
+
+abstract
+  We improve the exponent $1/2$ of [@hooley, Thm. 2; @bambah].
+
+section Introduction
+
+theorem "Main" #main
+  Every interval $[x, x + x^(1/4 + epsilon)]$ contains a sum of two squares.
+
+By Theorem @main, and as Landau showed [@landau], ...
+
+appendix
+
+section Computations
+```
+
+The things a journal expects:
+- **Front matter:** affiliations, emails and ORCID under each author, the 2020
+  Mathematics Subject Classification and key words after the abstract,
+  running heads (`running "Short Title"`), and referee line numbers
+  (`linenumbers on`).
+- **Numbering:** sections, theorems and equations numbered within sections
+  (Theorem 2.3, (2.3)), appendices (Lemma A.1), and unnumbered `theorem*`.
+- **References:**
+  - your existing `.bib` file, read as BibTeX reads it (crossref, biblatex
+    fields, accents, mathematics in titles);
+  - only the cited entries printed, in the style of the AMS;
+  - numeric labels sorted and ranged ([1–3, 5]), in citation order, or
+    alphabetic as amsalpha gives them ([Hoo71]).
+- **LaTeX habits understood:** `Theorem @main` reads "Theorem 1.1", `(@eq)`
+  reads "(2.1)", and LaTeX notation works inside any formula.
+- **Typography:** inline fractions are set on the line (x^{1/4}, (1 + √5)/2), as
+  print sets them, and stacked in displays.
+
+## Packages, including private ones
+
+```
+use house-notation 1.2
+```
+
+A package carries what a group's documents share: notation, environments,
+macros, and programs (filters) that extend tekx with blocks of their own.
+
+`tekx pkg add` fetches packages from a directory, a git repository or a
+registry. A registry is any directory or git repository of packages, so an
+in-house tool can stay in-house. Each package is pinned in `tekx.lock` by
+version, source and SHA-256 content hash. Every build checks the hash, and
+`tekx pkg install` reproduces exactly the locked packages on another machine.
+See [doc/packages.md](doc/packages.md).
+
+## Compatibility
+
+A document that builds with tekx 0.2 keeps building, with the same structure,
+numbering and meaning. A `tekx 0.2` line says which version a document was
+written for. The test suite's golden files are the contract, and every change
+to output is listed in [CHANGELOG.md](CHANGELOG.md). See
+[doc/compatibility.md](doc/compatibility.md).
+
+<!-- LATEX-IMPORT-EXPORT -->
+
 ## One source, two accessible outputs
 
 `tekx paper.tekx` writes the PDF; `tekx -o paper.html paper.tekx` writes a web
@@ -121,8 +202,7 @@ more filter reading the same tree as the typesetter:
 
 ## The hidden machinery
 
-Inside, tekx is a Unix pipeline of five small filters connected by text
-streams. Each stage can be run alone and its output read by eye:
+Inside, tekx is a Unix pipeline of small filters connected by text streams. Each stage can be run alone and its output read by eye:
 
 ```
 tekx pp    <paper.tekx |   # macros, comments, do/end            (cf. cpp, m4)
@@ -172,11 +252,13 @@ bytes.
 
 ## Status
 
-tekx 0.1 typesets articles: titles, abstracts, sections, theorems and proofs,
-lists, tables, figures, code, displayed and inline mathematics,
-cross-references, footnotes, contents and references. It does not yet do:
+tekx 0.2 typesets journal articles: front matter, abstracts, sections and
+appendices, theorems and proofs, lists, tables, figures, code, displayed and
+inline mathematics, cross-references, footnotes, contents, and bibliographies
+from BibTeX. It does not yet do:
 - multiple columns;
-- bibliography databases;
+- line breaks inside long displayed equations;
+- microtypography (character protrusion);
 - hyphenation for languages other than English.
 
 The built-in fonts are STIX Two (text and math) and Libertinus Mono. Replace any
@@ -187,7 +269,8 @@ of them with `font text|italic|bold|bolditalic|math|mono FILE`.
 | path | contents |
 |---|---|
 | `src/` | the compiler: one file per stage, plus the font engine (`font.c`, `cff.c`, `ttf.c`, `otl.c`, `mathtab.c`), images (`img.c`), `deflate.c`, `md5.c` and `hyph.c` |
-| `doc/` | language reference, machinery, manual page `tekx.1`, and [`review.md`](doc/review.md): the strongest criticisms of tekx, what was done about each, and the roadmap |
+| `doc/` | the language reference, the machinery, [packages](doc/packages.md), [compatibility](doc/compatibility.md), the manual page `tekx.1`, and [`review.md`](doc/review.md): the strongest criticisms of tekx, what was done about each, and the roadmap |
+| `editors/` | syntax highlighting for Vim and VS Code |
 | `examples/` | example documents with their PDFs |
 | `test/` | the test suite |
 | `assets/` | fonts (OFL) and hyphenation patterns, compiled into the binary |
