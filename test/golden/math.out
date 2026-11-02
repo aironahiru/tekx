@@ -37,6 +37,10 @@ document test/golden/math.tekx
       cont@21:7 sin theta  cos theta
   display@23
     line@23:5 - x = y & + z
+  para@25 0
+    text A display too wide for the measure is broken before a relation:
+  display@27
+    line@27:5 binom4 (a + b)^4 = (a + b)^2 (a + b)^2 = (a^2 + 2 a b + b^2)(a^2 + 2 a b + b^2) = a^4 + 4 a^3 b + 6 a^2 b^2 + 4 a b^3 + b^4
 == mathematics
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a squared plus b squared equals c squared"><semantics><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo>=</mo><msup><mi>𝑐</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">a^2 + b^2 = c^2</annotation></semantics></math>
 speech a squared plus b squared equals c squared
@@ -86,6 +90,9 @@ linear R(θ) = (cos θ, −sin θ; sin θ, cos θ)
 mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="x equals y plus z"><semantics><mrow><mrow><mi>𝑥</mi><mo>=</mo><mi>𝑦</mi></mrow><mrow><mo form="prefix">+</mo><mi>𝑧</mi></mrow></mrow><annotation encoding="application/x-tekx">x = y &amp; + z</annotation></semantics></math>
 speech x equals y plus z
 linear x = y+z
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="open paren a plus b close paren to the power 4 equals open paren a plus b close paren squared open paren a plus b close paren squared equals open paren a squared plus 2 a b plus b squared close paren open paren a squared plus 2 a b plus b squared close paren equals a to the power 4 plus 4 a cubed b plus 6 a squared b squared plus 4 a b cubed plus b to the power 4"><semantics><mrow><mrow><mrow><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>4</mn></msup><mo>=</mo><mrow><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>2</mn></msup><mo>⁢</mo><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>2</mn></msup></mrow></mrow><mo>=</mo><mrow><mrow><mo fence="true">(</mo><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo fence="true">)</mo></mrow><mo>⁢</mo><mrow><mo fence="true">(</mo><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo fence="true">)</mo></mrow></mrow></mrow><mo>=</mo><mrow><mrow><mrow><mrow><msup><mi>𝑎</mi><mn>4</mn></msup><mo>+</mo><mrow><mn>4</mn><mo>⁢</mo><msup><mi>𝑎</mi><mn>3</mn></msup><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><mrow><mn>6</mn><mo>⁢</mo><msup><mi>𝑎</mi><mn>2</mn></msup><mo>⁢</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow></mrow><mo>+</mo><mrow><mn>4</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><msup><mi>𝑏</mi><mn>3</mn></msup></mrow></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>4</mn></msup></mrow></mrow><annotation encoding="application/x-tekx">(a + b)^4 = (a + b)^2 (a + b)^2 = (a^2 + 2 a b + b^2)(a^2 + 2 a b + b^2) = a^4 + 4 a^3 b + 6 a^2 b^2 + 4 a b^3 + b^4</annotation></semantics></math>
+speech open paren a plus b close paren to the power 4 equals open paren a plus b close paren squared open paren a plus b close paren squared equals open paren a squared plus 2 a b plus b squared close paren open paren a squared plus 2 a b plus b squared close paren equals a to the power 4 plus 4 a cubed b plus 6 a squared b squared plus 4 a b cubed plus b to the power 4
+linear (a + b)⁴ = (a + b)²(a + b)² = (a² + 2ab + b²)(a² + 2ab + b²) = a⁴ + 4a³b + 6a²b² + 4a b³ + b⁴
 == structure
 pdf2:Document
   pdf2:P
@@ -127,3 +134,8 @@ pdf2:Document
   tekx:equation
     pdf2:Formula
       mathml:math
+  pdf2:P
+  tekx:equation
+    pdf2:Formula ident="binom4"
+      mathml:math
+      tekx:equation-number

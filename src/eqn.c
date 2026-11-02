@@ -2829,6 +2829,14 @@ emit_layout(Node *n, M *m, bool display, const char *source)
 		bprintf(&k, " %d", (int)b->brk.v[i + 2]);
 		node_add(n, "brk", 0, 0, bstr(&k));
 	}
+	for (size_t i = 0; display && i + 2 < b->dbrk.n; i += 3) {
+		Buf k = {0};
+		bnum(&k, b->dbrk.v[i]);
+		bputc(&k, ' ');
+		bnum(&k, b->dbrk.v[i + 1]);
+		bprintf(&k, " %s", (int)b->dbrk.v[i + 2] == REL ? "rel" : "bin");
+		node_add(n, "dbrk", 0, 0, bstr(&k));
+	}
 	for (size_t i = 0; i < nodes.n; i++) {
 		Buf a = {0};
 		bprintf(&a, "%zu ", i);

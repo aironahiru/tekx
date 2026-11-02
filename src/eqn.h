@@ -93,6 +93,7 @@ typedef struct {
 	double align;		/* x of the alignment point, or NAN */
 	VEC(Item) items;
 	VEC(double) brk;	/* line breaks in inline formulas: end, restart, penalty */
+	VEC(double) dbrk;	/* in displays, breaks before an operator: end, restart, class */
 } Box;
 
 typedef struct {

@@ -21,3 +21,7 @@ Inline: $a^2 + b^2 = c^2$, $1/2 x$, $h/2pi$, $sin x / x$, $norm2(x - y)$, $Tr A$
       sin theta  cos theta
 
     x = y & + z
+
+A display too wide for the measure is broken before a relation:
+
+    (a + b)^4 = (a + b)^2 (a + b)^2 = (a^2 + 2 a b + b^2)(a^2 + 2 a b + b^2) = a^4 + 4 a^3 b + 6 a^2 b^2 + 4 a b^3 + b^4   #binom4

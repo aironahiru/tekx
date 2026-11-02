@@ -206,6 +206,16 @@ the right-hand side:
 A trailing `#label` numbers the line, as in (1), and makes it a target. Only
 labelled lines are numbered.
 
+A display too wide for the text is broken by tekx, before a relation or a
+binary operator, which then begins the next line. This is how the TeXbook and
+the AMS set long formulas:
+- a line that starts with a relation aligns it under the first relation;
+- a line that starts with + or − is indented 2 em past it;
+- the equation number goes on the last line.
+
+tekx prefers breaks at relations, and fills the lines evenly. A display that
+can't be broken narrowly enough draws a warning.
+
 Inside a theorem or other block, a display is indented further than the
 block's text. A display that ends a block after a blank line, indented only a
 little past the text, draws a warning. Such a display is usually meant to

@@ -64,6 +64,9 @@ The release from which the compatibility promise holds.
   line, indented as if it stood outside the block. It found two such displays
   in tekx's own examples.
 - `tekx pkg update [NAME]`.
+- **Long displays break by themselves.** A display wider than the text is
+  broken before a relation or operator. A relation stays aligned under the
+  first one, and a `+` or `−` is indented past it.
 - **Tests.**
   - The tag tree is pinned by golden files, because a validator can't judge
     meaning.

@@ -507,6 +507,8 @@ typedef struct {
 	double w, h, d, align;
 	int formula;	/* Formula element */
 	char *linear, *speech;
+	VEC(double) dbrk;	/* display breaks before operators: end, restart, 1 for a relation */
+	bool piece;	/* one line of a display broken by tekx */
 } Formula;
 
 static Formula
@@ -577,9 +579,95 @@ formula(Node *n, int parent, double size)
 			double x = atof(next_field(&r)) * k, y = atof(next_field(&r)) * k;
 			double w = atof(next_field(&r)) * k, h = atof(next_field(&r)) * k;
 			op_rule(&f.ops, x, y, w, h, s);
+		} else if (streq(c->kind, "dbrk")) {
+			VPUSH(f.dbrk, atof(next_field(&r)) * k);
+			VPUSH(f.dbrk, atof(next_field(&r)) * k);
+			VPUSH(f.dbrk, streq(next_field(&r), "rel") ? 1.0 : 0.0);
 		}
 	}
 	return f;
+}
+
+/*
+ * A display wider than the measure is broken before a relation or a
+ * binary operator, which begins the next line, as the TeXbook and the AMS
+ * set long formulas: a line that starts with a relation aligns it under
+ * the first one; a line that starts with + or − is indented 2 em past
+ * it.  Breaks are chosen to fill the lines evenly, preferring relations,
+ * using as few lines as possible.  One Formula element, one copy text.
+ */
+static int
+break_display(Formula *f, double avail, double em, Formula *out, int max)
+{
+	size_t nb = f->dbrk.n / 3;
+	double first_align = isnan(f->align) ? 0 : f->align;
+	double indent = 2 * em;
+
+	if (f->w <= avail || max < 2)
+		return 0;
+	if (nb == 0)
+		return -1;	/* too wide, with nowhere to break */
+	/* candidate cut points: 0 is the start, 1..nb the breaks, nb+1 the end */
+	size_t nc = nb + 2;
+	double *end = xcalloc(nc, sizeof *end), *start = xcalloc(nc, sizeof *start);
+	int *rel = xcalloc(nc, sizeof *rel);
+	end[0] = start[0] = 0;
+	for (size_t i = 0; i < nb; i++) {
+		end[i + 1] = f->dbrk.v[3 * i];
+		start[i + 1] = f->dbrk.v[3 * i + 1];
+		rel[i + 1] = f->dbrk.v[3 * i + 2] > 0.5;
+	}
+	end[nc - 1] = start[nc - 1] = f->w;
+	/* best[j]: the least cost of setting the formula up to cut j */
+	double *best = xcalloc(nc, sizeof *best);
+	int *from = xcalloc(nc, sizeof *from);
+	for (size_t j = 1; j < nc; j++) {
+		best[j] = INFINITY;
+		for (size_t i = 0; i < j; i++) {
+			if (isinf(best[i]) && i > 0)
+				continue;
+			double w = end[j] - start[i];
+			/* the space a line takes, measured from the alignment point */
+			double need = i == 0 ? w : first_align + (rel[i] ? 0 : indent) + w;
+			bool last = j == nc - 1;
+			double slack = avail - need;
+			if (slack < 0)
+				continue;
+			double cost = (i > 0 ? best[i] : 0) + 1000 + (last ? 0 : slack * slack / (em * em)) +
+			    (i > 0 && !rel[i] ? 40 : 0);
+			if (cost < best[j]) {
+				best[j] = cost;
+				from[j] = (int)i;
+			}
+		}
+	}
+	if (isinf(best[nc - 1]))
+		return -1;	/* some piece is wider than the measure on its own */
+	int cuts[256], n = 0;
+	for (int j = (int)nc - 1; j > 0 && n < 256; j = from[j])
+		cuts[n++] = j;
+	if (n > max)
+		return -1;
+	int pieces = 0, prev = 0;
+	for (int k = n - 1; k >= 0; k--) {
+		int j = cuts[k];
+		Formula p = *f;
+		p.ops = (Ops){0};
+		p.piece = true;
+		double s = start[prev], e = end[j];
+		for (size_t q = 0; q < f->ops.n; q++) {
+			Op o = f->ops.v[q];
+			if (o.x < s - 0.001 || o.x >= e - 0.001)
+				continue;
+			o.x -= s;
+			VPUSH(p.ops, o);
+		}
+		p.w = e - s;
+		p.align = prev == 0 ? first_align : rel[prev] ? 0 : -indent;
+		out[pieces++] = p;
+		prev = j;
+	}
+	return pieces;
 }
 
 static void
@@ -1389,7 +1477,7 @@ display(Node *d, Box_ bx)
 	VEC(Formula) fs = {0};
 	VEC(char *) nums = {0};
 	VEC(char *) labs = {0};
-	double maxl = 0, maxr = 0;
+	double maxl = 0, maxr = 0, numroom = 0;
 	bool any_align = false;
 
 	for (size_t i = 0; i < d->kids.n; i++) {
@@ -1407,6 +1495,36 @@ display(Node *d, Box_ bx)
 			VPUSH(nums, (char *)NULL);
 		}
 		VPUSH(labs, label);
+		/* too wide for the measure, beside its number: break it */
+		double numw = 0;
+		if (nums.v[nums.n - 1]) {
+			Ops tmp = {0};
+			numw = text_line(nums.v[nums.n - 1], FACE_REG, bx.size, -1, &tmp, 0) + 1.5 * bx.size;
+			numroom = MAX(numroom, numw);
+		}
+		Formula pieces[64];
+		int np = break_display(&f, bx.fr.w - numw, bx.size, pieces, 64);
+		if (np < 0)
+			warn_at(ln->line, 0, "this display is wider than the text, and cannot be broken before a "
+			    "relation or operator to fit");
+		if (np > 0) {
+			/* the number goes with the last line */
+			char *num = nums.v[nums.n - 1], *lab = labs.v[labs.n - 1];
+			nums.v[nums.n - 1] = NULL;
+			for (int q = 0; q < np; q++) {
+				if (q > 0) {
+					VPUSH(nums, (char *)NULL);
+					VPUSH(labs, "-");
+				}
+				VPUSH(fs, pieces[q]);
+				any_align = true;
+				maxl = MAX(maxl, pieces[q].align);
+				maxr = MAX(maxr, pieces[q].w - pieces[q].align);
+			}
+			nums.v[nums.n - 1] = num;
+			labs.v[labs.n - 1] = lab;
+			continue;
+		}
 		VPUSH(fs, f);
 		if (!isnan(f.align)) {
 			any_align = true;
@@ -1421,6 +1539,9 @@ display(Node *d, Box_ bx)
 		vl.v[vl.n - 1].keep = true;	/* no page break between a display and its introduction */
 	bool aligned = any_align && fs.n > 1;
 	double left = (bx.fr.w - (maxl + maxr)) / 2;
+	/* an aligned group keeps clear of the equation numbers */
+	if (aligned && numroom > 0)
+		left = MAX(0, MIN(left, bx.fr.w - numroom - (maxl + maxr)));
 	for (size_t i = 0; i < fs.n; i++) {
 		Formula *f = &fs.v[i];
 		double x;

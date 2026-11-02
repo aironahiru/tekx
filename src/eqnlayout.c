@@ -568,6 +568,12 @@ hlist(Atoms *at, St s)
 			VPUSH(b->brk, x);
 			VPUSH(b->brk, at->v[prev].rcls == REL ? 500 : 700);
 		}
+		/* a display breaks before one, which then begins the next line */
+		if (prev >= 0 && (a->lcls == REL || a->lcls == BIN) && !a->text) {
+			VPUSH(b->dbrk, before);
+			VPUSH(b->dbrk, x);
+			VPUSH(b->dbrk, a->lcls);
+		}
 		put(b, a->b, x, 0);
 		x += a->b->w;
 		b->h = MAX(b->h, a->b->h);
