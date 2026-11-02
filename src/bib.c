@@ -995,32 +995,86 @@ bib_alpha_label(const BibEntry *e)
 	return bstr(&b);
 }
 
-/* last names, year and title, folded to plain lowercase letters */
-char *
-bib_sort_key(const BibEntry *e)
+/* BibTeX's purify$ and change.case$: letters and digits, lower case,
+ * accents folded, hyphens and ties as blanks, everything else dropped */
+static void
+sortify(Buf *out, const char *s)
 {
-	Buf raw = {0}, key = {0};
-	const char *who = bib_get(e, "author") ? bib_get(e, "author") : bib_get(e, "editor");
-
-	if (who) {
-		Words *v = split_top(who, "and");
-		for (size_t i = 0; i < v->n; i++) {
-			Name nm = parse_name(v->v[i]);
-			bprintf(&raw, "%s %s ", tex_convert(nm.last, false), tex_convert(nm.first, false));
-		}
-	}
-	bprintf(&raw, "%s %s", bib_get(e, "year") ? bib_get(e, "year") : "", bib_get(e, "title") ? tex_convert(bib_get(e, "title"), false) : "");
-	const char *s = bstr(&raw);
 	for (size_t i = 0; s[i];) {
 		u32 cp;
 		i += (size_t)utf8_dec(s + i, strlen(s + i), &cp);
 		cp = decompose(cp);
 		if (cp == 0xDF)
-			bputs(&key, "ss");
-		else if (cp < 0x80 && (isalnum((int)cp) || cp == ' '))
-			bputc(&key, tolower((int)cp));
+			bputs(out, "ss");
+		else if (cp == 0xE6 || cp == 0xC6)
+			bputs(out, "ae");
+		else if (cp == 0x153 || cp == 0x152)
+			bputs(out, "oe");
+		else if (cp == 0xF8 || cp == 0xD8)
+			bputc(out, 'o');
+		else if (cp == 0x142 || cp == 0x141)
+			bputc(out, 'l');
+		else if (cp < 0x80 && isalnum((int)cp))
+			bputc(out, tolower((int)cp));
+		else if (cp == ' ' || cp == '-' || cp == '~' || cp == 0xA0)
+			bputc(out, ' ');
 		else if (cp >= 0x80)
-			utf8_enc(&key, cp);
+			utf8_enc(out, cp);
 	}
+}
+
+/*
+ * The sort key of amsplain.bst (presort), so that a document and its
+ * LaTeX export number their references alike:
+ *
+ *	{vv }{ll}  {ff}  {jj}   …next name…    year    title
+ *
+ * names in the form "von Last  First  Jr", three blanks between names,
+ * "et al" for others; four blanks before the year and the title; a
+ * leading A, An or The dropped from the title; all of it sortified.
+ */
+char *
+bib_sort_key(const BibEntry *e)
+{
+	Buf key = {0};
+	const char *who = bib_get(e, "author");
+
+	if (!who && (streq(e->type, "book") || streq(e->type, "inbook") || streq(e->type, "proceedings")))
+		who = bib_get(e, "editor");
+	if (who) {
+		Words *v = split_top(who, "and");
+		for (size_t i = 0; i < v->n; i++) {
+			if (i > 0)
+				bputs(&key, "   ");
+			if (i + 1 == v->n && streq(v->v[i], "others")) {
+				bputs(&key, "et al");
+				continue;
+			}
+			Name nm = parse_name(v->v[i]);
+			Buf one = {0};
+			if (*nm.von)
+				bprintf(&one, "%s ", tex_convert(nm.von, false));
+			bputs(&one, tex_convert(nm.last, false));
+			if (*nm.first)
+				bprintf(&one, "  %s", tex_convert(nm.first, false));
+			if (*nm.jr)
+				bprintf(&one, "  %s", tex_convert(nm.jr, false));
+			sortify(&key, bstr(&one));
+		}
+	} else if (bib_get(e, "key")) {
+		sortify(&key, bib_get(e, "key"));
+	}
+	bputs(&key, "    ");
+	if (bib_get(e, "year"))
+		sortify(&key, bib_get(e, "year"));
+	bputs(&key, "    ");
+	const char *t = bib_get(e, "title") ? tex_convert(bib_get(e, "title"), false) : "";
+	if (startswith(t, "A "))
+		t += 2;
+	else if (startswith(t, "An "))
+		t += 3;
+	else if (startswith(t, "The "))
+		t += 4;
+	sortify(&key, t);
 	return bstr(&key);
 }

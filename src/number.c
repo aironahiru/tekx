@@ -297,9 +297,13 @@ tidy_refs(Node *n)
 				/* a plural: this reference and the ones joined to it give numbers */
 				for (size_t j = i; j < n->kids.n; j += 2) {
 					Node *r = n->kids.v[j];
-					if (!streq(r->kind, "ref") || find_label(r->rest) == NULL)
+					Label *rl = streq(r->kind, "ref") ? find_label(r->rest) : NULL;
+					if (rl == NULL)
 						break;
-					r->kind = xstrdup("refnum");
+					/* only a target of that kind loses its word: "Lemmas 1.2
+					 * and Theorem 2.1", never "Lemmas 1.2 and 2.1" */
+					if (strncmp(rl->text, word, strlen(word)) == 0 && rl->text[strlen(word)] == ' ')
+						r->kind = xstrdup("refnum");
 					if (j + 1 >= n->kids.n || !streq(n->kids.v[j + 1]->kind, "text") ||
 					    !separator(n->kids.v[j + 1]->rest))
 						break;

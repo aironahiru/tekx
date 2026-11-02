@@ -178,5 +178,8 @@ else
 	TEKX=$T sh test/latex.sh || status=1
 fi
 
+# 12. one document through every back end: they agree on every number
+TEKX=$T sh test/integration.sh || status=1
+
 [ $status -eq 0 ] && echo "all tests passed"
 exit $status
