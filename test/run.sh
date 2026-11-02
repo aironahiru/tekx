@@ -26,7 +26,16 @@ fi
 # 2. copy text reads back as the same formula
 TEKX=$T sh test/roundtrip.sh || status=1
 
-# 3. golden outputs: document trees and the meaning of every formula
+# 3. how formulas are read: tekx explain shows every grouping it chose
+$T explain <test/explain.txt >test/out/explain.out 2>&1
+if $update; then
+	cp test/out/explain.out test/explain.out
+elif ! cmp -s test/out/explain.out test/explain.out; then
+	fail "tekx explain"
+	diff test/explain.out test/out/explain.out | head -20
+fi
+
+# 3b. golden outputs: document trees and the meaning of every formula
 for f in test/golden/*.tekx; do
 	name=${f%.tekx}
 	{

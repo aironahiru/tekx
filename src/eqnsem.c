@@ -1186,3 +1186,175 @@ eqn_linear(M *m)
 			bputc(&o, *p);
 	return bstr(&o);
 }
+
+/* ---- the reading, made explicit ----
+ *
+ * For `tekx explain`: the formula with every grouping the parser chose
+ * written out, so that nothing about how it was read is left to guess:
+ * 1/2 x is (1/2)·x, sin x/y is sin(x/y), -x^2 is -(x²). */
+
+static void grp(Buf *b, M *m);
+
+static bool
+compound(M *m)
+{
+	if (m == NULL)
+		return false;
+	if (m->kind == M_ROW)
+		return m->kids.n > 1 || (m->kids.n == 1 && compound(m->kids.v[0]));
+	return m->kind == M_FRAC || m->kind == M_SCRIPT || m->kind == M_BIGOP;
+}
+
+static void
+grp_paren(Buf *b, M *m)
+{
+	if (compound(m)) {
+		bputc(b, '(');
+		grp(b, m);
+		bputc(b, ')');
+	} else {
+		grp(b, m);
+	}
+}
+
+static void grp_script(Buf *b, M *m);
+
+static void
+grp(Buf *b, M *m)
+{
+	if (m == NULL)
+		return;
+	switch (m->kind) {
+	case M_ROW:
+		if (m->apply && m->kids.n == 2) {
+			grp(b, m->kids.v[0]);
+			M *arg = m->kids.v[1];
+			if (arg->kind == M_FENCE && streq(arg->open, "("))
+				grp(b, arg);
+			else {
+				bputc(b, '(');
+				grp(b, arg);
+				bputc(b, ')');
+			}
+			return;
+		}
+		if (m->times) {
+			for (size_t i = 0; i < m->kids.n; i++) {
+				if (i)
+					bputs(b, "\u00b7");
+				grp_paren(b, m->kids.v[i]);
+			}
+			return;
+		}
+		if (m->kids.n == 2 && m->kids.v[0]->kind == M_OP && m->kids.v[0]->unary) {
+			bputs(b, m->kids.v[0]->text);
+			grp_paren(b, m->kids.v[1]);
+			return;
+		}
+		for (size_t i = 0; i < m->kids.n; i++) {
+			M *k = m->kids.v[i];
+			if (k->kind == M_OP && !k->unary && (k->cls == REL || k->cls == BIN))
+				bprintf(b, " %s ", k->text);
+			else if (k->kind == M_OP && k->cls == PUNCT)
+				bprintf(b, "%s ", k->text);
+			else if (k->kind == M_TEXT)
+				bprintf(b, " %s ", k->text);
+			else
+				grp(b, k);
+		}
+		return;
+	case M_FRAC:
+		if (m->thin) {
+			bputs(b, "binom(");
+			grp(b, m->a);
+			bputs(b, ", ");
+			grp(b, m->b);
+			bputc(b, ')');
+			return;
+		}
+		grp_paren(b, m->a);
+		bputc(b, '/');
+		grp_paren(b, m->b);
+		return;
+	case M_SCRIPT:
+		grp_paren(b, m->a);
+		if (m->b) {
+			bputc(b, '_');
+			grp_script(b, m->b);
+		}
+		if (m->c) {
+			bputc(b, '^');
+			grp_script(b, m->c);
+		}
+		return;
+	case M_FENCE:
+		if (m->sem && streq(m->sem, "binom")) {
+			grp(b, m->a);
+			return;
+		}
+		bputs(b, m->open);
+		grp(b, m->a);
+		bputs(b, m->close);
+		return;
+	case M_BIGOP:
+		bputs(b, m->text);
+		if (m->b) {
+			bputs(b, "_(");
+			grp(b, m->b);
+			bputc(b, ')');
+		}
+		if (m->c) {
+			bputs(b, "^(");
+			grp(b, m->c);
+			bputc(b, ')');
+		}
+		if (m->a) {
+			bputs(b, " [");
+			grp(b, m->a);
+			bputc(b, ']');
+		}
+		return;
+	case M_SQRT:
+		bputs(b, "\u221a(");
+		grp(b, m->a);
+		bputc(b, ')');
+		return;
+	case M_ROOT:
+		bputs(b, "root(");
+		grp(b, m->b);
+		bputs(b, ", ");
+		grp(b, m->a);
+		bputc(b, ')');
+		return;
+	default:
+		lin(b, m, false);
+		return;
+	}
+}
+
+/* a script: bare when it is one atom, x^2, else grouped, x^(n+1) */
+static void
+grp_script(Buf *b, M *m)
+{
+	if (lin_atom(m) && !compound(m)) {
+		grp(b, m);
+	} else {
+		bputc(b, '(');
+		grp(b, m);
+		bputc(b, ')');
+	}
+}
+
+char *
+eqn_grouping(M *m)
+{
+	Buf b = {0};
+
+	grp(&b, m);
+	char *s = trim(bstr(&b));
+	Buf o = {0};
+	for (const char *p = s; *p; p++)
+		if (!(*p == ' ' && p[1] == ' '))
+			bputc(&o, *p);
+	return bstr(&o);
+}

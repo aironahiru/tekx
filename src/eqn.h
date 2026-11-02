@@ -101,6 +101,7 @@ Box *eqn_layout(M *m, bool display, MNodes *nodes);
 char *eqn_mathml(M *m, bool display, const char *source);
 char *eqn_speech(M *m);
 char *eqn_linear(M *m);
+char *eqn_grouping(M *m);	/* every grouping written out, for tekx explain */
 
 /* shared helpers */
 bool is_atom(M *m);

@@ -1,0 +1,53 @@
+formula    1/2 x
+reads as   (1/2)·x
+says       one half x
+copies as  1/2 x
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half x"><semantics><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>⁢</mo><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">1/2 x</annotation></semantics></math>
+
+formula    1/2x
+reads as   1/(2·x)
+says       the fraction with numerator 1 and denominator 2 x end fraction
+copies as  1/2x
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator 1 and denominator 2 x end fraction"><semantics><mrow><mfrac><mn>1</mn><mrow><mn>2</mn><mo>⁢</mo><mi>𝑥</mi></mrow></mfrac></mrow><annotation encoding="application/x-tekx">1/2x</annotation></semantics></math>
+
+formula    h/2pi
+reads as   h/(2·π)
+says       the fraction with numerator h and denominator 2 pi end fraction
+copies as  h/2π
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator h and denominator 2 pi end fraction"><semantics><mrow><mfrac><mi>ℎ</mi><mrow><mn>2</mn><mo>⁢</mo><mi>𝜋</mi></mrow></mfrac></mrow><annotation encoding="application/x-tekx">h/2pi</annotation></semantics></math>
+
+formula    a/b c
+reads as   (a/b)·c
+says       the fraction a over b end fraction c
+copies as  a/b c
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction a over b end fraction c"><semantics><mrow><mfrac><mi>𝑎</mi><mi>𝑏</mi></mfrac><mo>⁢</mo><mi>𝑐</mi></mrow><annotation encoding="application/x-tekx">a/b c</annotation></semantics></math>
+
+formula    sin x/y
+reads as   sin(x/y)
+says       sine the fraction x over y end fraction
+copies as  sin x/y
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="sine the fraction x over y end fraction"><semantics><mrow><mi>sin</mi><mo>⁡</mo><mfrac><mi>𝑥</mi><mi>𝑦</mi></mfrac></mrow><annotation encoding="application/x-tekx">sin x/y</annotation></semantics></math>
+
+formula    sin x / y
+reads as   (sin(x))/y
+says       the fraction with numerator sine x and denominator y end fraction
+copies as  (sin x)/y
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator sine x and denominator y end fraction"><semantics><mrow><mfrac><mrow><mi>sin</mi><mo>⁡</mo><mi>𝑥</mi></mrow><mi>𝑦</mi></mfrac></mrow><annotation encoding="application/x-tekx">sin x / y</annotation></semantics></math>
+
+formula    -x^2
+reads as   −(x^2)
+says       negative x squared
+copies as  −x²
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="negative x squared"><semantics><mrow><mo form="prefix">−</mo><msup><mi>𝑥</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">-x^2</annotation></semantics></math>
+
+formula    sum k^2 for k from 1 to n + 1
+reads as   ∑_(k = 1)^(n + 1) [k^2]
+says       the sum from k equals 1 to n plus 1 of k squared
+copies as  ∑_(k=1)^(n+1) k²
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the sum from k equals 1 to n plus 1 of k squared"><semantics><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑘</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi>𝑛</mi><mo>+</mo><mn>1</mn></mrow></munderover><msup><mi>𝑘</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">sum k^2 for k from 1 to n + 1</annotation></semantics></math>
+
+formula    \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+reads as   (−b ± √(b^2 − 4·a·c))/(2·a)
+says       the fraction with numerator negative b plus or minus the square root of b squared minus 4 a c end root and denominator 2 a end fraction
+copies as  (−b ± √(b² − 4ac))/2a
+MathML     <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator negative b plus or minus the square root of b squared minus 4 a c end root and denominator 2 a end fraction"><semantics><mrow><mfrac><mrow><mrow><mo form="prefix">−</mo><mi>𝑏</mi></mrow><mo>±</mo><msqrt><mrow><msup><mi>𝑏</mi><mn>2</mn></msup><mo>−</mo><mrow><mn>4</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑐</mi></mrow></mrow></msqrt></mrow><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi></mrow></mfrac></mrow><annotation encoding="application/x-tekx">\frac{-b \pm \sqrt{b^2-4ac}}{2a}</annotation></semantics></math>

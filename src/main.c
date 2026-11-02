@@ -15,6 +15,7 @@
  *	tekx pp <file.tekx | tekx parse | tekx eqn | tekx set | tekx pdf >file.pdf
  */
 #include "tekx.h"
+#include "eqn.h"
 
 #include <errno.h>
 
@@ -34,6 +35,7 @@ static const struct {
 static const char usage_text[] =
     "usage: tekx [-E | -P | -M | -S] [-o output] file.tekx\n"
     "       tekx pp | parse | eqn | set | pdf [file]\n"
+    "       tekx explain [formula ...]\n"
     "       tekx -v | -h\n";
 
 static void
@@ -41,6 +43,44 @@ usage(void)
 {
 	fputs(usage_text, stderr);
 	exit(2);
+}
+
+/* How was a formula read?  The grouping the parser chose, the speech, the
+ * copy text and the MathML, for formulas given as arguments or one per line
+ * on the standard input. */
+static int
+explain(int argc, char **argv)
+{
+	VEC(char *) formulas = {0};
+	char *line;
+
+	if (argc > 0) {
+		Buf b = {0};
+		for (int i = 0; i < argc; i++)
+			bprintf(&b, "%s%s", i ? " " : "", argv[i]);
+		VPUSH(formulas, bstr(&b));
+	} else {
+		while ((line = read_line(stdin)) != NULL)
+			if (*trim(line))
+				VPUSH(formulas, trim(line));
+	}
+	diag_file = "formula";
+	for (size_t i = 0; i < formulas.n; i++) {
+		char *src = formulas.v[i];
+		if (src[0] == '$' && src[strlen(src) - 1] == '$' && strlen(src) > 1) {
+			src[strlen(src) - 1] = 0;
+			src++;
+		}
+		M *m = eqn_parse(src, (int)i + 1, 1, false, NULL, 0);
+		if (i)
+			putchar('\n');
+		printf("formula    %s\n", src);
+		printf("reads as   %s\n", eqn_grouping(m));
+		printf("says       %s\n", eqn_speech(m));
+		printf("copies as  %s\n", eqn_linear(m));
+		printf("MathML     %s\n", eqn_mathml(m, false, src));
+	}
+	return nerrors ? 1 : 0;
 }
 
 static char *
@@ -90,6 +130,8 @@ main(int argc, char **argv)
 	const char *output = NULL, *file = NULL;
 	int last = 4;
 
+	if (argc >= 2 && streq(argv[1], "explain"))
+		return explain(argc - 2, argv + 2);
 	if (argc >= 2) {
 		for (size_t s = 0; s < NELEM(stages); s++) {
 			if (!streq(argv[1], stages[s].name))

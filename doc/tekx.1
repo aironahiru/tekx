@@ -12,6 +12,9 @@ tekx \- typeset mathematics into accessible PDF
 .BR pp | parse | eqn | set | pdf
 .RI [ file ]
 .br
+.B tekx explain
+.RI [ formula ...]
+.br
 .B tekx \-v
 .SH DESCRIPTION
 .B tekx
@@ -75,6 +78,11 @@ tekx pp paper.tekx | tekx parse | tekx eqn | tekx set | tekx pdf >paper.pdf
 .PP
 is the same as
 .BR "tekx paper.tekx" .
+.PP
+.B tekx explain
+shows how formulas are read: the grouping the parser chose, with every
+implicit parenthesis written out, the speech, the copy text and the MathML.
+It takes formulas as arguments, or one per line on the standard input.
 .SH OPTIONS
 .TP
 .B \-E

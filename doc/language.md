@@ -407,6 +407,22 @@ did you mean \frac?*
 `quad` and `qquad` insert one and two ems of space, as in
 `f(x) = x^2 quad x > 0`. Screen readers hear a pause there.
 
+### Seeing how a formula was read
+
+`tekx explain` shows the grouping tekx chose, with every implicit
+parenthesis written out:
+
+```
+$ tekx explain 'sin x/y + 1/2 x'
+formula    sin x/y + 1/2 x
+reads as   sin(x/y) + (1/2)·x
+says       sine the fraction x over y end fraction plus one half x
+copies as  sin x/y + 1/2 x
+MathML     <math …>
+```
+
+Give formulas as arguments, or one per line on the standard input.
+
 ### What each formula produces
 
 For every formula, tekx produces:

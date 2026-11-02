@@ -1,0 +1,9 @@
+1/2 x
+1/2x
+h/2pi
+a/b c
+sin x/y
+sin x / y
+-x^2
+sum k^2 for k from 1 to n + 1
+\frac{-b \pm \sqrt{b^2-4ac}}{2a}
