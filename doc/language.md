@@ -27,6 +27,7 @@ and the document's metadata (PDF title, authors, language, XMP).
 
 | line | effect |
 |---|---|
+| `tekx 0.2` | the tekx version the document is written for (see [compatibility.md](compatibility.md)) |
 | `title TEXT` | the document title; also the PDF title shown in the window bar |
 | `subtitle TEXT` | under the title; also the PDF subject |
 | `author TEXT` | one or more authors, separated by ` and ` |

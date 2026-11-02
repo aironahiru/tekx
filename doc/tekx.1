@@ -1,9 +1,10 @@
-.TH TEKX 1 "November 2026" "tekx 0.1.0" "User Commands"
+.TH TEKX 1 "November 2026" "tekx 0.2.0" "User Commands"
 .SH NAME
 tekx \- typeset mathematics into accessible PDF and HTML
 .SH SYNOPSIS
 .B tekx
 .RB [ \-E | \-P | \-M | \-S ]
+.RB [ \-w ]
 .RB [ \-o
 .IR output ]
 .I file.tekx
@@ -14,6 +15,9 @@ tekx \- typeset mathematics into accessible PDF and HTML
 .br
 .B tekx explain
 .RI [ formula ...]
+.br
+.B tekx new
+.I name
 .br
 .B tekx pkg
 .BR new | add | install | verify | lock | list | remove | search | registry
@@ -96,6 +100,15 @@ shows how formulas are read: the grouping the parser chose, with every
 implicit parenthesis written out, the speech, the copy text and the MathML.
 It takes formulas as arguments, or one per line on the standard input.
 .PP
+.B tekx new
+.I name
+writes
+.I name.tekx
+and
+.IR name.bib :
+a paper to start from, with front matter, a theorem, a proof, citations and
+an appendix.
+.PP
 .B tekx pkg
 manages packages: shared notation, environments, macros and programs that a
 document takes in with
@@ -136,6 +149,10 @@ Write the result to
 .IR output ;
 .B \-
 means the standard output.
+.TP
+.B \-w
+Watch: build, then build again whenever the document or one of its inputs
+(sources, bibliographies, images, fonts, packages) changes.
 .TP
 .B \-v
 Print the version and exit.

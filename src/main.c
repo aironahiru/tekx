@@ -20,6 +20,7 @@
 #include "pkg.h"
 
 #include <errno.h>
+#include <unistd.h>
 
 typedef int (*Stage)(FILE *, FILE *, const char *);
 
@@ -38,9 +39,10 @@ static const struct {
 enum { PP, PARSE, EQN, SET, PDF, HTML };
 
 static const char usage_text[] =
-    "usage: tekx [-E | -P | -M | -S] [-o output] file.tekx\n"
+    "usage: tekx [-E | -P | -M | -S] [-w] [-o output] file.tekx\n"
     "       tekx pp | parse | eqn | set | pdf | html [file]\n"
     "       tekx explain [formula ...]\n"
+    "       tekx new NAME\n"
     "       tekx pkg new | add | install | verify | lock | list | remove | search | registry\n"
     "       tekx -v | -h\n";
 
@@ -137,11 +139,14 @@ main(int argc, char **argv)
 {
 	const char *output = NULL, *file = NULL;
 	int last = 4;
+	bool watch = false;
 
 	if (argc >= 2 && streq(argv[1], "explain"))
 		return explain(argc - 2, argv + 2);
 	if (argc >= 2 && streq(argv[1], "pkg"))
 		return pkg_main(argc - 2, argv + 2);
+	if (argc >= 2 && streq(argv[1], "new"))
+		return new_main(argc - 2, argv + 2);
 	if (argc >= 2) {
 		for (size_t s = 0; s < NELEM(stages); s++) {
 			if (!streq(argv[1], stages[s].name))
@@ -173,10 +178,13 @@ main(int argc, char **argv)
 			last = 3;
 		else if (streq(a, "-o") && i + 1 < argc)
 			output = argv[++i];
+		else if (streq(a, "-w"))
+			watch = true;
 		else if (streq(a, "-h") || streq(a, "--help")) {
 			fputs(usage_text, stdout);
 			fputs("\n  -E  stop after macros       -P  stop after parsing\n"
 			    "  -M  stop after mathematics  -S  stop after typesetting\n"
+			    "  -w  watch: build again whenever the document or its inputs change\n"
 			    "  -o  output file (- for standard output); default: file.pdf\n\n"
 			    "See tekx(1), doc/language.md and doc/machinery.md.\n", stdout);
 			return 0;
@@ -192,6 +200,12 @@ main(int argc, char **argv)
 	}
 	if (file == NULL)
 		usage();
+	if (watch) {
+		char self[4096];
+		ssize_t k = readlink("/proc/self/exe", self, sizeof self - 1);
+		self[k > 0 ? k : 0] = 0;
+		return watch_main(k > 0 ? self : argv[0], argc, argv, file);
+	}
 
 	FILE *in = streq(file, "-") ? stdin : fopen(file, "rb");
 	if (in == NULL)

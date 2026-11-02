@@ -148,6 +148,12 @@ $T pp "$f" | $T parse | $T eqn | $T set | $T pdf >test/out/byhand.pdf &&
     fail "the shell pipeline differs from the driver"
 echo "pipeline: done"
 
+# 8b. tekx new: the paper it starts you with builds, with its bibliography
+rm -rf test/out/new && mkdir -p test/out/new
+(cd test/out/new && ../../../$T new paper >/dev/null && ../../../$T -o paper.pdf paper.tekx) ||
+    fail "tekx new: the starting paper does not build"
+echo "new: done"
+
 # 9. packages: lock, verify, refuse a changed package, filters, git registries
 TEKX=$T sh test/pkg.sh || status=1
 

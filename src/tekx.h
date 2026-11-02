@@ -27,7 +27,8 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-#define TEKX_VERSION "0.1.0"
+#define TEKX_VERSION "0.2.0"
+#define TEKX_VERSION_SHORT "0.2"	/* the language version a document may declare: tekx 0.2 */
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PRINTF(a, b) __attribute__((format(printf, a, b)))
@@ -118,6 +119,10 @@ int eqn_main(FILE *in, FILE *out, const char *file);
 int set_main(FILE *in, FILE *out, const char *file);
 int pdf_main(FILE *in, FILE *out, const char *file);
 int html_main(FILE *in, FILE *out, const char *file);	/* a second back end: HTML and MathML */
+
+/* commands around the compiler (cli.c) */
+int watch_main(const char *self, int argc, char **argv, const char *file);	/* tekx -w */
+int new_main(int argc, char **argv);	/* tekx new NAME */
 
 /* hyphenation */
 void hyph_init(void);

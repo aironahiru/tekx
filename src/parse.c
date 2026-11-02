@@ -884,6 +884,19 @@ is_setting(const char *w)
 	return false;
 }
 
+static int
+lang_version_cmp(const char *a, const char *b)
+{
+	for (int i = 0; i < 3; i++) {
+		int x = atoi(a), y = atoi(b);
+		if (x != y)
+			return x < y ? -1 : 1;
+		a = strchr(a, '.') ? strchr(a, '.') + 1 : "0";
+		b = strchr(b, '.') ? strchr(b, '.') + 1 : "0";
+	}
+	return 0;
+}
+
 /* a lowercase word followed by a quoted value and nothing else */
 static bool
 looks_like_setting(int i)
@@ -1023,6 +1036,15 @@ blocks(Node *parent, int i, int base, bool top)
 			parent = sec;
 			i++;
 			after_display = false;
+			continue;
+		}
+		if (top && streq(w, "tekx") && *rest && strspn(rest, "0123456789.") == strlen(rest)) {
+			/* the language version the document is written for */
+			if (lang_version_cmp(rest, TEKX_VERSION) > 0)
+				error_at(ln->no, ln->indent + 6, "this document is written for tekx %s, newer than this "
+				    "tekx (%s): update tekx to build it", rest, TEKX_VERSION);
+			node_add(section_stack[0], "meta", ln->no, 0, fmt("tekx %s", rest));
+			i++;
 			continue;
 		}
 		if (top && is_setting(w) && *rest) {
