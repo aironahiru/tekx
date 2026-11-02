@@ -1,98 +1,98 @@
 == tree
 document test/golden/alpha.tekx
-  meta@3 title Gaps Between Sums of Two Squares
-  meta@4 author Ada Lovelace
+  meta@2 title Gaps Between Sums of Two Squares
+  meta@3 author Ada Lovelace
     affiliation University of London, UK
     email ada@example.org
     orcid 0000-0002-1825-0097
-  meta@5 author Charles Babbage
+  meta@4 author Charles Babbage
     affiliation Cambridge
     url https://example.org/cb
-  meta@6 author Mary Somerville and John Herschel
-  meta@7 msc 11N36 (primary); 11E25 (secondary)
-  meta@8 keywords sums of two squares, short intervals
-  meta@9 numbering by section
-  meta@10 citations alphabetic
-  bibfile@11:14 journal.bib
-  abstract@13
-    para@14 0
+  meta@5 author Mary Somerville and John Herschel
+  meta@6 msc 11N36 (primary); 11E25 (secondary)
+  meta@7 keywords sums of two squares, short intervals
+  meta@8 numbering by section
+  meta@9 citations alphabetic
+  bibfile@10:14 journal.bib
+  abstract@12
+    para@13 0
       text We improve the exponent 
-      math@14:28 1/2
+      math@13:28 1/2
       text  of 
-      cite@14:36
-        item@14:37 hooley
+      cite@13:36
+        item@13:37 hooley
           text Thm. 2
-        item@14:54 landau
+        item@13:54 landau
       text .
-  section@16 1 1 intro
+  section@15 1 1 intro
     heading
       text Introduction
-    para@18 0
+    para@17 0
       text Landau 
-      cite@18:8
-        item@18:9 landau
+      cite@17:8
+        item@17:9 landau
       text  proved
-    display@20
-      line@20:5 asym B(x) ~ K x/sqrt(log x)
-    para@22 0
+    display@19
+      line@19:5 asym B(x) ~ K x/sqrt(log x)
+    para@21 0
       text By Theorem 
-      ref@22:12 main
+      ref@21:12 main
       text  and Lemmas 
-      ref@22:29 a
+      ref@21:29 a
       text  and 
-      ref@22:36 b
+      ref@21:36 b
       text , see (
-      ref@22:45 asym
+      ref@21:45 asym
       text ) and Section 
-      ref@22:64 intro
+      ref@21:64 intro
       text ; also 
-      cite@23:6
-        item@23:7 vallee
-        item@23:16 erdos
-        item@23:24 thesis
-        item@23:33 arxiv
-        item@23:41 parens
+      cite@22:6
+        item@22:7 vallee
+        item@22:16 erdos
+        item@22:24 thesis
+        item@22:33 arxiv
+        item@22:41 parens
       text  and 
-      cite@23:54
-        item@23:55 arxiv
+      cite@22:54
+        item@22:55 arxiv
           text §2
       text . The paper 
-      cite@24:11
-        item@24:11 hooley
+      cite@23:11
+        item@23:11 hooley
       text  and the formula (
-      ref@24:36 asym
+      ref@23:36 asym
       text ) are different things.
-    theorem@26 theorem* main
+    theorem@25 theorem* main
       heading
         text Main Theorem
-      para@27 0
+      para@26 0
         text Every interval 
-        math@27:19 [x, x + x^(1/4 + epsilon)]
+        math@26:19 [x, x + x^(1/4 + epsilon)]
         text  contains one.
-    theorem@29 lemma a
-      para@30 0
+    theorem@28 lemma a
+      para@29 0
         text First.
-    theorem@32 lemma b
-      para@33 0
+    theorem@31 lemma b
+      para@32 0
         text Second, by 
-        cite@33:14
-          item@33:15 landau
+        cite@32:14
+          item@32:15 landau
             text p. 
-            math@33:28 305
+            math@32:28 305
         text .
-  appendix@35
-  section@37 1 1 comp
+  appendix@34
+  section@36 1 1 comp
     heading
       text Computations
-    theorem@39 lemma c
-      para@40 0
+    theorem@38 lemma c
+      para@39 0
         text As in Appendix 
-        ref@40:18 comp
+        ref@39:18 comp
         text , Lemma 
-        ref@40:31 c
+        ref@39:31 c
         text  holds.
-      display@42
-        line@42:5 bound g(x) <= 2 x^(1/4)
+      display@41
+        line@41:5 bound g(x) <= 2 x^(1/4)
   refs
     entry erdos
       label ET+65

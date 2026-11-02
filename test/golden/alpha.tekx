@@ -1,5 +1,4 @@
 // The journal golden with AMS alphabetic citations and an unnumbered theorem.
-// section, an appendix, citations and a BibTeX bibliography.
 title "Gaps Between Sums of Two Squares"
 author "Ada Lovelace", affiliation: "University of London, UK", email: "ada@example.org", orcid: "0000-0002-1825-0097"
 author "Charles Babbage", affiliation: "Cambridge", url: "https://example.org/cb"
