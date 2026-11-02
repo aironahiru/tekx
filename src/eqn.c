@@ -2921,8 +2921,7 @@ walk(Node *n)
 		return;
 	}
 	if (streq(n->kind, "line")) {
-		char *label = field(n, 0);
-		char *src = field_rest(n, 1);
+		char *src = field_rest(n, 1);	/* after the label */
 		VEC(char *) rows = {0};
 		Buf full = {0};
 		bputs(&full, src);

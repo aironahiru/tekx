@@ -10,6 +10,9 @@ export SOURCE_DATE_EPOCH=1793616300 ASAN_OPTIONS=detect_leaks=0 LC_ALL=C
 update=false
 [ "${1:-}" = "-u" ] && update=true
 T=./tekx-debug
+# never test stale binaries: build first, and stop if the build fails
+make -s tekx tekx-debug >/dev/null 2>test/build.err || { cat test/build.err; echo "FAIL: build"; exit 2; }
+rm -f test/build.err
 mkdir -p test/out
 status=0
 fail() { echo "FAIL: $*"; status=1; }
