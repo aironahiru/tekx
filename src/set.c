@@ -525,7 +525,6 @@ formula(Node *n, int parent, double size)
 	prop(f.formula, "alt", f.speech);
 	if (mm)
 		prop(f.formula, "mathml", mm->rest);
-	prop(f.formula, "source", streq(n->kind, "line") ? field_rest(n, 1) : n->rest);
 	int s = span(f.linear, true);
 	for (size_t i = 0; i < n->kids.n; i++) {
 		Node *c = n->kids.v[i];

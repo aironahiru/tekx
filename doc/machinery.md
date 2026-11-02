@@ -252,7 +252,7 @@ l 190 120 45 13 7 d 1 0 90 Section 1
 | `m KEY TEXT` | metadata: `title`, `author` (repeatable), `language`, `subject`, `keywords`, `date` (Unix time) |
 | `f ID SOURCE` | a font, `builtin:NAME` or a file, declared in order |
 | `e ID PARENT NS TAG` | a structure element; NS is `pdf2`, `pdf` (1.7), `mathml` or `tekx`; declared in order |
-| `a ID KEY TEXT` | a property: `alt`, `actual`, `lang`, `title`, `ident`, `mathml`, `source`, `ref` |
+| `a ID KEY TEXT` | a property: `alt`, `actual`, `lang`, `title`, `ident`, `mathml`, `ref` |
 | `A ID OWNER KEY TYPE VALUE` | an attribute; TYPE `n` name, `i` integer, `r` real, `s` string |
 | `o LEVEL PAGE Y ELEM TITLE` | a bookmark to a structure destination |
 | `p W H` | a new page |
@@ -295,7 +295,8 @@ through a fallback `/RoleMap` for readers that ignore namespaces.
 - **Structure:** the tree in the PDF 2.0, PDF 1.7, MathML and tekx namespaces,
   with a ParentTree, structure destinations, `/Ref` from contents entries,
   and an IDTree.
-- **Formulas:** MathML and source attached to each Formula as associated files.
+- **Formulas:** each Formula carries its MathML as an associated file; the
+  MathML's annotation holds the tekx source, so the source is not attached twice.
 - **Metadata:** XMP declaring PDF/UA-2, WTPDF accessibility and reuse, and
   PDF/A-4. A document that carries files is PDF/A-4f; those files are also
   listed in the catalog's EmbeddedFiles name tree, so viewers show each

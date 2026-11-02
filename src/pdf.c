@@ -1275,15 +1275,12 @@ pdf_main(FILE *in, FILE *out, const char *file)
 			}
 			bputs(b, " >>]");
 		}
-		int af[2], naf_here = 0;
+		int af[1], naf_here = 0;	/* the MathML; its annotation carries the tekx source */
 		if (e->mathml) {
 			naf++;
 			af[naf_here++] = embed_file(fmt("mathml-%d.xml", naf), "application/mathml+xml", "Supplement",
 			    fmt("MathML of formula %d", naf), e->mathml, date);
 		}
-		if (e->source)
-			af[naf_here++] = embed_file(fmt("formula-%d.tekx", naf), "text/plain", "Source",
-			    fmt("tekx source of formula %d", naf), e->source, date);
 		if (naf_here) {
 			bputs(b, " /AF [");
 			for (int k = 0; k < naf_here; k++)

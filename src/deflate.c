@@ -7,7 +7,8 @@
  */
 #include "tekx.h"
 
-enum { WSIZE = 32768, MINM = 3, MAXM = 258, HBITS = 15, CHAIN = 192, BLOCK = 1 << 16 };
+/* zlib's level-6 search: chains of 128, enough at 128 bytes, no lazy look past 16 */
+enum { WSIZE = 32768, MINM = 3, MAXM = 258, HBITS = 15, CHAIN = 128, NICE = 128, LAZY = 16, BLOCK = 1 << 16 };
 
 static const u16 lbase[29] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
 static const u8 lextra[29] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0};
@@ -85,14 +86,21 @@ hash3(const u8 *d, size_t i)
 static void
 lz77(const u8 *d, size_t n, TokVec *toks)
 {
-	size_t *head = xmalloc(sizeof(size_t) << HBITS);
-	size_t *prev = xmalloc(sizeof(size_t) * WSIZE);
+	/*
+	 * The hash heads live for the whole run and are cleared after each
+	 * stream only where it touched them: a PDF holds a thousand small
+	 * streams (each formula's MathML), and clearing 256 KB for each was
+	 * most of the time spent writing a document.  The chains need no
+	 * clearing: a slot is written before it is read.
+	 */
+	static size_t *head;
 	const size_t NONE = (size_t)-1;
-
-	for (size_t i = 0; i < (1u << HBITS); i++)
-		head[i] = NONE;
-	for (size_t i = 0; i < WSIZE; i++)
-		prev[i] = NONE;
+	if (head == NULL) {
+		head = xmalloc(sizeof(size_t) << HBITS);
+		for (size_t i = 0; i < (1u << HBITS); i++)
+			head[i] = NONE;
+	}
+	size_t *prev = xmalloc(sizeof(size_t) * MIN(MAX(n, (size_t)1), (size_t)WSIZE));
 #define INSERT(i) do { if ((i) + MINM <= n) { size_t h_ = hash3(d, i); prev[(i) % WSIZE] = head[h_]; head[h_] = (i); } } while (0)
 	size_t i = 0;
 	while (i < n) {
@@ -111,7 +119,7 @@ lz77(const u8 *d, size_t n, TokVec *toks)
 				if (l > bl) {
 					bl = l;
 					bd = at - cand;
-					if (l == maxl)
+					if (l == maxl || l >= NICE)
 						break;
 				}
 				size_t p = prev[cand % WSIZE];
@@ -126,6 +134,8 @@ lz77(const u8 *d, size_t n, TokVec *toks)
 				if (best < MINM)
 					break;
 				INSERT(i);
+				if (best >= LAZY)
+					break;	/* long enough: no lazy look at the next byte */
 			} else if (bl > best + 1) {
 				best = 0;	/* lazy: emit literal, take the longer match next */
 			}
@@ -145,7 +155,8 @@ lz77(const u8 *d, size_t n, TokVec *toks)
 		}
 	}
 #undef INSERT
-	free(head);
+	for (size_t k = 0; k + MINM <= n; k++)
+		head[hash3(d, k)] = NONE;
 	free(prev);
 }
 

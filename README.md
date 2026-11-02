@@ -40,7 +40,8 @@ Libertinus fonts are compiled in.
 tagged PDF 2.0 and validates with veraPDF as **PDF/UA-2**, **WTPDF**
 (accessibility and reuse) and **PDF/A-4** for archiving (PDF/A-4f when it carries
 files). Each formula is tagged with MathML structure, has spoken
-alternative text, and carries its MathML and tekx source as associated files.
+alternative text, and carries its MathML (with the tekx source as its
+annotation) as an associated file.
 Copy and paste gives you real text:
 - spaces are real space characters;
 - hyphenated words come back whole;
