@@ -1,0 +1,3 @@
+test/errors/blocks.tekx:5:16: error: unknown macro {golden} (define it with: define golden as "...")
+test/errors/blocks.tekx:7:1: error: unknown block 'theorm'; did you mean 'theorem'?
+test/errors/blocks.tekx:5:5: error: unknown label @strat; did you mean @start?

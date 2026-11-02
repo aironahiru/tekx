@@ -844,6 +844,29 @@ blocks(Node *parent, int i, int base, bool top)
 			i = table(parent, i);
 			continue;
 		}
+		{
+			/* a lone word over an indented body looks like a misspelled block */
+			static const char *blockwords[] = {"theorem", "lemma", "proposition", "corollary",
+			    "definition", "example", "remark", "proof", "abstract", "quote", "references",
+			    "section", "subsection", "note", "conjecture", "claim", "exercise", "contents"};
+			int end = body_end(i, base);
+			if (!*rest && end > i + 1 && w[0] >= 'a' && w[0] <= 'z') {
+				const char *best = NULL;
+				int bd = 3;
+				for (size_t k = 0; k < NELEM(blockwords); k++) {
+					int d = edit_distance(w, blockwords[k]);
+					if (d < bd) {
+						bd = d;
+						best = blockwords[k];
+					}
+				}
+				if (best) {
+					error_at(ln->no, ln->indent + 1, "unknown block '%s'; did you mean '%s'?", w, best);
+					i = end;
+					continue;
+				}
+			}
+		}
 		if (*s == '\\')
 			ln->s++;
 		bool cont = prev_display && !(ln->s[0] >= 'A' && ln->s[0] <= 'Z');

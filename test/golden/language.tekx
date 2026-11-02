@@ -1,0 +1,65 @@
+// Every construct of the document language, in one file.
+document title: "Golden", author: "A. N. Author and B. Writer"
+date "1 January 2026"
+language en-GB
+
+define brand as "tekx"
+define cite(who, year = "2026") as "{who} ({year})"
+define block warning(title = "Warning")
+  quote
+    **{title}.** {body}
+define axiom2 like theorem titled "Postulate"
+
+abstract
+  A short abstract with *emphasis*, **strength**, `code` and a {brand} macro.
+
+# Headings with hashes #h1
+
+Paragraphs are separated by blank lines.
+A line break inside a paragraph is a space -- and dashes, quotes "like these",
+ellipses... and non~breaking spaces become real typography.
+See {cite(Knuth)} and {cite(Lamport, 1994)}.
+
+## A subsection
+
+- bullets
+- with *inline* $x$ math
+  1. nested
+  2. ordered
+
+1) parenthesized
+2) numbers
+
+> A quotation
+> over two lines.
+
+warning "Careful"
+  The macro wraps this body.
+
+axiom2 "Choice" #choice
+  Every family of nonempty sets has a choice function.
+
+theorem do
+Written with do and end.
+end
+
+proof "Proof of everything"
+  Trivial.
+
+section* Unnumbered
+
+| Left | Center | Right |
+|:-----|:------:|------:|
+| a    | $b$    | `c`   |
+
+```
+verbatim {brand} // not a comment
+```
+
+let f: RR -> RR be smooth
+
+Links: <https://example.org>, [text](https://example.org/x), https://example.org/y, @choice, @h1.
+
+references
+  knuth: D. E. Knuth, *The TeXbook*, 1984.
+  lamport: L. Lamport, *LaTeX*, 1994.

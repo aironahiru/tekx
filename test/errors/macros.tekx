@@ -1,0 +1,12 @@
+define greet(name) as "Hello, {name}!"
+define block box(title)
+  quote
+    {title}: {body}
+
+{greet}
+
+box
+  Body without a title.
+
+theorem do
+  Never closed.

@@ -1,0 +1,88 @@
+== tree
+document
+  define@1:8 function phi
+  define@2:8 operator Tr
+  define@3:8 norm2(v) as ||v||_2 read as "the two-norm of {v}"
+  para@5 0
+    text Inline: 
+    math@5:10 a^2 + b^2 = c^2
+    text , 
+    math@5:29 1/2 x
+    text , 
+    math@5:38 h/2pi
+    text , 
+    math@5:47 sin x / x
+    text , 
+    math@5:60 norm2(x - y)
+    text , 
+    math@5:76 Tr A
+    text , 
+    math@5:84 phi(t)
+    text .
+  display@7
+    line@7:5 gauss sum k for k from 1 to n = n(n + 1)/2
+    line@8:5 - integral of f(x) dx from a to b = F(b) - F(a)
+    line@9:5 - limit of (1 + 1/n)^n as n approaches infinity = e
+  display@11
+    line@11:5 - (a + b)^2 = a^2 + 2 a b + b^2
+    line@12:15 - = b^2 + 2 a b + a^2
+    line@13:15 - + 0
+  display@15
+    line@15:5 - abs(x) = cases
+      cont@16:7 x    if x >= 0
+      cont@17:7 -x   otherwise
+  display@19
+    line@19:5 - R(theta) = matrix
+      cont@20:7 cos theta  -sin theta
+      cont@21:7 sin theta  cos theta
+  display@23
+    line@23:5 - x = y & + z
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a squared plus b squared equals c squared"><semantics><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow><mo>=</mo><msup><mi>𝑐</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">a^2 + b^2 = c^2</annotation></semantics></math>
+speech a squared plus b squared equals c squared
+linear a² + b² = c²
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="1 over 2 x"><semantics><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>⁢</mo><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">1/2 x</annotation></semantics></math>
+speech 1 over 2 x
+linear 1/2 x
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator h and denominator 2 pi end fraction"><semantics><mrow><mfrac><mi>ℎ</mi><mrow><mn>2</mn><mo>⁢</mo><mi>𝜋</mi></mrow></mfrac></mrow><annotation encoding="application/x-tekx">h/2pi</annotation></semantics></math>
+speech the fraction with numerator h and denominator 2 pi end fraction
+linear h/2π
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the fraction with numerator sine x and denominator x end fraction"><semantics><mrow><mfrac><mrow><mi>sin</mi><mo>⁡</mo><mi>𝑥</mi></mrow><mi>𝑥</mi></mfrac></mrow><annotation encoding="application/x-tekx">sin x / x</annotation></semantics></math>
+speech the fraction with numerator sine x and denominator x end fraction
+linear (sin x)/x
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the norm of 2 open paren x minus y close paren"><semantics><mrow><mrow><mo fence="true">‖</mo><mn>2</mn><mo fence="true">‖</mo></mrow><mo>⁢</mo><mrow><mo fence="true">(</mo><mrow><mi>𝑥</mi><mo>−</mo><mi>𝑦</mi></mrow><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">norm2(x - y)</annotation></semantics></math>
+speech the norm of 2 open paren x minus y close paren
+linear ‖2‖(x − y)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="trace capital A"><semantics><mrow><mi>Tr</mi><mo>⁡</mo><mi>𝐴</mi></mrow><annotation encoding="application/x-tekx">Tr A</annotation></semantics></math>
+speech trace capital A
+linear Tr A
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="phi t"><semantics><mrow><mi>𝜑</mi><mo>⁢</mo><mrow><mo fence="true">(</mo><mi>𝑡</mi><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">phi(t)</annotation></semantics></math>
+speech phi t
+linear φ(t)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the sum from k equals 1 to n of k equals the fraction with numerator n open paren n plus 1 close paren and denominator 2 end fraction"><semantics><mrow><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑘</mi><mo>=</mo><mn>1</mn></mrow><mi>𝑛</mi></munderover><mi>𝑘</mi></mrow><mo>=</mo><mfrac><mrow><mi>𝑛</mi><mo>⁢</mo><mrow><mo fence="true">(</mo><mrow><mi>𝑛</mi><mo>+</mo><mn>1</mn></mrow><mo fence="true">)</mo></mrow></mrow><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tekx">sum k for k from 1 to n = n(n + 1)/2</annotation></semantics></math>
+speech the sum from k equals 1 to n of k equals the fraction with numerator n open paren n plus 1 close paren and denominator 2 end fraction
+linear ∑_(k=1)^n k = n(n + 1)/2
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the integral from a to b of f of x d x equals F of b minus F of a"><semantics><mrow><mrow><msubsup><mo largeop="true">∫</mo><mi>𝑎</mi><mi>𝑏</mi></msubsup><mrow><mrow><mi>𝑓</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow></mrow><mspace width="0.167em"/><mi mathvariant="normal">d</mi><mi>𝑥</mi></mrow></mrow><mo>=</mo><mrow><mrow><mi>𝐹</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑏</mi><mo fence="true">)</mo></mrow></mrow><mo>−</mo><mrow><mi>𝐹</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑎</mi><mo fence="true">)</mo></mrow></mrow></mrow></mrow><annotation encoding="application/x-tekx">integral of f(x) dx from a to b = F(b) - F(a)</annotation></semantics></math>
+speech the integral from a to b of f of x d x equals F of b minus F of a
+linear ∫_a^b f(x) dx = F(b) − F(a)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the limit as n approaches infinity of open paren 1 plus 1 over n close paren to the power n equals e"><semantics><mrow><mrow><munder><mo>lim</mo><mrow><mi>𝑛</mi><mo>→</mo><mi>∞</mi></mrow></munder><msup><mrow><mo fence="true">(</mo><mrow><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mi>𝑛</mi></mfrac></mrow><mo fence="true">)</mo></mrow><mi>𝑛</mi></msup></mrow><mo>=</mo><mi>𝑒</mi></mrow><annotation encoding="application/x-tekx">limit of (1 + 1/n)^n as n approaches infinity = e</annotation></semantics></math>
+speech the limit as n approaches infinity of open paren 1 plus 1 over n close paren to the power n equals e
+linear lim_(n→∞) (1 + 1/n)ⁿ = e
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="open paren a plus b close paren squared equals a squared plus 2 a b plus b squared"><semantics><mrow><msup><mrow><mo fence="true">(</mo><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo fence="true">)</mo></mrow><mn>2</mn></msup><mo>=</mo><mrow><mrow><msup><mi>𝑎</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><msup><mi>𝑏</mi><mn>2</mn></msup></mrow></mrow><annotation encoding="application/x-tekx">(a + b)^2 = a^2 + 2 a b + b^2</annotation></semantics></math>
+speech open paren a plus b close paren squared equals a squared plus 2 a b plus b squared
+linear (a + b)² = a² + 2ab + b²
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="equals b squared plus 2 a b plus a squared"><semantics><mrow><mrow/><mo>=</mo><mrow><mrow><msup><mi>𝑏</mi><mn>2</mn></msup><mo>+</mo><mrow><mn>2</mn><mo>⁢</mo><mi>𝑎</mi><mo>⁢</mo><mi>𝑏</mi></mrow></mrow><mo>+</mo><msup><mi>𝑎</mi><mn>2</mn></msup></mrow></mrow><annotation encoding="application/x-tekx">= b^2 + 2 a b + a^2</annotation></semantics></math>
+speech equals b squared plus 2 a b plus a squared
+linear = b² + 2ab + a²
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="plus 0"><semantics><mrow><mo form="prefix">+</mo><mn>0</mn></mrow><annotation encoding="application/x-tekx">+ 0</annotation></semantics></math>
+speech plus 0
+linear +0
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="the absolute value of x equals x if x is greater than or equal to 0; negative x otherwise"><semantics><mrow><mrow><mo fence="true">|</mo><mi>𝑥</mi><mo fence="true">|</mo></mrow><mo>=</mo><mrow><mo fence="true">{</mo><mtable columnalign="left"><mtr><mtd><mi>𝑥</mi></mtd><mtd><mrow><mrow><mtext>if</mtext><mo>⁢</mo><mi>𝑥</mi></mrow><mo>≥</mo><mn>0</mn></mrow></mtd></mtr><mtr><mtd><mrow><mo form="prefix">−</mo><mi>𝑥</mi></mrow></mtd><mtd><mtext>otherwise</mtext></mtd></mtr></mtable></mrow></mrow><annotation encoding="application/x-tekx">abs(x) = cases&#10;x    if x &gt;= 0&#10;-x   otherwise</annotation></semantics></math>
+speech the absolute value of x equals x if x is greater than or equal to 0; negative x otherwise
+linear |x| = cases(x if x ≥ 0; −x otherwise)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="R of theta equals the 2 by 2 matrix; row 1: cosine theta, negative sine theta; row 2: sine theta, cosine theta"><semantics><mrow><mrow><mi>𝑅</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝜃</mi><mo fence="true">)</mo></mrow></mrow><mo>=</mo><mrow><mo fence="true">(</mo><mtable><mtr><mtd><mrow><mi>cos</mi><mo>⁡</mo><mi>𝜃</mi></mrow></mtd><mtd><mrow><mo form="prefix">−</mo><mrow><mi>sin</mi><mo>⁡</mo><mi>𝜃</mi></mrow></mrow></mtd></mtr><mtr><mtd><mrow><mi>sin</mi><mo>⁡</mo><mi>𝜃</mi></mrow></mtd><mtd><mrow><mi>cos</mi><mo>⁡</mo><mi>𝜃</mi></mrow></mtd></mtr></mtable><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">R(theta) = matrix&#10;cos theta  -sin theta&#10;sin theta  cos theta</annotation></semantics></math>
+speech R of theta equals the 2 by 2 matrix; row 1: cosine theta, negative sine theta; row 2: sine theta, cosine theta
+linear R(θ) = (cos θ, −sin θ; sin θ, cos θ)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" alttext="x equals y plus z"><semantics><mrow><mrow><mi>𝑥</mi><mo>=</mo><mi>𝑦</mi></mrow><mrow><mo form="prefix">+</mo><mi>𝑧</mi></mrow></mrow><annotation encoding="application/x-tekx">x = y &amp; + z</annotation></semantics></math>
+speech x equals y plus z
+linear x = y+z

@@ -50,11 +50,17 @@ default_output(const char *in)
 	return fmt("%s.pdf", in);
 }
 
-/* Run stages first..last on `in`; the result goes to `out`. */
+/* Run stages first..last on `in`; the result goes to `out`.  After an
+ * error the later stages still run, so that one pass reports as much as
+ * it can, but nothing is produced and the device stage is skipped. */
 static int
 pipeline(FILE *in, int first, int last, FILE *out, const char *file)
 {
+	int failed = 0;
+
 	for (int i = first; i <= last; i++) {
+		if (failed && i == 4)
+			break;
 		char *buf = NULL;
 		size_t len = 0;
 		FILE *o = i == last ? out : open_memstream(&buf, &len);
@@ -66,13 +72,13 @@ pipeline(FILE *in, int first, int last, FILE *out, const char *file)
 		if (in != stdin)
 			fclose(in);
 		if (rc != 0 || nerrors)
-			return rc ? rc : 1;
+			failed = rc ? rc : 1;
 		if (i != last && (in = fmemopen(buf, len ? len : 1, "r")) == NULL)
 			die("fmemopen: %s", strerror(errno));
 		if (i != last && len == 0)
 			fseek(in, 0, SEEK_END);
 	}
-	return 0;
+	return failed;
 }
 
 int

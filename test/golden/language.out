@@ -1,0 +1,131 @@
+== tree
+document
+  meta@2 title Golden
+  meta@2 author A. N. Author and B. Writer
+  meta@3 date 1 January 2026
+  meta@4 language en-GB
+  env@11 axiom2 theorem Postulate
+  abstract@13
+    para@14 0
+      text A short abstract with 
+      emph
+        text emphasis
+      text , 
+      strong
+        text strength
+      text , 
+      code code
+      text  and a tekx macro.
+  section@16 1 1 h1
+    heading
+      text Headings with hashes
+    para@18 0
+      text Paragraphs are separated by blank lines. A line break inside a paragraph is a space – and dashes, quotes “like these”, ellipses… and non breaking spaces become real typography. See Knuth (2026) and Lamport (1994).
+    section@23 2 1 -
+      heading
+        text A subsection
+      list@25 0 1
+        item@25
+          para@25 0
+            text bullets
+        item@26
+          para@26 0
+            text with 
+            emph
+              text inline
+            text  
+            math@26:18 x
+            text  math
+          list@27 1 1
+            item@27
+              para@27 0
+                text nested
+            item@28
+              para@28 0
+                text ordered
+      list@30 1 1
+        item@30
+          para@30 0
+            text parenthesized
+        item@31
+          para@31 0
+            text numbers
+      quote@33
+        para@33 0
+          text A quotation over two lines.
+      quote@36
+        para@36 0
+          strong
+            text Careful.
+          text  The macro wraps this body.
+      theorem@39 axiom2 choice
+        heading
+          text Choice
+        para@40 0
+          text Every family of nonempty sets has a choice function.
+      theorem@42 theorem -
+        para@43 0
+          text Written with do and end.
+      proof@46
+        heading
+          text Proof of everything
+        para@47 0
+          text Trivial.
+  section@49 1 0 -
+    heading
+      text Unnumbered
+    table@51
+      align l c r
+      row@51 1
+        cell
+          text Left
+        cell
+          text Center
+        cell
+          text Right
+      row@53 0
+        cell
+          text a
+        cell
+          math@53:10 b
+        cell
+          code c
+    code@55
+      verbatim verbatim {brand} // not a comment
+    let@59:5 f: RR -> RR
+      prose
+        text be smooth
+    para@61 0
+      text Links: 
+      url https://example.org
+      text , 
+      link https://example.org/x
+        text text
+      text , 
+      url https://example.org/y
+      text , 
+      ref@61:85 choice
+      text , 
+      ref@61:94 h1
+      text .
+    refs@63
+      entry@64 knuth
+        text D. E. Knuth, 
+        emph
+          text The TeXbook
+        text , 1984.
+      entry@65 lamport
+        text L. Lamport, 
+        emph
+          text LaTeX
+        text , 1994.
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x"><semantics><mrow><mi>𝑥</mi></mrow><annotation encoding="application/x-tekx">x</annotation></semantics></math>
+speech x
+linear x
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="b"><semantics><mrow><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">b</annotation></semantics></math>
+speech b
+linear b
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="f from the real numbers to the real numbers"><semantics><mrow><mi>𝑓</mi><mo>:</mo><mrow><mi>ℝ</mi><mo>→</mo><mi>ℝ</mi></mrow></mrow><annotation encoding="application/x-tekx">f: RR -&gt; RR</annotation></semantics></math>
+speech f from the real numbers to the real numbers
+linear f: ℝ → ℝ

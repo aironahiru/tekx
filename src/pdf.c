@@ -12,7 +12,8 @@
  *	m KEY TEXT		metadata: title author language subject keywords date
  *	f ID SOURCE		font: builtin:NAME or a file path
  *	e ID PARENT NS TAG	structure element (PARENT may be -)
- *	a ID KEY TEXT		element property: alt actual lang title ident mathml source
+ *	a ID KEY TEXT		element property: alt actual lang title ident mathml source,
+ *				or ref (TEXT: ids of the elements referred to)
  *	A ID OWNER KEY TYPE VALUE	attribute, TYPE n i r s
  *	o LEVEL PAGE Y ELEM TITLE	bookmark
  *	p W H			new page
@@ -59,6 +60,7 @@ typedef struct {
 	char *tag;
 	int ns, parent;
 	char *alt, *actual, *lang, *title, *ident, *mathml, *source;
+	VEC(int) refs;	/* /Ref: elements this one refers to */
 	VEC(Attr) attrs;
 	VEC(int) kids;	/* encoded: >=0 element, <0 content (index into cont) */
 	bool attached, content;
@@ -365,6 +367,11 @@ read_input(FILE *in)
 			else if (streq(key, "ident")) e->ident = v;
 			else if (streq(key, "mathml")) e->mathml = v;
 			else if (streq(key, "source")) e->source = v;
+			else if (streq(key, "ref")) {
+				char *r = v, *f;
+				while (*(f = next_field(&r)))
+					VPUSH(e->refs, atoi(f));
+			}
 			break;
 		}
 		case 'A': {
@@ -968,6 +975,13 @@ pdf_main(FILE *in, FILE *out, const char *file)
 			bprintf(b, " /%s ", props[k].key);
 			textstr(b, props[k].v);
 		}
+		if (e->refs.n) {
+			bputs(b, " /Ref [");
+			for (size_t k = 0; k < e->refs.n; k++)
+				if (e->refs.v[k] >= 0 && (size_t)e->refs.v[k] < elems.n)
+					bprintf(b, "%s%d 0 R", k ? " " : "", elem_ref[e->refs.v[k]]);
+			bputc(b, ']');
+		}
 		if (e->attrs.n) {
 			bputs(b, " /A [");
 			for (size_t k = 0; k < e->attrs.n; k++) {
@@ -1058,9 +1072,38 @@ pdf_main(FILE *in, FILE *out, const char *file)
 		bprintf(pt, "%zu %d 0 R ", pages.n + k, elem_ref[annot_parent.v[k]]);
 	pt->n--;
 	bputs(pt, "] >>");
+	/* element identifiers, as a name tree sorted by key */
+	VEC(int) ids = {0};
+	for (size_t i = 0; i < elems.n; i++)
+		if (elems.v[i].ident) {
+			size_t k = ids.n;
+			VPUSH(ids, (int)i);
+			while (k > 0 && strcmp(elems.v[ids.v[k - 1]].ident, elems.v[i].ident) > 0) {
+				ids.v[k] = ids.v[k - 1];
+				k--;
+			}
+			ids.v[k] = (int)i;
+		}
+	Buf idt = {0};
+	if (ids.n) {
+		int t = alloc_obj();
+		Buf *tb = obj(t);
+		bputs(tb, "<< /Limits [");
+		textstr(tb, elems.v[ids.v[0]].ident);
+		bputc(tb, ' ');
+		textstr(tb, elems.v[ids.v[ids.n - 1]].ident);
+		bputs(tb, "] /Names [");
+		for (size_t k = 0; k < ids.n; k++) {
+			textstr(tb, elems.v[ids.v[k]].ident);
+			bprintf(tb, " %d 0 R ", elem_ref[ids.v[k]]);
+		}
+		bputs(tb, "] >>");
+		bprintf(&idt, " /IDTree << /Kids [%d 0 R] >>", t);
+	}
 	bprintf(obj(sroot), "<< /Type /StructTreeRoot /K [%d 0 R] /ParentTree %d 0 R /ParentTreeNextKey %zu "
-	    "/Namespaces [%d 0 R %d 0 R %d 0 R %d 0 R] /RoleMap <<%s >> >>",
-	    elem_ref[0], ptree, pages.n + annot_parent.n, ns[0], ns[1], ns[2], ns[3], rm.s ? rm.s : "");
+	    "/Namespaces [%d 0 R %d 0 R %d 0 R %d 0 R] /RoleMap <<%s >>%s >>",
+	    elem_ref[0], ptree, pages.n + annot_parent.n, ns[0], ns[1], ns[2], ns[3], rm.s ? rm.s : "",
+	    idt.s ? idt.s : "");
 
 	/* bookmarks */
 	int outlines = 0;

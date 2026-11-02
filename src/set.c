@@ -649,10 +649,38 @@ static void
 add_math(HList *hl, Node *n, Ctx c)
 {
 	Formula f = formula(n, c.el, c.size, false);
+	VEC(double) brk = {0};
+	double k = c.size / 1000;
 
 	for (size_t i = 0; i < f.ops.n; i++)
 		f.ops.v[i].link = c.link;
-	hbox(hl, &f.ops, f.w, f.h, f.d);
+	for (size_t i = 0; i < n->kids.n; i++)
+		if (streq(n->kids.v[i]->kind, "brk")) {
+			char *r = n->kids.v[i]->rest;
+			VPUSH(brk, atof(next_field(&r)) * k);
+			VPUSH(brk, atof(next_field(&r)) * k);
+			VPUSH(brk, atof(next_field(&r)));
+		}
+	/* split the formula where it may break across lines */
+	double start = 0;
+	size_t next = 0;
+	for (size_t b = 0; b <= brk.n; b += 3) {
+		double end = b < brk.n ? brk.v[b] : f.w;
+		Ops piece = {0};
+		for (; next < f.ops.n; next++) {
+			Op o = f.ops.v[next];
+			if (b < brk.n && o.x >= end - 0.001)
+				break;
+			o.x -= start;
+			VPUSH(piece, o);
+		}
+		hbox(hl, &piece, end - start, f.h, f.d);
+		if (b < brk.n) {
+			hpen(hl, (int)brk.v[b + 2], false, 0, NULL, -1);
+			hglue(hl, brk.v[b + 1] - end, 0, 0, false);
+			start = brk.v[b + 1];
+		}
+	}
 }
 
 static void add_inlines(HList *hl, Node *n, Ctx c);
@@ -1839,7 +1867,7 @@ contents_block(Box_ bx)
 	text_line("Contents", FACE_BF, size, h, &ops, 0);
 	vline(size * 0.72, size * 0.22, lead_for(size), bx.fr.x, &ops)->keep = true;
 	vspace(0.4 * BS);
-	int toc = el(sect, "pdf2", "TOC");
+	int toc = el(sect, "pdf", "TOC");
 	int nums[4] = {0};
 	for (size_t i = 0; i < toc_sections.n; i++) {
 		Node *s = toc_sections.v[i];
@@ -1857,9 +1885,9 @@ contents_block(Box_ bx)
 				bprintf(&b, "%s%d", k > 1 ? "." : "", nums[k]);
 			num = bstr(&b);
 		}
-		int ti = el(toc, "pdf2", "TOCI");
+		int ti = el(toc, "pdf", "TOCI");
 		int p = el(ti, "pdf2", "P");
-		char *target = streq(label, "-") ? fmt("tekx-section-%zu", i) : label;
+		char *target = streq(label, "-") ? fmt("tekx-section-%zu", (size_t)s->line) : label;
 		char *text = fmt("%s%s%s", num ? num : "", num ? " " : "", hd ? plain_text(hd) : "");
 		int link = new_link(p, NULL, target, text);
 		int le = links.v[link].el;
@@ -2406,6 +2434,16 @@ emit(void)
 	}
 	for (size_t i = 0; i < props.n; i++)
 		fprintf(out, "a %d %s %s\n", props.v[i].el, props.v[i].key, props.v[i].val);
+	/* each contents entry refers to its section (PDF/UA-2 8.2.5.8) */
+	for (size_t i = 0; i < links.n; i++) {
+		Link *l = &links.v[i];
+		if (!l->label)
+			continue;
+		int p = els.v[l->el].parent, ti = p >= 0 ? els.v[p].parent : -1;
+		Label *lab = find_label(l->label);
+		if (ti >= 0 && streq(els.v[ti].tag, "TOCI") && lab && lab->el >= 0)
+			fprintf(out, "a %d ref %d\n", ti, lab->el);
+	}
 	/* attributes grouped by element and owner */
 	for (size_t i = 0; i < attrs.n; i++)
 		fprintf(out, "A %d %s %s %c %s\n", attrs.v[i].el, attrs.v[i].owner, attrs.v[i].key, attrs.v[i].type,

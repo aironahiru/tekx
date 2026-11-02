@@ -1,0 +1,45 @@
+x^2 + 1
+phi = (1 + sqrt 5)/2
+a^2 + b^2 = c^2
+sum k^2 for k from 1 to n = n(n + 1)(2n + 1)/6
+integral of e^(-x^2) dx from -infinity to infinity = sqrt pi
+limit of sin x / x as x approaches 0 = 1
+f(x) = x^2 + 2x + 1
+x in RR
+for all epsilon > 0, there exists delta > 0
+|x - y| < epsilon
+{x in RR : x > 0}
+binom(n, k) = n!/(k!(n - k)!)
+[1, 2; 3, 4]
+f: RR -> RR
+e^(i pi) + 1 = 0
+x_max + a_ij + x1
+sin^2 x + cos^2 x = 1
+hat x + vec v + bar z
+lim_(x -> 0) f(x)
+cases(x if x >= 0; -x otherwise)
+sum_(k=1)^n k
+f'(x) = 2x
+root 3 of x + cube root of y
+n choose k
+a/b + (a+b)/(c-d)
+||v||_2
+x² + y₁
+1/2 x + h/2pi
+(f(b) - f(a))/(b - a) (x - a)
+prod_(p prime) 1/(1 - p^(-s)) = zeta(s)
+x = (-b +- sqrt(b^2 - 4 a c))/(2 a)
+A^T A = I
+det [a, b; c, d] = a d - b c
+nabla times vec E = -partial vec B / partial t
+integral_0^1 integral_0^1 x y dx dy = 1/4
+max(a, b) >= (a + b)/2
+log_2 n + ln x + exp(x)
+a <= b < c != d approx e
+P(A | B) = P(A intersect B)/P(B)
+union_(i=1)^n A_i subseteq X
+f^(-1)(y)
+x_(n+1) = x_n - f(x_n)/f'(x_n)
+alpha + beta + gamma = pi
+floor(x) + ceil(y) <= abs(z)
+{1, 2, 3}

@@ -757,7 +757,7 @@ led_bp(P *p)
 		    streq(s, "′") || streq(s, "″"))
 			return 70;
 		if (streq(s, "/"))
-			return 50;
+			return t->sp && peek2(p)->sp ? 42 : 50;	/* "a / b c" groups loosely */
 		if (streq(s, ","))
 			return 3;
 		if (streq(s, ";"))
@@ -808,8 +808,9 @@ led_bp(P *p)
 	}
 	if ((o = find_op(t->s)) != NULL && (t->kind == T_SYM || t->kind == T_WORD))
 		return o->lbp;
+	/* juxtaposition: "2x" binds tighter than "/", "1/2 x" looser */
 	if (starts_operand(p, t))
-		return 60;	/* juxtaposition */
+		return t->sp ? 45 : 60;
 	return 0;
 }
 
@@ -930,6 +931,7 @@ group_items(P *p, const char *open, const char **closer)
 	Items it = {0};
 	int saved = p->stop, sb = p->braces;
 	bool sf = p->func_arg;
+	Tok *opener = p->i > 0 ? &p->t[p->i - 1] : peek(p);
 
 	p->stop = 0;
 	p->func_arg = false;
@@ -961,7 +963,7 @@ group_items(P *p, const char *open, const char **closer)
 	Tok *c = peek(p);
 	*closer = "";
 	if (c->kind == T_EOF) {
-		perr(p, c, fmt("missing closing bracket for '%s'", open));
+		perr(p, opener, fmt("this '%s' is never closed", open));
 	} else {
 		*closer = c->s;
 		advance(p);
@@ -1079,7 +1081,7 @@ row_cells(const char *s)
 	bool has_amp = strchr(s, '&') != NULL;
 	int depth = 0;
 	const char *start = s;
-	bool has_comma = false;
+	bool has_comma = false, wide = false;
 
 	for (const char *q = s; *q; q++) {
 		if (*q == '(' || *q == '[' || *q == '{')
@@ -1088,6 +1090,8 @@ row_cells(const char *s)
 			depth--;
 		else if (*q == ',' && depth == 0)
 			has_comma = true;
+		else if (*q == ' ' && q[1] == ' ' && depth == 0)
+			wide = true;
 	}
 	depth = 0;
 	for (const char *q = s;; q++) {
@@ -1102,6 +1106,8 @@ row_cells(const char *s)
 			split = *q == '&';
 		else if (depth == 0 && has_comma)
 			split = *q == ',';
+		else if (depth == 0 && wide)
+			split = *q == ' ' && q[1] == ' ' && q > start && q[-1] != ' ';
 		else if (depth == 0 && *q == ' ' && q > start && q[-1] != ' ')
 			split = true;
 		if (split) {
@@ -1120,8 +1126,9 @@ static M *
 pending_rows(P *p, const char *kind, Tok *t)
 {
 	if (p->nrows == 0) {
+		bool cases = streq(kind, "cases") || streq(kind, "system");
 		perr(p, t, fmt("'%s' needs rows: write them on the following lines, indented further, "
-		    "or inline as %s(a, b; c, d)", kind, kind));
+		    "or inline as %s", kind, cases ? "cases(x if x >= 0; -x otherwise)" : fmt("%s(a, b; c, d)", kind)));
 		return mrow();
 	}
 	char **rows = p->rows;
@@ -1205,7 +1212,7 @@ apply(P *p, M *f, bool prefix_ok)
 		advance(p);
 		bool sf = p->func_arg;
 		p->func_arg = true;
-		M *arg = expr(p, 55);
+		M *arg = expr(p, 44);
 		p->func_arg = sf;
 		M *r = mrow();
 		madd(r, f);
@@ -1216,7 +1223,7 @@ apply(P *p, M *f, bool prefix_ok)
 	if (prefix_ok && starts_operand(p, t) && !is(t, "|")) {
 		bool sf = p->func_arg;
 		p->func_arg = true;
-		M *arg = expr(p, 59);
+		M *arg = expr(p, 44);
 		p->func_arg = sf;
 		M *r = mrow();
 		madd(r, f);
@@ -1360,7 +1367,7 @@ bigop(P *p, const char *glyph, int kind)
 	Tok *bt = peek(p);
 	M *body = NULL;
 	if (starts_operand(p, bt) || is(bt, "-") || is(bt, "−"))
-		body = expr(p, 45);
+		body = expr(p, 41);	/* below a spaced / (42), above + (40) */
 	if (kind == 1) {
 		M *r = mrow();
 		madd(r, body);
@@ -1829,6 +1836,9 @@ nud(P *p)
 		if (semi && !streq(s, "{"))
 			return table_from_items(&it, "matrix", s, close);
 		M *body;
+		if (it.cells.n == 1 && streq(s, "(") && it.cells.v[0]->kind == M_FENCE && it.cells.v[0]->sem &&
+		    streq(it.cells.v[0]->sem, "binom"))
+			return it.cells.v[0];	/* (n choose k) */
 		if (it.cells.n == 1) {
 			body = it.cells.v[0];
 		} else {
@@ -2001,7 +2011,7 @@ led(P *p, M *left, int bp)
 	}
 	if (is(t, "/")) {
 		advance(p);
-		M *right = expr(p, 50);
+		M *right = expr(p, bp);
 		M *f = mnew(M_FRAC);
 		f->a = strip(left);
 		f->b = strip(right);
@@ -2108,7 +2118,7 @@ led(P *p, M *left, int bp)
 		r->apply = true;
 		return r;
 	}
-	M *right = expr(p, 60);
+	M *right = expr(p, bp);
 	M *r;
 	if (left && left->kind == M_ROW && left->times && !left->group) {
 		r = left;
@@ -2117,7 +2127,13 @@ led(P *p, M *left, int bp)
 		r->times = true;
 		madd(r, left);
 	}
-	madd(r, right);
+	if (right && right->kind == M_ROW && right->times && !right->group) {
+		/* one product, however it was spelled: 4ac, 4 a c */
+		for (size_t i = 0; i < right->kids.n; i++)
+			madd(r, right->kids.v[i]);
+	} else {
+		madd(r, right);
+	}
 	return r;
 }
 
@@ -2240,6 +2256,14 @@ emit_layout(Node *n, M *m, bool display, const char *source)
 	else
 		bnum(&l, b->align);
 	node_add(n, "box", 0, 0, bstr(&l));
+	for (size_t i = 0; !display && i + 2 < b->brk.n; i += 3) {
+		Buf k = {0};
+		bnum(&k, b->brk.v[i]);
+		bputc(&k, ' ');
+		bnum(&k, b->brk.v[i + 1]);
+		bprintf(&k, " %d", (int)b->brk.v[i + 2]);
+		node_add(n, "brk", 0, 0, bstr(&k));
+	}
 	for (size_t i = 0; i < nodes.n; i++) {
 		Buf a = {0};
 		bprintf(&a, "%zu ", i);

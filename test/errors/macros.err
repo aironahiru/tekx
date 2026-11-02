@@ -1,0 +1,3 @@
+test/errors/macros.tekx:11:1: error: 'do' without a matching 'end'
+test/errors/macros.tekx:8:1: error: box needs a value for 'title'
+test/errors/macros.tekx:6:1: error: greet needs a value for 'name'

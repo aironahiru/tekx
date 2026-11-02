@@ -767,7 +767,8 @@ lin_atom(M *m)
 	if (m->kind == M_ROW && m->kids.n == 2 && m->kids.v[1]->kind == M_OP && streq(m->kids.v[1]->text, "!"))
 		return lin_atom(m->kids.v[0]);
 	if (m->kind == M_ROW)
-		return m->kids.n == 1 ? lin_atom(m->kids.v[0]) : (m->apply);
+		return m->kids.n == 1 ? lin_atom(m->kids.v[0]) :
+		    (m->apply && m->kids.n == 2 && m->kids.v[1]->kind == M_FENCE);
 	if (m->kind == M_SCRIPT)
 		return lin_atom(m->a);
 	return m->kind == M_ID || m->kind == M_NUM || m->kind == M_FENCE || m->kind == M_SQRT ||
@@ -775,15 +776,38 @@ lin_atom(M *m)
 }
 
 static void
-lin_paren(Buf *b, M *m, bool compact)
+lin_paren_tight(Buf *b, M *m, bool compact, bool allow_tight)
 {
-	if (lin_atom(m)) {
-		lin(b, m, compact);
+	char *s = lin_str(m, compact);
+	/* tight products such as n(n + 1) bind more strongly than / */
+	bool tight = false;
+	if (allow_tight && m && m->kind == M_ROW && m->times) {
+		bool spaced = false;
+		int depth = 0;
+		for (const char *c = s; *c; c++) {
+			if (*c == '(' || *c == '[' || *c == '{')
+				depth++;
+			else if (*c == ')' || *c == ']' || *c == '}')
+				depth--;
+			else if (*c == ' ' && depth == 0)
+				spaced = true;
+		}
+		tight = !spaced;
+	}
+	if (lin_atom(m) || tight) {
+		bputs(b, s);
 	} else {
 		bputc(b, '(');
 		lin(b, m, compact);
 		bputc(b, ')');
 	}
+}
+
+/* scripts and roots take exactly one atom */
+static void
+lin_paren(Buf *b, M *m, bool compact)
+{
+	lin_paren_tight(b, m, compact, false);
 }
 
 static const char *
@@ -913,9 +937,9 @@ lin(Buf *b, M *m, bool compact)
 			lin_paren(b, m->b, compact);
 			return;
 		}
-		lin_paren(b, m->a, compact);
+		lin_paren_tight(b, m->a, compact, true);
 		bputc(b, '/');
-		lin_paren(b, m->b, compact);
+		lin_paren_tight(b, m->b, compact, true);
 		return;
 	case M_SCRIPT: {
 		if (m->a && !(m->a->kind == M_ROW && m->a->kids.n == 0))

@@ -555,6 +555,12 @@ hlist(Atoms *at, St s)
 		/* the alignment point of a line is just before its first relation */
 		if (a->lcls == REL && isnan(rel_align))
 			rel_align = before;
+		/* a line may break after a relation or binary operator, as in TeX */
+		if (prev >= 0 && (at->v[prev].rcls == REL || at->v[prev].rcls == BIN) && !at->v[prev].text) {
+			VPUSH(b->brk, before);
+			VPUSH(b->brk, x);
+			VPUSH(b->brk, at->v[prev].rcls == REL ? 500 : 700);
+		}
 		put(b, a->b, x, 0);
 		x += a->b->w;
 		b->h = MAX(b->h, a->b->h);
@@ -666,7 +672,7 @@ lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool 
 		b->w = w;
 		return b;
 	}
-	bool glyph = single_glyph(bm) || bigop;
+	bool glyph = single_glyph(bm) && !bigop;	/* big operators are boxes */
 	double u = 0, v = 0;
 	if (bp) {
 		u = s.cramped ? C(s, SuperscriptShiftUpCramped) : C(s, SuperscriptShiftUp);

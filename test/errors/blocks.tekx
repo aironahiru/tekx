@@ -1,0 +1,8 @@
+title "Errors"
+
+section Start #start
+
+See @strat and {golden} here.
+
+theorm
+  A misspelled theorem.

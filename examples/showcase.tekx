@@ -1,0 +1,77 @@
+title "Mathematics That Means Something"
+author "The tekx authors"
+date today
+
+define function phi
+define operator Var
+define E(x) as EE[x] read as "the expected value of {x}"
+
+contents
+
+section Analysis #analysis
+
+Let us collect classical results. The Gaussian integral
+
+    integral of e^(-x^2) dx from -infinity to infinity = sqrt pi #gauss
+
+underlies the normal distribution. Euler's identity reads $e^(i pi) + 1 = 0$,
+and the Basel problem asks for
+
+    sum 1/k^2 for k from 1 to infinity = pi^2/6
+
+let f: RR -> RR be continuous
+
+theorem "Mean value" #mvt
+  If $f$ is differentiable on $(a, b)$ and continuous on $[a, b]$, then there
+  is a $c in (a, b)$ with
+
+      f'(c) = (f(b) - f(a))/(b - a)
+
+proof
+  Apply Rolle's theorem to $g(x) = f(x) - (f(b) - f(a))/(b - a) (x - a)$.
+
+The limit
+
+    limit of (1 + 1/n)^n as n approaches infinity = e
+
+defines $e$, and for $|x| < 1$ the geometric series gives
+$sum_(k=0)^infinity x^k = 1/(1 - x)$.
+
+section Algebra
+
+definition
+  A matrix $A in RR^(n times n)$ is *orthogonal* when $A^T A = I$.
+
+    det [a, b; c, d] = a d - b c
+
+    A = matrix
+      1  0  0
+      0  cos theta  -sin theta
+      0  sin theta  cos theta
+
+The binomial theorem states
+
+    (x + y)^n = sum binom(n, k) x^k y^(n - k) for k from 0 to n #binomial
+
+and the quadratic formula
+
+    x = (-b +- sqrt(b^2 - 4 a c))/(2 a)
+
+section Probability
+
+For a random variable $X$ with finite variance,
+
+    Var(X) = E((X - E(X))^2)
+           = E(X^2) - E(X)^2
+
+and Chebyshev's inequality bounds the tails:
+
+    Pr(|X - mu| >= k sigma) <= 1/k^2 for all k > 0
+
+The absolute value is
+
+    abs(x) = cases
+      x    if x >= 0
+      -x   otherwise
+
+Corollary @binomial with $x = y = 1$ gives $sum_(k=0)^n binom(n, k) = 2^n$; compare @gauss and @mvt.

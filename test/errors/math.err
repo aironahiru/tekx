@@ -1,0 +1,6 @@
+test/errors/math.tekx:1:16: error: this '(' is never closed
+test/errors/math.tekx:1:29: error: this '(' is never closed
+test/errors/math.tekx:1:51: error: double superscript: group with parentheses, e.g. x^(a^b)
+test/errors/math.tekx:1:62: error: expected a script after ^ or _
+test/errors/math.tekx:3:12: error: 'cases' needs rows: write them on the following lines, indented further, or inline as cases(x if x >= 0; -x otherwise)
+test/errors/math.tekx:6:1: error: label #dup is already used (line 5)

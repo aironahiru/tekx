@@ -1,0 +1,23 @@
+define function phi
+define operator Tr
+define norm2(v) as ||v||_2 read as "the two-norm of {v}"
+
+Inline: $a^2 + b^2 = c^2$, $1/2 x$, $h/2pi$, $sin x / x$, $norm2(x - y)$, $Tr A$, $phi(t)$.
+
+    sum k for k from 1 to n = n(n + 1)/2 #gauss
+    integral of f(x) dx from a to b = F(b) - F(a)
+    limit of (1 + 1/n)^n as n approaches infinity = e
+
+    (a + b)^2 = a^2 + 2 a b + b^2
+              = b^2 + 2 a b + a^2
+              + 0
+
+    abs(x) = cases
+      x    if x >= 0
+      -x   otherwise
+
+    R(theta) = matrix
+      cos theta  -sin theta
+      sin theta  cos theta
+
+    x = y & + z
