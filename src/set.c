@@ -225,6 +225,7 @@ typedef struct {
 	int sface, sgid, sel, sspan, slink;
 	double ssize;
 	int note;	/* footnote whose mark this box holds, 1-based; 0 none */
+	double lp, rp;	/* how far its first and last glyph may hang into the margins */
 } H;
 
 typedef VEC(H) HList;
@@ -236,6 +237,77 @@ typedef struct {
 	int link;
 	bool nohyph;
 } Ctx;
+
+/*
+ * Character protrusion: punctuation and some letters hang into the margin
+ * so that the edges of a justified block look straight.  microtype's
+ * default table, in thousandths of the glyph's own width.
+ */
+static const struct { u32 cp; short l, r; } prot[] = {
+	{'!', 0, 100}, {'%', 50, 50}, {'(', 100, 0}, {')', 0, 200}, {'*', 200, 200}, {'+', 250, 250},
+	{',', 0, 500}, {'-', 500, 500}, {'.', 0, 700}, {'/', 100, 200}, {'1', 50, 50}, {'4', 50, 50},
+	{'7', 50, 50}, {':', 0, 500}, {';', 0, 300}, {'<', 200, 100}, {'>', 100, 200}, {'?', 0, 100},
+	{'@', 50, 50}, {'A', 50, 50}, {'F', 0, 50}, {'J', 50, 0}, {'K', 0, 50}, {'L', 0, 50}, {'T', 50, 50},
+	{'V', 50, 50}, {'W', 50, 50}, {'X', 50, 50}, {'Y', 50, 50}, {'\\', 100, 200}, {'_', 100, 100},
+	{'k', 0, 50}, {'r', 0, 50}, {'v', 50, 50}, {'w', 50, 50}, {'x', 50, 50}, {'y', 0, 50},
+	{'{', 400, 200}, {'}', 200, 400}, {'~', 200, 250}, {0xa1, 100, 0}, {0xab, 200, 200},
+	{0xad, 500, 500}, {0xbb, 200, 200}, {0xbf, 100, 0}, {0xc6, 50, 0}, {0x2010, 500, 500},
+	{0x2013, 200, 200}, {0x2014, 150, 150}, {0x2018, 300, 400}, {0x2019, 300, 400}, {0x201a, 400, 400},
+	{0x201c, 300, 300}, {0x201d, 300, 300}, {0x201e, 400, 400}, {0x2039, 400, 300}, {0x203a, 300, 400},
+};
+
+/* accented Latin-1 letters protrude as their base letter */
+static u32
+base_letter(u32 c)
+{
+	static const char up[] = "AAAAAA?CEEEEIIII?NOOOOO?OUUUUY", lo[] = "aaaaaa?ceeeeiiii?nooooo?ouuuuy?y";
+	if (c >= 0xc0 && c <= 0xdd && up[c - 0xc0] != '?')
+		return (u32)up[c - 0xc0];
+	if (c >= 0xe0 && c <= 0xff && lo[c - 0xe0] != '?')
+		return (u32)lo[c - 0xe0];
+	return c == 0x178 ? 'Y' : c;
+}
+
+/* how far a glyph may hang into the left (right = false) or right margin, in points */
+static double
+protrusion(const Op *o, bool right)
+{
+	if (o->kind != O_GLYPH || o->face == FACE_MATH || o->face == FACE_MONO || !o->text || !*o->text)
+		return 0;
+	u32 cp = 0;
+	const char *t = o->text;
+	size_t n = strlen(t);
+	for (size_t i = 0; i < n;) {
+		u32 c;
+		i += (size_t)utf8_dec(t + i, n - i, &c);
+		if (!right) {
+			cp = c;
+			break;
+		}
+		cp = c;
+	}
+	cp = base_letter(cp);
+	for (size_t i = 0; i < NELEM(prot); i++)
+		if (prot[i].cp == cp) {
+			Font *f = face_font(o->face);
+			return (right ? prot[i].r : prot[i].l) / 1000.0 * font_adv(f, o->gid) * o->size / f->upem;
+		}
+	return 0;
+}
+
+static void
+edge_protrusion(H *x)
+{
+	const Op *first = NULL, *last = NULL;
+	for (size_t k = 0; k < x->ops.n; k++)
+		if (x->ops.v[k].kind == O_GLYPH) {
+			if (!first)
+				first = &x->ops.v[k];
+			last = &x->ops.v[k];
+		}
+	x->lp = first ? protrusion(first, false) : 0;
+	x->rp = last ? protrusion(last, true) : 0;
+}
 
 static void
 hbox(HList *hl, Ops *ops, double w, double h, double d)
@@ -250,6 +322,7 @@ hbox(HList *hl, Ops *ops, double w, double h, double d)
 	if (ops)
 		x.ops = *ops;
 	x.span = -1;
+	edge_protrusion(&x);
 	VPUSH(*hl, x);
 }
 
@@ -281,6 +354,7 @@ hpen(HList *hl, int pen, bool flag, double w, Ops *ops, int sp)
 	if (ops)
 		x.ops = *ops;
 	x.span = sp;
+	edge_protrusion(&x);	/* the hyphen drawn at a break hangs too */
 	VPUSH(*hl, x);
 }
 
@@ -953,14 +1027,41 @@ static bool
 legal(HList *hl, int b)
 {
 	H *it = &hl->v[b];
-	if (it->kind == H_PEN && it->autohy && !hy_pass)
-		return false;
+	if (it->kind == H_PEN && it->autohy) {
+		if (!hy_pass)
+			return false;
+		/* a word that carries a footnote mark stays whole: viewers paste
+		 * a mark after a broken word before it */
+		for (int j = b + 1; j < (int)hl->n && hl->v[j].kind != H_GLUE; j++)
+			if (hl->v[j].kind == H_BOX && hl->v[j].note)
+				return false;
+	}
 
 	if (it->kind == H_GLUE)
 		return b > 0 && hl->v[b - 1].kind == H_BOX;
 	if (it->kind == H_PEN)
 		return it->pen < 10000;
 	return false;
+}
+
+/* what the line from start to the break at b may hang into both margins:
+ * not on the left after a paragraph indent, nothing on the last line */
+static bool protrude = false;
+
+static double
+line_protrusion(HList *hl, int start, int b, bool indented)
+{
+	if (!protrude)
+		return 0;
+	H *it = &hl->v[b];
+	double l = !indented && start < b && hl->v[start].kind == H_BOX ? hl->v[start].lp : 0, r = 0;
+	if (it->kind == H_PEN && it->pen <= -10000)
+		r = 0;
+	else if (it->kind == H_PEN && it->w > 0)
+		r = it->rp;
+	else if (b > 0 && hl->v[b - 1].kind == H_BOX)
+		r = hl->v[b - 1].rp;
+	return l + r;
 }
 
 /* returns break positions (indices of the breaking items); width per line from lw(i) */
@@ -1001,7 +1102,7 @@ knuth_plass(HList *hl, double width, double first_width, double tolerance, doubl
 				continue;
 			}
 			double lw = a->line == 0 ? first_width : width;
-			double L = sw[b] - sw[start] + pw;
+			double L = sw[b] - sw[start] + pw - line_protrusion(hl, start, b, a->line == 0 && first_width < width);
 			double Y = sy[b] - sy[start], Z = sz[b] - sz[start];
 			int F = sf[b] - sf[start];
 			double r;
@@ -1211,6 +1312,7 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 	int nb = 0;
 	int *br = NULL;
 	double fw = fr.w - indent_first;
+	protrude = justify;
 	if (justify) {
 		/* TeX's passes: without hyphenation (\pretolerance 100), then with
 		 * it (\tolerance 200), then with emergency stretch */
@@ -1234,6 +1336,10 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 	for (int li = 0; li < nb; li++) {
 		int b = br[li], start = line_start(hl, prev);
 		double lw = li == 0 ? fw : fr.w;
+		/* the line is that much longer, and starts that far to the left */
+		bool indented = li == 0 && indent_first > 0;
+		double lpw = protrude && !indented && start < b && hl->v[start].kind == H_BOX ? hl->v[start].lp : 0;
+		lw += line_protrusion(hl, start, b, indented);
 		double L = 0, Y = 0, Z = 0;
 		bool fil = false;
 		H *bi = &hl->v[b];
@@ -1270,7 +1376,7 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 			warn_at(cur_line, 0, "line too long by %.1fpt (it could not be broken)", L - lw);
 		Ops ops = {0};
 		VEC(int) line_notes = {0};
-		double x = li == 0 ? indent_first : 0, h = size * 0.72, d = size * 0.22;
+		double x = (li == 0 ? indent_first : 0) - lpw, h = size * 0.72, d = size * 0.22;
 		for (int i = start; i < b; i++) {
 			H *it = &hl->v[i];
 			if (it->kind == H_BOX) {
@@ -1297,10 +1403,14 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 			 * otherwise put that punctuation before the word */
 			int sp = bi->span;
 			spans.v[sp].active = true;
-			for (int j = b + 1; j < (int)hl->n && hl->v[j].kind == H_BOX; j++)
+			for (int j = b + 1; j < (int)hl->n && hl->v[j].kind == H_BOX && !hl->v[j].note; j++)
 				for (size_t k = 0; k < hl->v[j].ops.n; k++) {
 					Op *o = &hl->v[j].ops.v[k];
-					if (o->kind != O_GLYPH || o->span == sp || o->span >= 0 || !o->text)
+					if (o->kind != O_GLYPH || o->span >= 0 || !o->text ||
+					    !(streq(o->text, ",") || streq(o->text, ".") || streq(o->text, ";") ||
+					    streq(o->text, ":") || streq(o->text, "!") || streq(o->text, "?") ||
+					    streq(o->text, ")") || streq(o->text, "]") || streq(o->text, "’") ||
+					    streq(o->text, "”")))
 						continue;
 					spans.v[sp].text = fmt("%s%s", spans.v[sp].text, o->text);
 					o->span = sp;
