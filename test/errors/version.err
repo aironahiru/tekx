@@ -1,1 +1,1 @@
-test/errors/version.tekx:1:6: error: this document is written for tekx 9.1, newer than this tekx (0.2.0): update tekx to build it
+test/errors/version.tekx:1:6: error: this document is written for tekx 9.1, newer than this tekx (1.0.1): update tekx to build it

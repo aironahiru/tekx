@@ -2,7 +2,7 @@
   "name": "tekx",
   "displayName": "tekx",
   "description": "Syntax highlighting for tekx: mathematics written the way it is spoken",
-  "version": "0.2.0",
+  "version": "1.0.1",
   "license": "Apache-2.0",
   "engines": { "vscode": "^1.80.0" },
   "categories": ["Programming Languages"],

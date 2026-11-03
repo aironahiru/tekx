@@ -784,24 +784,46 @@ add_math(HList *hl, Node *n, Ctx c)
 			VPUSH(brk, atof(next_field(&r)) * k);
 			VPUSH(brk, atof(next_field(&r)));
 		}
-	/* split the formula where it may break across lines */
+	/* Split the formula where it may break across lines (after a relation
+	 * or operator) and where its spacing may give (before one).  The
+	 * spaces around relations and operators stretch and shrink as TeX's
+	 * do: \thickmuskip 5mu plus 5mu, \medmuskip 4mu plus 2mu minus 4mu. */
+	typedef struct { double end, restart; int pen; bool rel; } Cut;
+	VEC(Cut) cuts = {0};
+	for (size_t b = 0; b + 2 < brk.n; b += 3) {
+		Cut ct = {brk.v[b], brk.v[b + 1], (int)brk.v[b + 2], brk.v[b + 2] < 600};
+		VPUSH(cuts, ct);
+	}
+	for (size_t b = 0; b + 2 < f.dbrk.n; b += 3) {
+		Cut ct = {f.dbrk.v[b], f.dbrk.v[b + 1], 10000, f.dbrk.v[b + 2] > 0.5};
+		if (ct.restart - ct.end > 0.01)
+			VPUSH(cuts, ct);
+	}
+	for (size_t i = 1; i < cuts.n; i++)	/* in order along the formula; few cuts */
+		for (size_t j = i; j > 0 && cuts.v[j - 1].end > cuts.v[j].end; j--) {
+			Cut t = cuts.v[j];
+			cuts.v[j] = cuts.v[j - 1];
+			cuts.v[j - 1] = t;
+		}
 	double start = 0;
 	size_t next = 0;
-	for (size_t b = 0; b <= brk.n; b += 3) {
-		double end = b < brk.n ? brk.v[b] : f.w;
+	for (size_t b = 0; b <= cuts.n; b++) {
+		double end = b < cuts.n ? cuts.v[b].end : f.w;
 		Ops piece = {0};
 		for (; next < f.ops.n; next++) {
 			Op o = f.ops.v[next];
-			if (b < brk.n && o.x >= end - 0.001)
+			if (b < cuts.n && o.x >= end - 0.001)
 				break;
 			o.x -= start;
 			VPUSH(piece, o);
 		}
 		hbox(hl, &piece, end - start, f.h, f.d);
-		if (b < brk.n) {
-			hpen(hl, (int)brk.v[b + 2], false, 0, NULL, -1);
-			hglue(hl, brk.v[b + 1] - end, 0, 0, false);
-			start = brk.v[b + 1];
+		if (b < cuts.n) {
+			Cut *ct = &cuts.v[b];
+			double w = ct->restart - ct->end;
+			hpen(hl, ct->pen, false, 0, NULL, -1);
+			hglue(hl, w, ct->rel ? w : w / 2, ct->rel ? 0 : w, false);
+			start = ct->restart;
 		}
 	}
 }

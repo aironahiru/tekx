@@ -1931,6 +1931,22 @@ static const char *tex_known[] = {"frac", "dfrac", "tfrac", "cfrac", "sqrt", "bi
     "mathfrak", "mathbf", "boldsymbol", "bm", "mathsf", "mathtt", "mathit", "operatorname", "begin", "end",
     "pmod", "label", "not", "over", "choose"};
 
+/* (mod n), as amsmath's \pmod sets it: 18 mu before it in a display, 8 mu
+ * in text, and mod spaced as an operator name */
+static M *
+pmod(P *p, M *n)
+{
+	M *r = mrow(), *in = mrow();
+	M *sp = mnew(M_SPACE);
+	sp->num = (p->display ? 18 : 8) * 1000.0 / 18;
+	madd(r, sp);
+	in->times = true;
+	madd(in, op("mod", OPC));
+	madd(in, n);
+	madd(r, fence("(", in, ")"));
+	return r;
+}
+
 /* \frac, \sqrt, \text ...; NULL when the command is an ordinary word */
 static M *
 tex_command(P *p, Tok *t)
@@ -2117,18 +2133,8 @@ tex_command(P *p, Tok *t)
 		tex_raw_group(p, t);	/* tekx labels lines with #name */
 		return mrow();
 	}
-	if (streq(w, "pmod")) {
-		/* a \pmod{n}: (mod n) after a quad */
-		M *r = mrow(), *in = mrow();
-		M *sp = mnew(M_SPACE);
-		sp->num = 1000;
-		madd(r, sp);
-		in->times = true;
-		madd(in, op("mod", OPC));	/* spaced like an operator name */
-		madd(in, tex_arg(p));
-		madd(r, fence("(", in, ")"));
-		return r;
-	}
+	if (streq(w, "pmod"))
+		return pmod(p, tex_arg(p));
 	return NULL;
 }
 
@@ -2568,6 +2574,17 @@ nud(P *p)
 		M *sp = mnew(M_SPACE);
 		sp->num = s[1] == ',' ? 167 : s[1] == ';' ? 278 : s[1] == '!' ? -167 : s[1] == ' ' ? 250 : 222;
 		return sp;
+	}
+	if (streq(s, "(") && is(peek(p), "mod")) {
+		/* a ≡ b (mod n) */
+		advance(p);
+		int saved = p->stop;
+		p->stop = 0;
+		M *n = expr(p, 0);
+		p->stop = saved;
+		if (!accept(p, ")"))
+			perr(p, peek(p), "missing ) after (mod ...");
+		return pmod(p, n);
 	}
 	if (streq(s, "(") || streq(s, "[") || streq(s, "{") || streq(s, "⟨")) {
 		const char *closer;
@@ -3041,7 +3058,7 @@ emit_layout(Node *n, M *m, bool display, const char *source)
 		bprintf(&k, " %d", (int)b->brk.v[i + 2]);
 		node_add(n, "brk", 0, 0, bstr(&k));
 	}
-	for (size_t i = 0; display && i + 2 < b->dbrk.n; i += 3) {
+	for (size_t i = 0; i + 2 < b->dbrk.n; i += 3) {
 		Buf k = {0};
 		bnum(&k, b->dbrk.v[i]);
 		bputc(&k, ' ');

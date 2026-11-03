@@ -572,7 +572,7 @@ read_manifest(const char *dir, char **err)
 		return NULL;
 	}
 	if (p->requires && !valid_version(p->requires, 1, 3)) {
-		*err = fmt("%s: requires \"tekx 0.2\", not \"%s\"", path, p->requires);
+		*err = fmt("%s: requires \"tekx 1.0\", not \"%s\"", path, p->requires);
 		return NULL;
 	}
 	for (size_t i = 0; i < p->depends.n; i++) {

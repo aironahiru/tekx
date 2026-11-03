@@ -1,6 +1,6 @@
 // One document that uses everything, put through every back end; see
 // test/integration.sh.  The back ends must agree on every number.
-tekx 0.2
+tekx 1.0
 title "Everything at Once"
 author "Ada Lovelace", affiliation: "University of London", email: "ada@example.org"
 author "Charles Babbage", affiliation: "Cambridge"

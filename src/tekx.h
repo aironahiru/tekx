@@ -27,8 +27,8 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-#define TEKX_VERSION "0.2.0"
-#define TEKX_VERSION_SHORT "0.2"	/* the language version a document may declare: tekx 0.2 */
+#define TEKX_VERSION "1.0.1"
+#define TEKX_VERSION_SHORT "1.0"	/* the language version a document may declare: tekx 1.0 */
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PRINTF(a, b) __attribute__((format(printf, a, b)))

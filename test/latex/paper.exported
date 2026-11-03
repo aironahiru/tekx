@@ -1,4 +1,4 @@
-% Written by tekx 0.2.0 from test/out/latex/paper.tekx.
+% Written by tekx 1.0.1 from test/out/latex/paper.tekx.
 \documentclass[a4paper]{amsart}
 \usepackage[T1]{fontenc}
 \usepackage{amssymb}
