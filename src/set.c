@@ -17,6 +17,7 @@
 
 #include <math.h>
 #include <time.h>
+#include <ctype.h>
 
 /* ---- page geometry and type sizes ---- */
 
@@ -215,7 +216,8 @@ typedef struct {
 	bool fil;
 	double h, d;
 	int pen;
-	bool flag;
+	bool flag;	/* a hyphenated break: TeX's double and final hyphen demerits apply */
+	bool autohy;	/* a hyphenation point, tried only once breaking without them fails */
 	Ops ops;	/* box contents, or the hyphen drawn when breaking at a penalty */
 	int span;	/* penalty: hyphenated word whose ActualText it activates */
 	/* word spaces are drawn as real space glyphs */
@@ -406,6 +408,9 @@ shape(const char *s, Ctx c)
 	return r;
 }
 
+/* the ActualText span of the compound word being added, or -1 */
+static int compound_span = -1;
+
 static void
 add_word(HList *hl, const char *w, Ctx c)
 {
@@ -447,6 +452,8 @@ add_word(HList *hl, const char *w, Ctx c)
 			}
 		}
 	}
+	if (compound_span >= 0)
+		sp = compound_span;	/* the whole compound pastes as written */
 	Font *f = face_font(c.face);
 	int hy = font_glyph(f, '-');
 	double hyw = hy ? font_adv(f, hy) * c.size / f->upem : c.size / 3;
@@ -458,6 +465,7 @@ add_word(HList *hl, const char *w, Ctx c)
 			Ops hops = {0};
 			op_glyph(&hops, c.face, c.size, 0, 0, hy, hyw, "-", c.el, sp, c.link);
 			hpen(hl, 50, true, hyw, &hops, sp);
+			hl->v[hl->n - 1].autohy = true;
 			memset(&cur, 0, sizeof cur);
 			x = 0;
 		}
@@ -488,11 +496,27 @@ add_text(HList *hl, const char *s, Ctx c)
 			size_t k = (size_t)(br - q) + 3;
 			add_word(hl, xstrndup(q, k), c);
 			if (br[3])
-				hpen(hl, 50, false, 0, NULL, -1);
+				hpen(hl, 50, true, 0, NULL, -1);
+			q += k;
+		}
+		/* "non-negative" may break after its hyphen and nowhere else,
+		 * as in TeX (\exhyphenpenalty 50) */
+		Ctx cc = c;
+		while (!c.nohyph && (br = strchr(q, '-')) != NULL && br > q && br[1] &&
+		    isalpha((unsigned char)br[-1]) && isalpha((unsigned char)br[1])) {
+			/* a viewer takes a hyphen at the end of a line for a soft
+			 * one: the compound carries its text, as hyphenated words do */
+			if (compound_span < 0)
+				compound_span = span(q, false);
+			cc.nohyph = true;
+			size_t k = (size_t)(br - q) + 1;
+			add_word(hl, xstrndup(q, k), cc);
+			hpen(hl, 50, true, 0, NULL, compound_span);
 			q += k;
 		}
 		if (*q)
-			add_word(hl, q, c);
+			add_word(hl, q, cc);
+		compound_span = -1;
 		p = e;
 	}
 }
@@ -923,10 +947,14 @@ line_start(HList *hl, int brk)
 	return s;
 }
 
+static bool hy_pass = true;	/* hyphenation points are legal breaks */
+
 static bool
 legal(HList *hl, int b)
 {
 	H *it = &hl->v[b];
+	if (it->kind == H_PEN && it->autohy && !hy_pass)
+		return false;
 
 	if (it->kind == H_GLUE)
 		return b > 0 && hl->v[b - 1].kind == H_BOX;
@@ -937,7 +965,7 @@ legal(HList *hl, int b)
 
 /* returns break positions (indices of the breaking items); width per line from lw(i) */
 static int *
-knuth_plass(HList *hl, double width, double first_width, double tolerance, int *nbreaks)
+knuth_plass(HList *hl, double width, double first_width, double tolerance, double emergency, int *nbreaks)
 {
 	int n = (int)hl->n;
 	double *sw = xcalloc((size_t)n + 1, sizeof *sw), *sy = xcalloc((size_t)n + 1, sizeof *sy),
@@ -977,21 +1005,27 @@ knuth_plass(HList *hl, double width, double first_width, double tolerance, int *
 			double Y = sy[b] - sy[start], Z = sz[b] - sz[start];
 			int F = sf[b] - sf[start];
 			double r;
+			/* emergency stretch counts in the badness only (TeX §863);
+			 * the line is set with its real glue */
 			if (L < lw)
-				r = F ? 0 : Y > 0 ? (lw - L) / Y : INFINITY;
+				r = F ? 0 : Y + emergency > 0 ? (lw - L) / (Y + emergency) : INFINITY;
 			else if (L > lw)
 				r = Z > 0 ? (lw - L) / Z : -INFINITY;
 			else
 				r = 0;
 			if (r >= -1 && r <= rmax) {
-				double bad = 100 * pow(fabs(r), 3);
+				double bad = MIN(10000, 100 * pow(fabs(r), 3));
 				double d = (10 + bad) * (10 + bad);
 				if (it->kind == H_PEN && it->pen > 0)
 					d += (double)it->pen * it->pen;
 				else if (it->kind == H_PEN && it->pen < 0 && !forced)
 					d -= (double)it->pen * it->pen;
-				if (it->flag && a->pos >= 0 && hl->v[a->pos].kind == H_PEN && hl->v[a->pos].flag)
-					d += 3000;
+				/* \doublehyphendemerits and \finalhyphendemerits */
+				bool prevhy = a->pos >= 0 && hl->v[a->pos].kind == H_PEN && hl->v[a->pos].flag;
+				if (prevhy && it->flag)
+					d += 10000;
+				else if (prevhy && b == n - 1)
+					d += 5000;
 				int fit = r < -0.5 ? 0 : r <= 0.5 ? 1 : r <= 1 ? 2 : 3;
 				if (abs(fit - a->fit) > 1)
 					d += 10000;
@@ -1178,11 +1212,19 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 	int *br = NULL;
 	double fw = fr.w - indent_first;
 	if (justify) {
-		br = knuth_plass(hl, fr.w, fw, 200, &nb);
+		/* TeX's passes: without hyphenation (\pretolerance 100), then with
+		 * it (\tolerance 200), then with emergency stretch */
+		hy_pass = false;
+		br = knuth_plass(hl, fr.w, fw, 100, 0, &nb);
+		hy_pass = true;
 		if (!br)
-			br = knuth_plass(hl, fr.w, fw, 2000, &nb);
+			br = knuth_plass(hl, fr.w, fw, 200, 0, &nb);
 		if (!br)
-			br = knuth_plass(hl, fr.w, fw, 1e7, &nb);
+			br = knuth_plass(hl, fr.w, fw, 200, 2 * size, &nb);
+		if (!br)
+			br = knuth_plass(hl, fr.w, fw, 10000, 3 * size, &nb);
+		if (!br)
+			br = knuth_plass(hl, fr.w, fw, 1e7, 3 * size, &nb);
 	}
 	if (!br)
 		br = first_fit(hl, fr.w, fw, &nb);
@@ -1215,11 +1257,14 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 				nfil += hl->v[i].kind == H_GLUE && hl->v[i].fil;
 			filw = (lw - L) / MAX(nfil, 1);
 		}
-		if (!fil && justify && !(bi->kind == H_PEN && bi->pen <= -10000)) {
-			if (L < lw && Y > 0)
-				r = (lw - L) / Y;
-			else if (L > lw && Z > 0)
-				r = MAX(-1, (lw - L) / Z);
+		bool forced = bi->kind == H_PEN && bi->pen <= -10000;
+		if (justify && L > lw && Z > 0) {
+			/* a line that is too long shrinks, the last line too: the
+			 * paragraph's fill has no shrink (TeX §664) */
+			r = MAX(-1, (lw - L) / Z);
+			fil = false;
+		} else if (!fil && justify && !forced && L < lw && Y > 0) {
+			r = (lw - L) / Y;
 		}
 		if (L > lw + 0.5 && (L - lw) > 1 && Z * 1 < L - lw)
 			warn_at(cur_line, 0, "line too long by %.1fpt (it could not be broken)", L - lw);
@@ -1246,14 +1291,27 @@ set_par(HList *hl, Fr fr, double size, double indent_first, bool justify, bool l
 				x += w;
 			}
 		}
+		if (bi->kind == H_PEN && bi->span >= 0) {
+			/* the word broken here pastes whole, with any punctuation set
+			 * against it in another style ("*theory*,"): a viewer would
+			 * otherwise put that punctuation before the word */
+			int sp = bi->span;
+			spans.v[sp].active = true;
+			for (int j = b + 1; j < (int)hl->n && hl->v[j].kind == H_BOX; j++)
+				for (size_t k = 0; k < hl->v[j].ops.n; k++) {
+					Op *o = &hl->v[j].ops.v[k];
+					if (o->kind != O_GLYPH || o->span == sp || o->span >= 0 || !o->text)
+						continue;
+					spans.v[sp].text = fmt("%s%s", spans.v[sp].text, o->text);
+					o->span = sp;
+				}
+		}
 		if (bi->kind == H_PEN && bi->w > 0) {
 			for (size_t k = 0; k < bi->ops.n; k++) {
 				Op o = bi->ops.v[k];
 				o.x += x;
 				VPUSH(ops, o);
 			}
-			if (bi->span >= 0)
-				spans.v[bi->span].active = true;
 		} else if (bi->kind == H_GLUE && bi->space && bi->sgid) {
 			/* keep the real space at the end of the line for copy and paste */
 			op_glyph(&ops, bi->sface, bi->ssize, x, 0, bi->sgid, bi->w, " ", bi->sel, bi->sspan, bi->slink);
@@ -1751,7 +1809,9 @@ code_block(Node *cnode, Box_ bx)
 		if (sg)
 			op_glyph(&ops, FACE_MONO, size, w, 0, sg, font_adv(f, sg) * size / f->upem, " ", code, -1, -1);
 		V *vv = vline(size * 0.72, size * 0.22, size * 1.25, bx.fr.x, &ops);
-		if (i + 1 < cnode->kids.n)
+		/* a listing breaks across pages, but not after its first line
+		 * or before its last */
+		if (i + 1 < cnode->kids.n && (i == 0 || i + 2 == cnode->kids.n))
 			vv->keep = true;
 	}
 	vspace(0.5 * bx.size);
