@@ -1,0 +1,104 @@
+fx	T	f(x)
+Vx	T	V x
+Vi	T	V_i
+Pk	T	P_k
+W2	T	W^2
+xi2	T	x_i^2
+hatx2	T	\hat{x}^2
+whatxyz	T	\widehat{xyz}
+whatab	T	\widehat{ab}
+barx	T	\bar{x}
+fracT	T	\frac{a}{b}
+binomT	T	\binom{n}{k}
+binomD	D	\binom{n}{k}
+rootp	T	\sqrt[p]{x}
+px2	T	(x^2)
+fracscr	T	x^{\frac{a}{b}}
+sumT	T	\sum_{i=1}^n
+sumD	D	\sum_{i=1}^n
+intT	T	\int_0^1
+intD	D	\int_0^1
+ghatx2	T	{\hat{x}}^2
+hatxi	T	{\hat{\beta}}_j
+ovl	T	\overline{x+y}
+unl	T	\underline{x}
+sqrtx	T	\sqrt{x}
+sqrtfD	D	\sqrt{\frac{a}{b}}
+sqrtxy	T	\sqrt{x^2+y^2}
+root3	T	\sqrt[3]{x}
+lpfD	D	\left( \frac{a}{b} \right)
+lbfD	D	\left[ \frac{a}{b} \right]
+lcfD	D	\left\{ \frac{a}{b} \right\}
+pmat	T	\begin{pmatrix} a & b \\ c & d \end{pmatrix}
+pmatD	D	\begin{pmatrix} a & b \\ c & d \end{pmatrix}
+cases	D	\begin{cases} x & x \ge 0 \\ -x & x < 0 \end{cases}
+xpr	T	x'
+fpp	T	f''
+xpr1	T	x'_1
+abc	T	a^{b^c}
+spc	T	a+b=c
+spc2	T	a+-b
+spc3	T	f(x)=-y,\ z
+sinx	T	\sin x
+limD	D	\lim_{x\to 0} f
+limT	T	\lim_{x\to 0} f
+prodD	D	\prod_{k=1}^{n} k
+ffD	D	\frac{\frac{a}{b}}{c}
+xsubfrac	T	x_{\frac{a}{b}}^2
+grpsup	T	(x+y)^2
+dotx	T	\dot{x}
+vecAB	T	\vec{AB}
+vecv	T	\vec{v}
+tildex	T	\tilde{x}
+lrsum	D	\left( \sum_{i=1}^{n} x_i \right)
+lrint	D	\left( \int_0^1 f \right)
+abs	T	|x|
+norm	T	\|x\|
+subsup2	T	x_{(k)}^{2}
+inner	T	a \left( b \right) c
+fn	T	f^{(n)}
+hatbj	T	\hat{\beta}_j
+barxi	T	\bar{x}_i
+xsubf	T	x_{\frac{a}{b}}
+Ank	T	A_{n_k}
+fx2	T	f(x)^2
+m5	D	\left( \begin{matrix} a\\b\\c\\d\\e\\f\\g\\h \end{matrix} \right)
+m3	D	\left| \begin{matrix} a\\b\\c\\d\\e\\f\\g\\h \end{matrix} \right|
+sq5	D	\sqrt{\begin{matrix} a\\b\\c\\d\\e\\f\\g \end{matrix}}
+fT	T	\frac{\frac{a}{b}}{c}
+xsq	T	x^{2}y
+op2	T	\sum_{i} a_i \le \max_{j} b_j
+eD	D	e^{-x^2}
+arr	T	\left(\begin{array}{cc} a & b \\ c & d \end{array}\right)
+dfrac	T	\dfrac{a}{b}
+mid	T	\left\{ x \middle| x>0 \right\}
+intlim	D	\int\limits_0^1 f
+sumnl	D	\sum\nolimits_{i} a_i
+esqrt	T	e^{\sqrt{x}}
+xbr	T	x^{[n]}
+xsum	T	2^{\sum_i a_i}
+coleq	T	a := b
+bigl	T	\bigl( x \bigr)
+Pij	T	P_{ij}
+Pgk	T	{P}_k
+Tn1	T	T_{n+1}
+W2x	T	W^{2x}
+Wn	T	W^n
+fprime	T	f'
+Vi2	T	V_i^2
+Fn	T	F_n
+Yk	T	Y^k
+tenp3	T	10^3
+tenm6	T	10^{-6}
+mrme	T	\mathrm{e}^{x}
+log2	T	\log_2 x
+ovs	T	\overset{a}{=}
+stk	T	a \stackrel{a}{=} b
+ubr	T	\underbrace{a+b}_{n}
+obr	T	\overbrace{a+b}^{n}
+xra	T	A \xrightarrow{f} B
+dfr	T	\dfrac{1}{2}
+suml	T	\sum\limits_{i=1}^{n} a_i
+midd	D	\left\{ \frac{x}{2} \middle| x>0 \right\}
+orr	T	\overrightarrow{AB}
+bigg	T	\Bigg( x \Bigg)

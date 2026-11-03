@@ -1,0 +1,14 @@
+// LaTeX commands inside formulas: sizes, stacks, styles and classes.
+notation tex
+
+Sizes: $\bigl( x \bigr)$, $\Bigl[ \frac{a}{b} \Bigr]$, $\left\{ x \;\middle|\; x > 0 \right\}$, $(x^2)$.
+
+Stacks: $\overset{\text{def}}{=}$, $a \stackrel{?}{=} b$, $\underset{n \to \infty}{\lim}$,
+$\underline{x + y}$, $\overbrace{a + b}^{2}$, $\underbrace{x_1 + \dots + x_n}_{n}$,
+$A \xrightarrow{f} B \xleftarrow[g]{h} C$, $\overrightarrow{AB}$.
+
+Styles: $\dfrac{1}{2}$, $\tfrac{1}{2}$, $\displaystyle\sum_{i=1}^{n} a_i$, $\sum\limits_{i} a_i$, $\int\nolimits_0^1 f$.
+
+Classes: $a \mathrel{\#} b$, $\mathop{\mathrm{ess\,sup}}_{x} f$, $a \mathbin{\circ} b$.
+
+Arguments: $\hat{x}^2$, $\bar{x}_i$, $f^{(n)}(x)$, $x_{(k)}$, $a+-b$.

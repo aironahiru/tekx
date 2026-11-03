@@ -28,6 +28,8 @@ enum {
 	M_TABLE,	/* kids row-major, rows x cols */
 	M_SPACE,	/* width in em/1000: num */
 	M_ALIGN,	/* & alignment point */
+	M_STACK,	/* base a, under b, over c; sem underline, overbrace, underbrace or arrow
+			 * (text is the arrow, drawn as wide as its labels); otherwise \overset */
 };
 
 /* identifier styles */
@@ -41,6 +43,8 @@ struct M {
 	VEC(M *) kids;
 	int rows, cols;
 	char *open, *close;	/* fences: "" for none */
+	signed char osize, csize;	/* their sizes: 0 grow with the content, -1 \left and \right,
+				 * -2 the plain glyph (a bare bracket in TeX), 1..4 \big to \Bigg */
 	char *colalign;		/* tables: one of l c r per column */
 	double num;
 	bool limits;		/* scripts drawn under/over */
@@ -56,6 +60,9 @@ struct M {
 	bool prime;		/* superscript is a prime */
 	bool unary;		/* operator used as a prefix */
 	bool differential;	/* upright d of dx */
+	bool stretchy;		/* accent: widens over a wide base */
+	signed char lim;	/* big operator: 1 \limits, -1 \nolimits, 0 as the style decides */
+	signed char style;	/* 0, or 1 + the style the formula is set in: \displaystyle, \dfrac */
 	char *speech;		/* override, e.g. from `read as` */
 	char *sem;		/* semantic name: abs, norm, floor, ceil, binom, cases, matrix, set */
 };
@@ -89,7 +96,8 @@ typedef struct {
 } Item;
 
 typedef struct {
-	double w, h, d, italic;
+	double w, h, d, italic;	/* w includes the italic correction of a glyph nucleus */
+	int nuc;		/* the glyph a script attaches to by TeX's character rules, -1 for a box */
 	double align;		/* x of the alignment point, or NAN */
 	VEC(Item) items;
 	VEC(double) brk;	/* line breaks in inline formulas: end, restart, penalty */

@@ -25,6 +25,7 @@ typedef struct {
 
 static Font *mf, *tf;
 static MNodes *nodes;
+static double mid_h = -1e9, mid_d;	/* the content a \middle delimiter grows to */
 
 char *id_char(M *m);	/* eqnsem.c */
 
@@ -104,6 +105,7 @@ box_new(void)
 	Box *b = NEW(Box);
 
 	b->align = NAN;
+	b->nuc = -1;
 	return b;
 }
 
@@ -169,6 +171,7 @@ glyph_box(Font *f, int font, int gid, double sc, int node, const char *text)
 	b->h = MAX(0, bb.y1 * k);
 	b->d = MAX(0, -bb.y0 * k);
 	b->italic = f == mf ? math_italic(f, gid) * k : 0;
+	b->nuc = f == mf ? gid : -1;
 	memset(&it, 0, sizeof it);
 	it.kind = 'g';
 	it.font = font;
@@ -183,7 +186,7 @@ glyph_box(Font *f, int font, int gid, double sc, int node, const char *text)
 
 /* a string of characters in the math font (falling back to the text font) */
 static Box *
-chars_box(const char *s, St st, int node, const char *copy, int *last_gid)
+chars_box(const char *s, St st, int node, const char *copy)
 {
 	Box *b = box_new();
 	size_t n = strlen(s);
@@ -217,12 +220,13 @@ chars_box(const char *s, St st, int node, const char *copy, int *last_gid)
 			gb->items.v[0].text = xstrndup(s + i, (size_t)k);
 		}
 		put(b, gb, x, 0);
-		x += gb->w;
+		/* every math glyph is followed by its italic correction, as in
+		 * TeX: f(x) keeps the f's hook clear of the parenthesis */
+		x += gb->w + gb->italic;
 		b->h = MAX(b->h, gb->h);
 		b->d = MAX(b->d, gb->d);
 		b->italic = gb->italic;
-		if (last_gid)
-			*last_gid = f == mf ? g : -1;
+		b->nuc = gb->nuc;
 		first = false;
 		i += (size_t)k;
 	}
@@ -272,12 +276,12 @@ vstretch(int g, double size, St s, int node, const char *text, bool *assembled)
 
 	*assembled = false;
 	if (!math_construction(mf, g, true, &c))
-		return glyph_box(mf, F_MATH, g, scale(s), node, text);
+		return glyph_box(mf, F_MATH, ssty(g, s), scale(s), node, text);
 	for (int i = 0; i < c.nvariants; i++)
 		if (c.advance[i] * k >= size || (i == c.nvariants - 1 && c.nparts == 0))
-			return glyph_box(mf, F_MATH, c.variant[i], scale(s), node, text);
+			return glyph_box(mf, F_MATH, c.variant[i] == g ? ssty(g, s) : c.variant[i], scale(s), node, text);
 	if (c.nparts == 0)
-		return glyph_box(mf, F_MATH, g, scale(s), node, text);
+		return glyph_box(mf, F_MATH, ssty(g, s), scale(s), node, text);
 
 	/* assembly: parts bottom to top */
 	double minov = math_min_overlap(mf) * k;
@@ -334,6 +338,73 @@ vstretch(int g, double size, St s, int node, const char *text, bool *assembled)
 	return b;
 }
 
+/*
+ * Grow glyph g horizontally.  cover: the narrowest variant at least
+ * `width` wide, else an assembly (braces, arrows); otherwise the widest
+ * variant no wider than `width`, and an assembly only when every variant
+ * fits (a wide accent, as TeX chooses it).
+ */
+static Box *
+hstretch(int g, double width, St s, int node, const char *text, bool cover)
+{
+	Construction c;
+	double k = K(s);
+
+	if (!math_construction(mf, g, false, &c) || c.nvariants == 0)
+		return glyph_box(mf, F_MATH, g, scale(s), node, text);
+	int pick = -1;
+	for (int i = 0; i < c.nvariants; i++) {
+		if (cover && c.advance[i] * k >= width)
+			return glyph_box(mf, F_MATH, c.variant[i], scale(s), node, text);
+		if (!cover && c.advance[i] * k <= width)
+			pick = i;
+	}
+	if (!cover && (pick < c.nvariants - 1 || c.nparts == 0))
+		return glyph_box(mf, F_MATH, c.variant[MAX(pick, 0)], scale(s), node, text);
+	if (c.nparts == 0)
+		return glyph_box(mf, F_MATH, c.variant[c.nvariants - 1], scale(s), node, text);
+	/* assembly: parts left to right, as vstretch stacks them */
+	double minov = math_min_overlap(mf) * k, sne = 0, se = 0;
+	int nne = 0, ne = 0;
+	for (int i = 0; i < c.nparts; i++) {
+		if (c.part[i].extender)
+			se += c.part[i].full * k, ne++;
+		else
+			sne += c.part[i].full * k, nne++;
+	}
+	int reps = 0;
+	if (ne > 0)
+		while (reps < 100 && sne + reps * se - (nne + reps * ne - 1) * minov < width)
+			reps++;
+	int count = nne + reps * ne;
+	double ov = count > 1 ? MAX(minov, (sne + reps * se - width) / (count - 1)) : 0;
+	/* the parts of a horizontal assembly are straight where they meet,
+	 * so they may overlap past their connectors: the result is exactly
+	 * as wide as asked, as amsmath's arrows are */
+	double minfull = 1e9;
+	for (int i = 0; i < c.nparts; i++)
+		minfull = MIN(minfull, c.part[i].full * k);
+	ov = MIN(ov, minfull * 0.9);
+	Box *b = box_new();
+	double x = 0;
+	bool first = true;
+	for (int i = 0; i < c.nparts; i++)
+		for (int j = 0; j < (c.part[i].extender ? reps : 1); j++) {
+			if (!first)
+				x -= ov;
+			Box *pb = glyph_box(mf, F_MATH, c.part[i].glyph, scale(s), node, text);
+			put(b, pb, x, 0);
+			b->h = MAX(b->h, pb->h);
+			b->d = MAX(b->d, pb->d);
+			x += c.part[i].full * k;
+			first = false;
+		}
+	b->w = x;
+	if (node >= 0)
+		nodes->v[node].actual = xstrdup(text);
+	return b;
+}
+
 /* center a box on the math axis */
 static void
 center_on_axis(Box *b, St s)
@@ -346,31 +417,59 @@ center_on_axis(Box *b, St s)
 	b->d += shift;
 }
 
+/*
+ * A delimiter for content of the given height and depth.  hint 0, for
+ * brackets that grow with their content: the plain glyph unless the
+ * content overshoots it by more than \delimitershortfall, so that (x^2)
+ * keeps its plain parentheses and (a over b) does not.  -1 is TeX's
+ * \left and \right; -2 the plain glyph, a bare bracket in TeX notation;
+ * 1 to 4 amsmath's \big, \Big, \bigg and \Bigg.  The null delimiter
+ * space and the shortfall are fixed lengths, whatever the style.
+ */
 static Box *
-delimiter(const char *ch, double content_h, double content_d, St s, int parent)
+delimiter(const char *ch, double content_h, double content_d, St s, int parent, int hint)
 {
 	if (*ch == 0) {
 		Box *b = box_new();
-		b->w = 120 * scale(s);	/* \nulldelimiterspace */
+		b->w = 120;	/* \nulldelimiterspace, 1.2 pt */
 		return b;
 	}
 	u32 cp = utf8_first(ch);
 	int g = font_glyph(mf, cp);
 	int node = new_node(parent, "mo", NULL);
 	if (g == 0)
-		return chars_box(ch, s, node, NULL, NULL);
+		return chars_box(ch, s, node, NULL);
 	double axis = C(s, AxisHeight);
+	if (hint > 0) {
+		/* amsmath: \left( \vcenter to n·1.2·(height + depth of "(") \right. */
+		static const double big[] = {1, 1.5, 2, 2.5};
+		BBox p = font_bbox(mf, font_glyph(mf, '('));
+		double half = big[MIN(hint, 4) - 1] * 1.2 * (p.y1 - p.y0) * K(s) / 2;
+		content_h = axis + half;
+		content_d = half - axis;
+	}
 	double delta = MAX(content_h - axis, content_d + axis);
-	double size = MAX(delta * 2 * 0.901, delta * 2 - 500 * scale(s));
-	BBox bb = font_bbox(mf, g);
+	double size = MAX(delta * 2 * 0.901, delta * 2 - 500);	/* \delimiterfactor, \delimitershortfall */
+	int gs = ssty(g, s);	/* the script form in script styles */
+	BBox bb = font_bbox(mf, gs);
 	double natural = (bb.y1 - bb.y0) * K(s);
-	if (size <= natural)
-		return glyph_box(mf, F_MATH, g, scale(s), node, ch);
+	if (hint == -4)
+		size = delta * 2;	/* a binomial's fixed size */
+	bool grow = hint == -2 ? false : hint == 0 ? delta * 2 - 500 > natural : size > natural;
+	if (!grow) {
+		Box *b = glyph_box(mf, F_MATH, gs, scale(s), node, ch);
+		if (hint == -1 || hint == -4 || hint > 0) {
+			center_on_axis(b, s);	/* TeX centres every \left delimiter */
+			b->nuc = -1;
+		}
+		return b;
+	}
 	bool assembled;
 	Box *b = vstretch(g, size, s, node, ch, &assembled);
 	if (assembled)
 		nodes->v[node].actual = xstrdup(ch);
 	center_on_axis(b, s);
+	b->nuc = -1;	/* a grown delimiter is a box, as \left...\right is */
 	return b;
 }
 
@@ -432,7 +531,12 @@ class_of_m(M *m)
 	case M_SCRIPT:
 		return m->a ? class_of_m(m->a) : ORD;
 	case M_ROW:
+		if (m->cls)
+			return m->cls;	/* \mathrel{...} */
 		return m->kids.n == 1 ? class_of_m(m->kids.v[0]) : ORD;
+	case M_STACK:
+		/* \xrightarrow is a relation, \stackrel{def}{=} what its base is */
+		return m->sem && streq(m->sem, "arrow") ? REL : m->sem ? ORD : class_of_m(m->a);
 	default:
 		return ORD;
 	}
@@ -479,6 +583,10 @@ add_atom(M *k, St s, int parent, Atoms *out)
 	}
 	if (k->kind == M_BIGOP && k->a) {
 		a.rcls = ORD;
+	}
+	if (k->kind == M_OP && k->osize == -3) {
+		a.lcls = CLOSE;	/* \middle closes what is before it and opens what follows */
+		a.rcls = OPEN;
 	}
 	if (k->kind == M_ROW && k->apply)
 		a.lcls = class_of_m(k->kids.v[0]) == OPC ? OPC : ORD, a.rcls = CLOSE;
@@ -539,6 +647,7 @@ hlist(Atoms *at, St s)
 			a->lcls = a->rcls = ORD;
 	}
 	double explicit_align = NAN, rel_align = NAN;
+	int nreal = 0;
 	for (size_t i = 0; i < at->n; i++) {
 		Atom *a = &at->v[i];
 		if (a->align) {
@@ -580,7 +689,11 @@ hlist(Atoms *at, St s)
 		b->d = MAX(b->d, a->b->d);
 		b->italic = a->b->italic;
 		prev = (int)i;
+		nreal++;
 	}
+	/* {x} is x: a group of one atom takes scripts as that atom does */
+	if (nreal == 1)
+		b->nuc = at->v[prev].b->nuc;
 	b->align = !isnan(explicit_align) ? explicit_align : rel_align;
 	b->w = x;
 	return b;
@@ -588,8 +701,32 @@ hlist(Atoms *at, St s)
 
 /* ---- constructions ---- */
 
+static bool
+has_middle(M *m)
+{
+	if (m == NULL)
+		return false;
+	if (m->kind == M_OP && m->osize == -3)
+		return true;
+	if (m->kind == M_ROW)
+		for (size_t i = 0; i < m->kids.n; i++)
+			if (has_middle(m->kids.v[i]))
+				return true;
+	return false;
+}
+
+/* limits under and over: in display style, or wherever \limits asks */
+static bool
+use_limits(M *m, St s)
+{
+	return m->lim > 0 || (m->lim == 0 && m->limits && s.style == D);
+}
+
+static Box *lay_scripts(Box *base, M *sub, M *sup, St s, int node, bool limits, bool bigop, double italic);
+static Box *lay_stack(M *m, St s, int parent);
+
 static Box *
-lay_frac(M *m, St s, int parent)
+lay_frac(M *m, St s, int parent, double pad)
 {
 	if (m->slashed)
 		return lay(m->slash, s, parent);
@@ -598,7 +735,6 @@ lay_frac(M *m, St s, int parent)
 	Box *b = box_new();
 	bool disp = s.style == D;
 	double axis = C(s, AxisHeight);
-	double pad = 120 * scale(s);
 	double w = MAX(num->w, den->w);
 	double u, v;
 
@@ -656,12 +792,80 @@ single_glyph(M *m)
 	return m && (m->kind == M_ID || m->kind == M_NUM || (m->kind == M_OP && !m->unary)) && utf8_len(id_char(m)) == 1;
 }
 
+/* The glyph a script is kerned by: its first character, also inside a
+ * group (_{ij} is kerned by i), as TeX finds it (mlist.c analyze_script);
+ * -1 when the script starts with anything else. */
+static int
+script_glyph(M *m, St s)
+{
+	while (m) {
+		if (m->kind == M_ROW) {
+			size_t i = 0;
+			while (i < m->kids.n && m->kids.v[i]->kind == M_SPACE)
+				i++;
+			m = i < m->kids.n ? m->kids.v[i] : NULL;
+		} else if (m->kind == M_SCRIPT) {
+			m = m->a;
+		} else {
+			break;
+		}
+	}
+	if (m == NULL)
+		return -1;
+	const char *t = NULL;
+	if (m->kind == M_ID && !(m->func && utf8_len(m->text) > 1))
+		t = id_char(m);
+	else if (m->kind == M_NUM || (m->kind == M_OP && m->text))
+		t = m->text;
+	else if (m->kind == M_FENCE && m->osize <= 0)
+		t = m->open;
+	if (t == NULL || *t == 0)
+		return -1;
+	int g = font_glyph(mf, utf8_first(t));
+	return g ? ssty(g, s) : -1;
+}
+
+/*
+ * The staircase kern of OpenType MATH (MathKernInfo): how far a script
+ * moves into the corner of the glyph it is attached to, the sum of the
+ * two glyphs' kerns at two heights, as TeX computes it (mlist.c
+ * find_math_kern).  shift is the script's baseline shift, positive.
+ */
+static double
+cut_in(int bg, St bs, int sg, St ss, bool sup, double shift)
+{
+	double kb = K(bs), ks = K(ss);
+	BBox b = font_bbox(mf, bg), c = font_bbox(mf, sg);
+	double h[2];
+	int cb = sup ? 0 : 2, cs = sup ? 3 : 1;	/* top right with bottom left, bottom right with top left */
+
+	if (sup) {
+		h[0] = b.y1 * kb;		/* the top of the base */
+		h[1] = shift + c.y0 * ks;	/* the bottom of the superscript */
+	} else {
+		h[0] = c.y1 * ks - shift;	/* the top of the subscript */
+		h[1] = b.y0 * kb;		/* the bottom of the base */
+	}
+	double k = -1e9;
+	for (int i = 0; i < 2; i++)
+		k = MAX(k, math_kern(mf, bg, cb, h[i] / kb) * kb + math_kern(mf, sg, cs, h[i] / ks) * ks);
+	return k;
+}
+
+/*
+ * Scripts.  A base that ends in a glyph (x, the 0 of 10, the parenthesis
+ * of (x+y) or f(x), an accented letter) takes TeX's rules for a character
+ * nucleus: fixed shifts, the italic correction before a superscript, and
+ * the staircase kerns.  Any other base is a box, whose scripts hang from
+ * its top and bottom.
+ */
 static Box *
-lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool bigop, double italic)
+lay_scripts(Box *base, M *sub, M *sup, St s, int node, bool limits, bool bigop, double italic)
 {
 	Box *b = box_new();
-	Box *bs = sub ? lay(sub, sub_style(s), node) : NULL;
-	Box *bp = sup ? lay(sup, sup_style(s), node) : NULL;
+	St ss = sub_style(s), ps = sup_style(s);
+	Box *bs = sub ? lay(sub, ss, node) : NULL;
+	Box *bp = sup ? lay(sup, ps, node) : NULL;
 
 	if (limits) {
 		double w = base->w;
@@ -674,23 +878,25 @@ lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool 
 		if (bs) {
 			double drop = MAX(C(s, LowerLimitBaselineDropMin), C(s, LowerLimitGapMin) + bs->h);
 			double y = base->d + drop;
-			helper(b, "_(", (w - bs->w) / 2, y, sub_style(s));
+			helper(b, "_(", (w - bs->w) / 2, y, ss);
 			put(b, bs, (w - bs->w) / 2 - italic / 2, y);
-			helper(b, ")", (w + bs->w) / 2, y, sub_style(s));
+			helper(b, ")", (w + bs->w) / 2, y, ss);
 			b->d = y + bs->d;
 		}
 		if (bp) {
 			double rise = MAX(C(s, UpperLimitBaselineRiseMin), C(s, UpperLimitGapMin) + bp->d);
 			double y = -(base->h + rise);
-			helper(b, "^(", (w - bp->w) / 2, y, sup_style(s));
+			helper(b, "^(", (w - bp->w) / 2, y, ps);
 			put(b, bp, (w - bp->w) / 2 + italic / 2, y);
-			helper(b, ")", (w + bp->w) / 2, y, sup_style(s));
+			helper(b, ")", (w + bp->w) / 2, y, ps);
 			b->h = -y + bp->h;
 		}
 		b->w = w;
 		return b;
 	}
-	bool glyph = single_glyph(bm) && !bigop;	/* big operators are boxes */
+	bool glyph = !bigop && base->nuc >= 0;	/* big operators are boxes */
+	if (!bigop)
+		italic = glyph ? base->italic : 0;
 	double u = 0, v = 0;
 	if (bp) {
 		u = s.cramped ? C(s, SuperscriptShiftUpCramped) : C(s, SuperscriptShiftUp);
@@ -702,7 +908,8 @@ lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool 
 		v = C(s, SubscriptShiftDown);
 		if (!glyph)
 			v = MAX(v, base->d + C(s, SubscriptBaselineDropMin));
-		v = MAX(v, bs->h - C(s, SubscriptTopMax));
+		if (!bp)
+			v = MAX(v, bs->h - C(s, SubscriptTopMax));
 	}
 	if (bp && bs) {
 		double gap = (u - bp->d) - (bs->h - v);
@@ -716,22 +923,31 @@ lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool 
 			}
 		}
 	}
+	/* a glyph nucleus: the subscript starts at its advance, the superscript
+	 * after its italic correction, both moved by the staircase kerns */
+	double ksub = 0, ksup = 0;
+	int sg;
+	if (glyph && bs && (sg = script_glyph(sub, ss)) >= 0)
+		ksub = cut_in(base->nuc, s, sg, ss, false, v);
+	if (glyph && bp && (sg = script_glyph(sup, ps)) >= 0)
+		ksup = cut_in(base->nuc, s, sg, ps, true, u);
+	double adv = bigop ? base->w : base->w - italic;
+	double subx = adv - (bigop ? italic : 0) + ksub, supx = adv + (bigop ? 0 : italic) + ksup;
 	put(b, base, 0, 0);
 	double after = C(s, SpaceAfterScript);
-	double w = base->w;
+	double w = -1e9;
 	b->h = base->h;
 	b->d = base->d;
-	double subx = base->w - (bigop ? italic : 0), supx = base->w + (bigop ? 0 : italic);
 	/* The helpers spell the script in copy text for readers that ignore
 	 * ActualText (pdf.js): x_2 even where the copy text says x₂, and a
 	 * blank after an unbracketed script, so that A^T A does not read
 	 * back as A^(TA). */
 	bool open_end = false;
 	if (bs) {
-		helper(b, is_atom(sub) ? "_" : "_(", subx, v, sub_style(s));
+		helper(b, is_atom(sub) ? "_" : "_(", subx, v, ss);
 		put(b, bs, subx, v);
 		if (!is_atom(sub))
-			helper(b, ")", subx + bs->w, v, sub_style(s));
+			helper(b, ")", subx + bs->w, v, ss);
 		open_end = is_atom(sub);
 		w = MAX(w, subx + bs->w);
 		b->d = MAX(b->d, v + bs->d);
@@ -740,15 +956,17 @@ lay_scripts(Box *base, M *bm, M *sub, M *sup, St s, int node, bool limits, bool 
 	if (bp) {
 		bool prime = sup->kind == M_OP && (streq(sup->text, "′") || streq(sup->text, "″"));
 		if (!prime)
-			helper(b, is_atom(sup) ? "^" : "^(", supx, -u, sup_style(s));
+			helper(b, is_atom(sup) ? "^" : "^(", supx, -u, ps);
 		put(b, bp, supx, -u);
 		if (!prime && !is_atom(sup))
-			helper(b, ")", supx + bp->w, -u, sup_style(s));
+			helper(b, ")", supx + bp->w, -u, ps);
 		open_end = !prime && is_atom(sup);
 		w = MAX(w, supx + bp->w);
 		b->h = MAX(b->h, u + bp->h);
 		b->d = MAX(b->d, bp->d - u);
 	}
+	if (!bs && !bp)
+		w = base->w;
 	if (open_end)
 		helper(b, " ", w, 0, s);
 	b->w = w + after;
@@ -772,7 +990,7 @@ lay_radical(M *m, St s, int parent)
 	double gap = disp ? C(s, RadicalDisplayStyleVerticalGap) : C(s, RadicalVerticalGap);
 	double t = C(s, RadicalRuleThickness);
 	double target = body->h + body->d + gap + t;
-	int g = font_glyph(mf, 0x221a);
+	int g = font_glyph(mf, 0x221a);	/* vstretch draws its script form in scripts */
 	/* the radical sign belongs to msqrt itself: MathML has no operator for it */
 	bool assembled;
 	Box *rad = vstretch(g, target, s, node, "√", &assembled);
@@ -788,11 +1006,13 @@ lay_radical(M *m, St s, int parent)
 	double x = 0;
 	Box *idx = NULL;
 	if (m->kind == M_ROOT) {
-		St is = {SS, true};
+		St is = {SS, false};
 		idx = lay(m->b, is, node);
 		double before = C(s, RadicalKernBeforeDegree), after = C(s, RadicalKernAfterDegree);
 		double raise = mf->mc[RadicalDegreeBottomRaisePercent] / 100.0 * total;
-		double iy = -(raise - rd - shift) - idx->d;
+		/* the degree's baseline, as TeX raises it (the specification's
+		 * "bottom" would lift a p by its descender) */
+		double iy = -(raise - rd - shift);
 		/* the degree is read first: root(n, x) */
 		helper(b, "root(", before, iy, is);
 		put(b, idx, before, iy);
@@ -822,15 +1042,35 @@ lay_fence(M *m, St s, int parent)
 	/* the opening delimiter's element must precede the body's, but its
 	 * size depends on the body: reserve the element now, fill it later */
 	int open_node = *m->open ? new_node(node, "mo", NULL) : -1;
-	Box *body = lay(m->a, s, node);
+	size_t mark = nodes->n;
+	bool binom = m->sem && streq(m->sem, "binom") && m->a && m->a->kind == M_FRAC;
+	Box *body = binom ? lay_frac(m->a, s, node, 0) : lay(m->a, s, node);
+	if (has_middle(m->a)) {
+		/* \middle| grows with the content around it: lay it out again */
+		double sh = mid_h, sd = mid_d;
+		nodes->n = mark;
+		mid_h = body->h;
+		mid_d = body->d;
+		body = lay(m->a, s, node);
+		mid_h = sh;
+		mid_d = sd;
+	}
 	Box *b = box_new();
 	double x = 0;
 	Box *o = NULL, *c = NULL;
+	double fh = body->h, fd = body->d;	/* what the delimiters cover */
+	if (binom) {
+		/* TeX's \atopwithdelims: delimiters of a fixed size, flush with
+		 * the stack (FractionDelimiterSize, 1.01 em and 2.40 em) */
+		double half = (s.style == D ? 2400 : 1010) * scale(s) / 2;
+		fh = half + C(s, AxisHeight);
+		fd = half - C(s, AxisHeight);
+	}
 
 	if (*m->open) {
 		/* reuse the placeholder node for the delimiter glyphs */
 		size_t before = nodes->n;
-		o = delimiter(m->open, body->h, body->d, s, node);
+		o = delimiter(m->open, fh, fd, s, node, binom ? -4 : m->osize);
 		/* delimiter() created a new node; fold it into the placeholder */
 		if (nodes->n > before) {
 			int made = (int)nodes->n - 1;
@@ -845,8 +1085,10 @@ lay_fence(M *m, St s, int parent)
 	}
 	put(b, body, x, 0);
 	x += body->w;
+	if (!*m->close && *m->open)
+		x += 120;	/* \right. is a null delimiter, 1.2 pt wide */
 	if (*m->close) {
-		c = delimiter(m->close, body->h, body->d, s, node);
+		c = delimiter(m->close, fh, fd, s, node, binom ? -4 : m->csize);
 		put(b, c, x, 0);
 		x += c->w;
 	}
@@ -860,6 +1102,9 @@ lay_fence(M *m, St s, int parent)
 	if (c) {
 		b->h = MAX(b->h, c->h);
 		b->d = MAX(b->d, c->d);
+		/* (x+y)^2: a plain closing bracket takes scripts as a glyph */
+		b->nuc = c->nuc;
+		b->italic = c->italic;
 	}
 	return b;
 }
@@ -870,7 +1115,7 @@ lay_bigop(M *m, St s, int parent)
 	int node = new_node(parent, "mrow", NULL);
 	int snode = node;
 	if (m->b || m->c)
-		snode = new_node(node, m->limits && s.style == D ? (m->b && m->c ? "munderover" : m->b ? "munder" : "mover") :
+		snode = new_node(node, use_limits(m, s) ? (m->b && m->c ? "munderover" : m->b ? "munder" : "mover") :
 		    (m->b && m->c ? "msubsup" : m->b ? "msub" : "msup"), NULL);
 	int onode = new_node(snode, "mo", NULL);
 	Box *op;
@@ -893,16 +1138,16 @@ lay_bigop(M *m, St s, int parent)
 				g = pick;
 			}
 		}
-		op = glyph_box(mf, F_MATH, g, scale(s), onode, m->text);
+		op = glyph_box(mf, F_MATH, ssty(g, s), scale(s), onode, m->text);
 		italic = op->italic;
 		center_on_axis(op, s);
 	} else {
-		op = chars_box(m->text, s, onode, NULL, NULL);
+		op = chars_box(m->text, s, onode, NULL);
 	}
 	Box *b = box_new();
 	Box *withlim = op;
 	if (m->b || m->c)
-		withlim = lay_scripts(op, NULL, m->b, m->c, s, snode, m->limits && s.style == D, true, italic);
+		withlim = lay_scripts(op, m->b, m->c, s, snode, use_limits(m, s), true, italic);
 	put(b, withlim, 0, 0);
 	b->w = withlim->w;
 	b->h = withlim->h;
@@ -938,17 +1183,25 @@ lay_accent(M *m, St s, int parent)
 	b->d = base->d;
 	if (g == 0)
 		return b;
-	/* wide accents over wide bases */
-	if (!single_glyph(m->a)) {
-		Construction c;
-		if (math_construction(mf, g, false, &c))
-			for (int i = 0; i < c.nvariants; i++) {
-				g = c.variant[i];
-				if (c.advance[i] * k >= base->w * 0.9)
-					break;
-			}
-	}
+	/* a tall base takes the flattened accent (OpenType flac), as Â in text */
+	if (base->h > C(s, FlattenedAccentBaseHeight))
+		g = gsub_single(mf, "flac", g, 0);
 	double battach = base->w / 2;
+	/* a stretchy accent over a wide base: the widest variant that fits,
+	 * or an assembly; centred, as TeX centres extensible accents */
+	if (m->stretchy && !single_glyph(m->a) && font_adv(mf, g) * k < base->w) {
+		Box *ab = hstretch(font_glyph(mf, cp), base->w, s, anode, m->text, false);
+		double x0 = 1e9, x1 = -1e9;
+		for (size_t i = 0; i < ab->items.n; i++) {
+			BBox ib = font_bbox(mf, ab->items.v[i].gid);
+			x0 = MIN(x0, ab->items.v[i].x + ib.x0 * k);
+			x1 = MAX(x1, ab->items.v[i].x + ib.x1 * k);
+		}
+		double shift = MAX(0, base->h - C(s, AccentBaseHeight));
+		put(b, ab, battach - (x0 + x1) / 2, -shift);
+		b->h = MAX(b->h, ab->h + shift);
+		return b;
+	}
 	if (single_glyph(m->a) && base->items.n == 1) {
 		bool found;
 		int a = math_top_accent(mf, base->items.v[0].gid, &found);
@@ -963,6 +1216,12 @@ lay_accent(M *m, St s, int parent)
 	Box *ab = glyph_box(mf, F_MATH, g, scale(s), anode, m->text);
 	put(b, ab, battach - aattach, -shift);
 	b->h = MAX(b->h, bb.y1 * k + shift);
+	/* \hat\beta_j: scripts attach to the letter, as TeX moves them into
+	 * the accented character */
+	if (single_glyph(m->a)) {
+		b->nuc = base->nuc;
+		b->italic = base->italic;
+	}
 	return b;
 }
 
@@ -989,15 +1248,20 @@ lay_table(M *m, St s, int parent)
 	St cs = s;
 	if (cs.style == D)
 		cs.style = T;
+	cs.cramped = false;	/* each cell is a new list */
 	int R = m->rows, Cn = m->cols;
 	Box **cell = xcalloc((size_t)(R * Cn) + 1, sizeof *cell);
 	double *cw = xcalloc((size_t)Cn + 1, sizeof *cw), *rh = xcalloc((size_t)R + 1, sizeof *rh),
 	    *rd = xcalloc((size_t)R + 1, sizeof *rd);
 	bool cases = m->sem && streq(m->sem, "cases");
 	double sc = scale(cs);
-	double strut_h = 840 * sc, strut_d = 360 * sc;
-	double rowgap = cases ? 150 * sc : 0;
+	/* amsmath's cases sets \arraystretch to 1.2 */
+	double st = cases ? 1.2 : 1;
+	double strut_h = 840 * st * sc, strut_d = 360 * st * sc;
+	double rowgap = 0;
 	double colgap = 1000 * sc;
+	/* an array keeps \arraycolsep at its outer edges; the matrices do not */
+	double edge = m->sem && streq(m->sem, "array") ? colgap / 2 : 0;
 
 	for (int r = 0; r < R; r++) {
 		int tr = new_node(node, "mtr", NULL);
@@ -1021,7 +1285,7 @@ lay_table(M *m, St s, int parent)
 	double y = top;
 	for (int r = 0; r < R; r++) {
 		y += rh[r] + (r ? rowgap : 0);
-		double x = 0;
+		double x = edge;
 		if (r)
 			helper(b, ";", 0, y, cs);
 		for (int c = 0; c < Cn; c++) {
@@ -1038,10 +1302,80 @@ lay_table(M *m, St s, int parent)
 	double w = 0;
 	for (int c = 0; c < Cn; c++)
 		w += cw[c] + (c ? colgap : 0);
-	b->w = w;
+	b->w = w + 2 * edge;
 	b->h = axis + total / 2;
 	b->d = total / 2 - axis;
 	return b;
+}
+
+/*
+ * \underline, \overbrace, \underbrace, \xrightarrow and \overset: TeX's
+ * rules with the OpenType constants (Underbar*, StretchStack*), the labels
+ * placed as limits (mlist.c make_under, make_delimiter_over).
+ */
+static Box *
+lay_stack(M *m, St s, int parent)
+{
+	const char *sem = m->sem ? m->sem : "";
+	int node = new_node(parent, streq(sem, "underline") || streq(sem, "underbrace") || (m->b && !m->c) ? "munder" :
+	    m->b && m->c ? "munderover" : "mover", NULL);
+	Box *b = box_new(), *base;
+
+	if (streq(sem, "underline")) {
+		base = lay(m->a, s, node);
+		double gap = C(s, UnderbarVerticalGap), t = C(s, UnderbarRuleThickness);
+		put(b, base, 0, 0);
+		rule(b, 0, base->d + gap, base->w, t);
+		b->w = base->w;
+		b->h = base->h;
+		b->d = base->d + gap + t + C(s, UnderbarExtraDescender);
+		return b;
+	}
+	if (streq(sem, "arrow")) {
+		/* amsmath's \ext@arrow: as wide as its labels and 14 mu more */
+		St ls = sup_style(s);
+		size_t mark = nodes->n;	/* measure the labels, then forget their elements */
+		Box *lb = m->b ? lay(m->b, sub_style(s), node) : NULL, *lc = m->c ? lay(m->c, ls, node) : NULL;
+		nodes->n = mark;
+		double want = MAX(lb ? lb->w : 0, lc ? lc->w : 0) + 14 * 1000.0 / 18 * scale(ls);
+		int g = font_glyph(mf, utf8_first(m->text));
+		base = hstretch(g, want, s, new_node(node, "mo", m->text), m->text, true);
+		/* the upper label carries amsmath's 3 mu after it */
+		M *up = m->c;
+		if (up) {
+			up = mrow();
+			M *sp = mnew(M_SPACE);
+			sp->num = 3 * 1000.0 / 18;
+			madd(up, m->c);
+			madd(up, sp);
+		}
+		return lay_scripts(base, m->b, up, s, node, true, false, 0);
+	}
+	base = lay(m->a, s, node);
+	if (streq(sem, "overbrace") || streq(sem, "underbrace")) {
+		/* a wide accent above or below, as unicode-math sets it: the
+		 * widest brace that fits, centred, raised as an accent is */
+		bool over = sem[0] == 'o';
+		int g = font_glyph(mf, over ? 0x23de : 0x23df);
+		Box *br = hstretch(g, base->w, s, new_node(node, "mo", over ? "⏞" : "⏟"), over ? "⏞" : "⏟", false);
+		BBox ib = font_bbox(mf, br->items.v[0].gid);
+		double k = K(s), bx = (base->w - br->w) / 2;
+		put(b, base, MAX(0, -bx), 0);
+		b->w = MAX(base->w, br->w);
+		b->h = base->h;
+		b->d = base->d;
+		if (over) {
+			double up = MAX(0, base->h - C(s, AccentBaseHeight));
+			put(b, br, MAX(0, bx), -up);
+			b->h = MAX(b->h, up + ib.y1 * k);
+		} else {
+			put(b, br, MAX(0, bx), base->d);
+			b->d = MAX(b->d, base->d - ib.y0 * k);
+		}
+		base = b;
+		b = box_new();
+	}
+	return lay_scripts(base, m->b, m->c, s, node, true, false, 0);
 }
 
 static Box *
@@ -1049,6 +1383,11 @@ lay(M *m, St s, int parent)
 {
 	if (m == NULL)
 		return box_new();
+	if (m->style > 0) {
+		/* \displaystyle, \dfrac: this part is set in another style */
+		s.style = m->style - 1;
+		s.cramped = false;
+	}
 	switch (m->kind) {
 	case M_ROW: {
 		Atoms at = {0};
@@ -1056,7 +1395,15 @@ lay(M *m, St s, int parent)
 			int node = new_node(parent, "mrow", NULL);
 			add_atom(m->kids.v[0], s, node, &at);
 			add_atom(m->kids.v[1], s, node, &at);
-			return hlist(&at, s);
+			Box *b = hlist(&at, s);
+			/* f(x)^2: the script belongs to the closing parenthesis */
+			for (size_t i = at.n; i-- > 0;)
+				if (!at.v[i].space) {
+					b->nuc = at.v[i].b->nuc;
+					b->italic = at.v[i].b->italic;
+					break;
+				}
+			return b;
 		}
 		flatten(m, s, parent, &at);
 		return hlist(&at, s);
@@ -1066,25 +1413,27 @@ lay(M *m, St s, int parent)
 		const char *c = id_char(m);
 		/* copy text: plain letters for default italics, the symbol otherwise */
 		const char *copy = (m->variant == V_ITALIC && utf8_len(m->text) == 1) ? m->text : NULL;
-		return chars_box(c, s, node, copy, NULL);
+		Box *b = chars_box(c, s, node, copy);
+		if (utf8_len(c) > 1)
+			b->nuc = -1;	/* \log_2: a name takes scripts as a box */
+		return b;
 	}
 	case M_NUM:
-		return chars_box(m->text, s, new_node(parent, "mn", NULL), NULL, NULL);
+		return chars_box(m->text, s, new_node(parent, "mn", NULL), NULL);
 	case M_OP: {
+		if (m->osize == -3 && mid_h > -1e8)
+			return delimiter(m->text, mid_h, mid_d, s, parent, -1);	/* \middle */
 		int node = new_node(parent, "mo", NULL);
-		return chars_box(m->text, s, node, NULL, NULL);
+		return chars_box(m->text, s, node, NULL);
 	}
 	case M_TEXT:
 		return text_box(m->text, s, new_node(parent, "mtext", NULL));
 	case M_FRAC:
-		return lay_frac(m, s, parent);
+		return lay_frac(m, s, parent, 120);	/* \nulldelimiterspace, 1.2 pt in every style */
 	case M_SCRIPT: {
 		int node = new_node(parent, script_tag(m), NULL);
 		Box *base = lay(m->a, s, node);
-		if (m->limits && s.style == D)
-			return lay_scripts(base, m->a, m->b, m->c, s, node, true, false, 0);
-		return lay_scripts(base, m->a, m->b, m->c, s, node, false, false,
-		    single_glyph(m->a) ? base->italic : 0);
+		return lay_scripts(base, m->b, m->c, s, node, m->limits && s.style == D, false, 0);
 	}
 	case M_SQRT: case M_ROOT:
 		return lay_radical(m, s, parent);
@@ -1105,6 +1454,8 @@ lay(M *m, St s, int parent)
 	}
 	case M_ALIGN:
 		return box_new();
+	case M_STACK:
+		return lay_stack(m, s, parent);
 	}
 	return box_new();
 }

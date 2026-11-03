@@ -1,0 +1,196 @@
+== tree
+document test/golden/texmath.tekx
+  meta@2 notation tex
+  para@4 0
+    text Sizes: 
+    math@4:9 \bigl( x \bigr)
+    text , 
+    math@4:28 \Bigl[ \frac{a}{b} \Bigr]
+    text , 
+    math@4:57 \left\{ x \;\middle|\; x > 0 \right\}
+    text , 
+    math@4:98 (x^2)
+    text .
+  para@6 0
+    text Stacks: 
+    math@6:10 \overset{\text{def}}{=}
+    text , 
+    math@6:37 a \stackrel{?}{=} b
+    text , 
+    math@6:60 \underset{n \to \infty}{\lim}
+    text , 
+    math@7:2 \underline{x + y}
+    text , 
+    math@7:23 \overbrace{a + b}^{2}
+    text , 
+    math@7:48 \underbrace{x_1 + \dots + x_n}_{n}
+    text , 
+    math@8:2 A \xrightarrow{f} B \xleftarrow[g]{h} C
+    text , 
+    math@8:45 \overrightarrow{AB}
+    text .
+  para@10 0
+    text Styles: 
+    math@10:10 \dfrac{1}{2}
+    text , 
+    math@10:26 \tfrac{1}{2}
+    text , 
+    math@10:42 \displaystyle\sum_{i=1}^{n} a_i
+    text , 
+    math@10:77 \sum\limits_{i} a_i
+    text , 
+    math@10:100 \int\nolimits_0^1 f
+    text .
+  para@12 0
+    text Classes: 
+    math@12:11 a \mathrel{\#} b
+    text , 
+    math@12:31 \mathop{\mathrm{ess\,sup}}_{x} f
+    text , 
+    math@12:67 a \mathbin{\circ} b
+    text .
+  para@14 0
+    text Arguments: 
+    math@14:13 \hat{x}^2
+    text , 
+    math@14:26 \bar{x}_i
+    text , 
+    math@14:39 f^{(n)}(x)
+    text , 
+    math@14:53 x_{(k)}
+    text , 
+    math@14:64 a+-b
+    text .
+== mathematics
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x"><semantics><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow><annotation encoding="application/x-tekx">\bigl( x \bigr)</annotation></semantics></math>
+speech x
+linear (x)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="open bracket a over b close bracket"><semantics><mrow><mo fence="true">[</mo><mfrac><mi>𝑎</mi><mi>𝑏</mi></mfrac><mo fence="true">]</mo></mrow><annotation encoding="application/x-tekx">\Bigl[ \frac{a}{b} \Bigr]</annotation></semantics></math>
+speech open bracket a over b close bracket
+linear [a/b]
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the set x | x is greater than 0"><semantics><mrow><mo fence="true">{</mo><mrow><mrow><mi>𝑥</mi><mspace width="0.278em"/></mrow><mo lspace="0" rspace="0">|</mo><mrow><mrow><mspace width="0.278em"/><mi>𝑥</mi></mrow><mo>&gt;</mo><mn>0</mn></mrow></mrow><mo fence="true">}</mo></mrow><annotation encoding="application/x-tekx">\left\{ x \;\middle|\; x &gt; 0 \right\}</annotation></semantics></math>
+speech the set x | x is greater than 0
+linear {x | x > 0}
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="open paren x squared close paren"><semantics><mrow><mo fence="true">(</mo><msup><mi>𝑥</mi><mn>2</mn></msup><mo fence="true">)</mo></mrow><annotation encoding="application/x-tekx">(x^2)</annotation></semantics></math>
+speech open paren x squared close paren
+linear (x²)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="equals over def"><semantics><mrow><mover><mo>=</mo><mtext>def</mtext></mover></mrow><annotation encoding="application/x-tekx">\overset{\text{def}}{=}</annotation></semantics></math>
+speech equals over def
+linear \overset{\text{def}}{=}
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a equals over ? b"><semantics><mrow><mi>𝑎</mi><mo>⁢</mo><mover><mo>=</mo><mo>?</mo></mover><mo>⁢</mo><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">a \stackrel{?}{=} b</annotation></semantics></math>
+speech a equals over ? b
+linear a \overset{?}{=} b
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the limit under n to infinity"><semantics><mrow><munder><mrow><mo>lim</mo></mrow><mrow><mi>𝑛</mi><mo>→</mo><mi>∞</mi></mrow></munder></mrow><annotation encoding="application/x-tekx">\underset{n \to \infty}{\lim}</annotation></semantics></math>
+speech the limit under n to infinity
+linear \underset{n \to \infty}{\lim}
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x plus y underlined"><semantics><mrow><munder accentunder="true"><mrow><mi>𝑥</mi><mo>+</mo><mi>𝑦</mi></mrow><mo>_</mo></munder></mrow><annotation encoding="application/x-tekx">\underline{x + y}</annotation></semantics></math>
+speech x plus y underlined
+linear \underline{x + y}
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a plus b with a brace above over 2"><semantics><mrow><mover><mover><mrow><mi>𝑎</mi><mo>+</mo><mi>𝑏</mi></mrow><mo>⏞</mo></mover><mn>2</mn></mover></mrow><annotation encoding="application/x-tekx">\overbrace{a + b}^{2}</annotation></semantics></math>
+speech a plus b with a brace above over 2
+linear \overbrace{a + b}^{2}
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x sub 1 plus dot dot dot plus x sub n with a brace below under n"><semantics><mrow><munder><munder><mrow><mrow><msub><mi>𝑥</mi><mn>1</mn></msub><mo>+</mo><mo lspace="0" rspace="0">⋯</mo></mrow><mo>+</mo><msub><mi>𝑥</mi><mi>𝑛</mi></msub></mrow><mo>⏟</mo></munder><mi>𝑛</mi></munder></mrow><annotation encoding="application/x-tekx">\underbrace{x_1 + \dots + x_n}_{n}</annotation></semantics></math>
+speech x sub 1 plus dot dot dot plus x sub n with a brace below under n
+linear \underbrace{x_{1} + \cdots + x_{n}}_{n}
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="capital A right arrow over f capital B left arrow over h under g capital C"><semantics><mrow><mi>𝐴</mi><mo>⁢</mo><mover><mo stretchy="true">→</mo><mi>𝑓</mi></mover><mo>⁢</mo><mi>𝐵</mi><mo>⁢</mo><munderover><mo stretchy="true">←</mo><mi>𝑔</mi><mi>ℎ</mi></munderover><mo>⁢</mo><mi>𝐶</mi></mrow><annotation encoding="application/x-tekx">A \xrightarrow{f} B \xleftarrow[g]{h} C</annotation></semantics></math>
+speech capital A right arrow over f capital B left arrow over h under g capital C
+linear A \xrightarrow{f} B \xleftarrow[g]{h} C
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="vector capital A capital B"><semantics><mrow><mover accent="true"><mrow><mi>𝐴</mi><mo>⁢</mo><mi>𝐵</mi></mrow><mo>→</mo></mover></mrow><annotation encoding="application/x-tekx">\overrightarrow{AB}</annotation></semantics></math>
+speech vector capital A capital B
+linear vec(AB)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half"><semantics><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tekx">\dfrac{1}{2}</annotation></semantics></math>
+speech one half
+linear 1/2
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="one half"><semantics><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tekx">\tfrac{1}{2}</annotation></semantics></math>
+speech one half
+linear 1/2
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the sum from i equals 1 to n of a sub i"><semantics><mrow><munderover><mo largeop="true">∑</mo><mrow><mi>𝑖</mi><mo>=</mo><mn>1</mn></mrow><mi>𝑛</mi></munderover><msub><mi>𝑎</mi><mi>𝑖</mi></msub></mrow><annotation encoding="application/x-tekx">\displaystyle\sum_{i=1}^{n} a_i</annotation></semantics></math>
+speech the sum from i equals 1 to n of a sub i
+linear ∑_(i=1)^n a_i
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the sum over i of a sub i"><semantics><mrow><munder><mo largeop="true">∑</mo><mi>𝑖</mi></munder><msub><mi>𝑎</mi><mi>𝑖</mi></msub></mrow><annotation encoding="application/x-tekx">\sum\limits_{i} a_i</annotation></semantics></math>
+speech the sum over i of a sub i
+linear ∑_i a_i
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="the integral from 0 to 1 of f"><semantics><mrow><msubsup><mo largeop="true">∫</mo><mn>0</mn><mn>1</mn></msubsup><mi>𝑓</mi></mrow><annotation encoding="application/x-tekx">\int\nolimits_0^1 f</annotation></semantics></math>
+speech the integral from 0 to 1 of f
+linear ∫_0^1 f
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a # b"><semantics><mrow><mi>𝑎</mi><mo>⁢</mo><mi>#</mi><mo>⁢</mo><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">a \mathrel{\#} b</annotation></semantics></math>
+speech a # b
+linear a # b
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="ess sup over x f"><semantics><mrow><mrow><munder><mo>ess sup</mo><mi>𝑥</mi></munder></mrow><mo>⁢</mo><mi>𝑓</mi></mrow><annotation encoding="application/x-tekx">\mathop{\mathrm{ess\,sup}}_{x} f</annotation></semantics></math>
+speech ess sup over x f
+linear ess sup_x f
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a composed with b"><semantics><mrow><mi>𝑎</mi><mo>⁢</mo><mo>∘</mo><mo>⁢</mo><mi>𝑏</mi></mrow><annotation encoding="application/x-tekx">a \mathbin{\circ} b</annotation></semantics></math>
+speech a composed with b
+linear a ∘ b
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x hat squared"><semantics><mrow><msup><mover accent="true"><mi>𝑥</mi><mo>^</mo></mover><mn>2</mn></msup></mrow><annotation encoding="application/x-tekx">\hat{x}^2</annotation></semantics></math>
+speech x hat squared
+linear x̂²
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x bar sub i"><semantics><mrow><msub><mover accent="true"><mi>𝑥</mi><mo>¯</mo></mover><mi>𝑖</mi></msub></mrow><annotation encoding="application/x-tekx">\bar{x}_i</annotation></semantics></math>
+speech x bar sub i
+linear x̄_i
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="f raised to the power n, end power of x"><semantics><mrow><msup><mi>𝑓</mi><mrow><mo fence="true">(</mo><mi>𝑛</mi><mo fence="true">)</mo></mrow></msup><mo>⁡</mo><mrow><mo fence="true">(</mo><mi>𝑥</mi><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tekx">f^{(n)}(x)</annotation></semantics></math>
+speech f raised to the power n, end power of x
+linear f^(n)(x)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="x sub k end sub"><semantics><mrow><msub><mi>𝑥</mi><mrow><mo fence="true">(</mo><mi>𝑘</mi><mo fence="true">)</mo></mrow></msub></mrow><annotation encoding="application/x-tekx">x_{(k)}</annotation></semantics></math>
+speech x sub k end sub
+linear x_(k)
+mathml <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" alttext="a plus negative b"><semantics><mrow><mi>𝑎</mi><mo>+</mo><mrow><mo form="prefix">−</mo><mi>𝑏</mi></mrow></mrow><annotation encoding="application/x-tekx">a+-b</annotation></semantics></math>
+speech a plus negative b
+linear a + −b
+== structure
+pdf2:Document
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+  pdf2:P
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math
+    pdf2:Formula
+      mathml:math

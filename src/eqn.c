@@ -345,6 +345,8 @@ typedef struct {
 	int pos;	/* byte offset in the source */
 	bool sp;	/* preceded by a blank */
 	bool tex;	/* a TeX command, \name */
+	signed char dsize;	/* a delimiter's size: -1 \left or \right, -3 \middle, 1..4 \big..\Bigg */
+	signed char lim;	/* an operator followed by \limits (1) or \nolimits (-1) */
 } Tok;
 
 /* ---- TeX commands ----
@@ -384,13 +386,29 @@ tex_symbol(const char *name)
 	return NULL;
 }
 
+/* the size a delimiter command gives the next delimiter: -1 \left and
+ * \right, -3 \middle, 1 to 4 \big to \Bigg (with l, r or m); 0 none */
+static int
+tex_delim_size(const char *name)
+{
+	if (streq(name, "left") || streq(name, "right"))
+		return -1;
+	if (streq(name, "middle"))
+		return -3;
+	static const char *big[] = {"big", "Big", "bigg", "Bigg"};
+	for (int k = 3; k >= 0; k--) {
+		size_t l = strlen(big[k]);
+		if (strncmp(name, big[k], l) == 0 && (name[l] == 0 || (strchr("lrm", name[l]) && name[l + 1] == 0)))
+			return k + 1;
+	}
+	return 0;
+}
+
 /* commands that only steer TeX's own layout */
 static bool
 tex_dropped(const char *name)
 {
-	static const char *drop[] = {"left", "right", "middle", "big", "Big", "bigg", "Bigg", "bigl", "bigr",
-	    "Bigl", "Bigr", "biggl", "biggr", "Biggl", "Biggr", "displaystyle", "textstyle", "scriptstyle",
-	    "scriptscriptstyle", "limits", "nolimits", "nonumber", "notag", "allowbreak", "nobreak"};
+	static const char *drop[] = {"nonumber", "notag", "allowbreak", "nobreak"};
 
 	for (size_t i = 0; i < NELEM(drop); i++)
 		if (streq(drop[i], name))
@@ -500,6 +518,7 @@ tokenize(const char *s, int line, int col)
 	TokVec v = {0};
 	size_t i = 0, n = strlen(s);
 	bool sp = false;
+	int pending = 0;	/* the size \left or \big gives the next token */
 
 	saw_tex = false;
 	while (i < n) {
@@ -579,10 +598,23 @@ tokenize(const char *s, int line, int col)
 			char *name = xstrndup(s + i + 1, j - i - 1);
 			i = j;
 			saw_tex = true;	/* even \left alone makes a formula TeX */
-			if (tex_dropped(name)) {
-				if ((startswith(name, "left") || startswith(name, "right") || startswith(name, "big") ||
-				    startswith(name, "Big") || streq(name, "middle")) && i < n && s[i] == '.')
+			int ds = tex_delim_size(name);
+			if (ds) {
+				pending = ds;
+				if (i < n && s[i] == '.') {
 					i++;	/* \left. is an empty delimiter */
+					pending = 0;
+				}
+				sp = t.sp;
+				continue;
+			}
+			if (streq(name, "limits") || streq(name, "nolimits")) {
+				if (v.n)
+					v.v[v.n - 1].lim = streq(name, "limits") ? 1 : -1;
+				sp = t.sp;
+				continue;
+			}
+			if (tex_dropped(name)) {
 				sp = t.sp;
 				continue;
 			}
@@ -595,6 +627,13 @@ tokenize(const char *s, int line, int col)
 				t.s = name;
 			}
 			t.tex = true;
+		} else if (c == '\\' && i + 1 < n && strchr("#$%&_", s[i + 1])) {
+			/* \# \$ \% \& \_: the character itself, an ordinary symbol */
+			t.kind = T_WORD;
+			t.s = xstrndup(s + i + 1, 1);
+			t.tex = true;
+			i += 2;
+			saw_tex = true;
 		} else if (c == '\\' && i + 1 < n && strchr(",;:!> {}|\\", s[i + 1])) {
 			char d = s[i + 1];
 			i += 2;
@@ -622,10 +661,25 @@ tokenize(const char *s, int line, int col)
 				i++;
 			}
 		}
+		t.dsize = (signed char)pending;
+		pending = 0;
 		VPUSH(v, t);
 	}
-	Tok e = {T_EOF, "", (int)n, sp, false};
+	Tok e = {T_EOF, "", (int)n, sp, false, 0, 0};
 	VPUSH(v, e);
+	/* in TeX notation a+-b is a plus and a minus, as TeX reads it */
+	if (saw_tex || notation_tex)
+		for (size_t k = 0; k < v.n; k++)
+			if (v.v[k].kind == T_SYM && !v.v[k].tex && (streq(v.v[k].s, "+-") || streq(v.v[k].s, "-+"))) {
+				Tok second = v.v[k];
+				second.s = xstrdup(v.v[k].s + 1);
+				second.pos++;
+				second.sp = false;
+				v.v[k].s = xstrndup(v.v[k].s, 1);
+				VPUSH(v, second);	/* grow, then move the tail up by one */
+				memmove(&v.v[k + 2], &v.v[k + 1], (v.n - k - 2) * sizeof v.v[0]);
+				v.v[k + 1] = second;
+			}
 	return v;
 }
 
@@ -657,10 +711,12 @@ typedef struct {
 	Bind *env;
 	int depth;
 	bool tex;	/* the formula uses TeX commands: TeX's brace and word rules apply */
+	int closer_dsize;	/* the size command before the bracket group_items closed on */
 } P;
 
 static M *expr(P *p, int min_bp);
 static M *nud(P *p);
+static M *tex_arg(P *p);
 
 static Tok *
 peek(P *p)
@@ -762,6 +818,18 @@ fence(const char *open, M *body, const char *close)
 	m->close = xstrdup(close);
 	m->a = body ? body : mrow();
 	return m;
+}
+
+/* a fence's size from the command before its delimiter: in TeX notation
+ * a bare bracket keeps its plain size, as in TeX */
+static signed char
+delim_hint(int dsize, bool tex)
+{
+	if (dsize == -1 || dsize > 0)
+		return (signed char)dsize;
+	if (dsize == -3)
+		return -1;
+	return tex ? -2 : 0;
 }
 
 /* remove grouping parentheses that the layout makes redundant */
@@ -1013,7 +1081,10 @@ script_arg(P *p)
 
 	p->stop = 0;
 	if (is(t, "(") || is(t, "{")) {
-		M *m = strip(nud(p));
+		/* x^(n+1) groups; f^{(n)} keeps its parentheses */
+		M *m = nud(p);
+		if (is(t, "("))
+			m = strip(m);
 		if (m && m->kind == M_FENCE && streq(m->open, "{") && m->sem && streq(m->sem, "set") && is(t, "{"))
 			m = m->a;
 		p->stop = saved;
@@ -1156,6 +1227,7 @@ group_items(P *p, const char *open, const char **closer)
 		perr(p, opener, fmt("this '%s' is never closed", open));
 	} else {
 		*closer = c->s;
+		p->closer_dsize = c->dsize;
 		advance(p);
 	}
 	p->stop = saved;
@@ -1516,6 +1588,8 @@ bigop(P *p, const char *glyph, int kind)
 	m->limits = kind != 1;
 	m->largeop = kind != 2;
 	m->cls = OPC;
+	if (p->i > 0)
+		m->lim = p->t[p->i - 1].lim;	/* \sum\limits, \int\limits */
 	for (;;) {
 		Tok *t = peek(p);
 		if (is(t, "_")) {
@@ -1572,7 +1646,7 @@ bigop(P *p, const char *glyph, int kind)
 			const char *g = greek_char(d->s + 1);
 			madd(r, ident(g ? g : d->s + 1, V_ITALIC));
 		}
-		body = r;
+		body = r->kids.n ? r : NULL;	/* a bare \int_0^1 has no space after it */
 	}
 	p->stop = saved;
 	m->a = body;
@@ -1619,6 +1693,8 @@ prefix_arg(P *p)
 		M *g = nud(p);
 		return strip(g);
 	}
+	if (p->tex)
+		return tex_arg(p);	/* \hat{x}^2 is (\hat x)^2: one argument, as TeX takes it */
 	if (is(t, "of")) {
 		advance(p);
 		return expr(p, 55);
@@ -1626,13 +1702,16 @@ prefix_arg(P *p)
 	return expr(p, 69);
 }
 
+/* an accent; a stretchy one widens over a wide base: in tekx notation
+ * every accent, in TeX notation \widehat and \widetilde */
 static M *
-accent(P *p, const char *acc)
+accent(P *p, const char *acc, bool stretchy)
 {
 	M *m = mnew(M_ACCENT);
 
 	m->a = prefix_arg(p);
 	m->text = xstrdup(acc);
+	m->stretchy = stretchy;
 	return m;
 }
 
@@ -1640,7 +1719,7 @@ static const struct {
 	const char *name, *mark;
 } accents[] = {
 	{"hat", "̂"}, {"widehat", "̂"}, {"tilde", "̃"}, {"widetilde", "̃"},
-	{"bar", "̅"}, {"vec", "⃗"}, {"dot", "̇"}, {"ddot", "̈"}, {"check", "̌"},
+	{"bar", "̄"}, {"vec", "⃗"}, {"dot", "̇"}, {"ddot", "̈"}, {"check", "̌"},
 	{"breve", "̆"}, {"acute", "́"}, {"grave", "̀"}, {"ring", "̊"},
 };
 
@@ -1836,7 +1915,7 @@ tex_env(P *p, Tok *t)
 	}
 	if (it.cells.n == 0)
 		return mrow();
-	M *m = table_from_items(&it, "matrix", o, c);
+	M *m = table_from_items(&it, streq(name, "array") ? "array" : "matrix", o, c);
 	M *tb = m->kind == M_TABLE ? m : m->a;
 	if (!*o && (startswith(name, "align") || streq(name, "split")))
 		for (int k = 0; k < tb->cols; k++)
@@ -1845,6 +1924,9 @@ tex_env(P *p, Tok *t)
 }
 
 static const char *tex_known[] = {"frac", "dfrac", "tfrac", "cfrac", "sqrt", "binom", "dbinom", "tbinom",
+    "displaystyle", "textstyle", "scriptstyle", "scriptscriptstyle", "underline", "overbrace", "underbrace",
+    "overset", "underset", "stackrel", "xrightarrow", "xleftarrow", "overrightarrow", "overleftarrow", "mathop",
+    "mathrel", "mathbin", "mathord", "mathopen", "mathclose", "mathpunct",
     "text", "textrm", "textit", "textbf", "textup", "mbox", "mathrm", "mathup", "mathbb", "mathcal", "mathscr",
     "mathfrak", "mathbf", "boldsymbol", "bm", "mathsf", "mathtt", "mathit", "operatorname", "begin", "end",
     "pmod", "label", "not", "over", "choose"};
@@ -1855,10 +1937,15 @@ tex_command(P *p, Tok *t)
 {
 	const char *w = t->s;
 
+	if (w[0] && !w[1] && strchr("#$%&_", w[0]))
+		return ident(w, V_NORMAL);	/* \# */
+	/* \dfrac is a display-style fraction anywhere, \tfrac a text-style one */
+	signed char fstyle = w[0] == 'd' ? 1 : w[0] == 't' ? 2 : 0;
 	if (streq(w, "frac") || streq(w, "dfrac") || streq(w, "tfrac") || streq(w, "cfrac")) {
 		M *f = mnew(M_FRAC);
 		f->a = tex_arg(p);
 		f->b = tex_arg(p);
+		f->style = fstyle;
 		return f;
 	}
 	if (streq(w, "binom") || streq(w, "dbinom") || streq(w, "tbinom")) {
@@ -1868,7 +1955,103 @@ tex_command(P *p, Tok *t)
 		fr->thin = true;
 		M *f = fence("(", fr, ")");
 		f->sem = "binom";
+		f->style = fstyle;
 		return f;
+	}
+	static const char *styles_word[] = {"displaystyle", "textstyle", "scriptstyle", "scriptscriptstyle"};
+	for (size_t i = 0; i < NELEM(styles_word); i++)
+		if (streq(w, styles_word[i])) {
+			/* the rest of the group, in that style */
+			M *r = mrow();
+			Tok *n = peek(p);
+			if (n->kind != T_EOF && !is(n, "}") && !is(n, "&") && !is(n, ","))
+				madd(r, expr(p, 4));
+			r->group = true;
+			r->style = (signed char)(i + 1);
+			return r;
+		}
+	if (streq(w, "underline") || streq(w, "overbrace") || streq(w, "underbrace")) {
+		M *m = mnew(M_STACK);
+		m->sem = (char *)w;
+		m->a = tex_arg(p);
+		/* a brace takes its label as a limit: \overbrace{x+y}^{n} */
+		if (!streq(w, "underline"))
+			for (;;) {
+				if (accept(p, "^"))
+					m->c = script_arg(p);
+				else if (accept(p, "_"))
+					m->b = script_arg(p);
+				else
+					break;
+			}
+		return m;
+	}
+	if (streq(w, "overset") || streq(w, "underset") || streq(w, "stackrel")) {
+		M *m = mnew(M_STACK);
+		M *label = tex_arg(p);
+		m->a = tex_arg(p);
+		if (streq(w, "underset"))
+			m->b = label;
+		else
+			m->c = label;
+		return m;
+	}
+	if (streq(w, "xrightarrow") || streq(w, "xleftarrow")) {
+		M *m = mnew(M_STACK);
+		m->sem = "arrow";
+		m->text = w[1] == 'r' ? "→" : "←";
+		if (is(peek(p), "[")) {
+			advance(p);
+			const char *closer;
+			Items it = group_items(p, "[", &closer);
+			m->b = it.cells.n ? it.cells.v[0] : NULL;
+		}
+		m->c = tex_arg(p);
+		return m;
+	}
+	if (streq(w, "overrightarrow") || streq(w, "overleftarrow")) {
+		M *m = mnew(M_ACCENT);
+		m->a = tex_arg(p);
+		m->text = w[4] == 'r' ? "⃗" : "⃖";
+		m->stretchy = true;
+		return m;
+	}
+	static const struct { const char *name; int cls; } classes[] = {
+		{"mathrel", REL}, {"mathbin", BIN}, {"mathord", ORD}, {"mathopen", OPEN}, {"mathclose", CLOSE},
+		{"mathpunct", PUNCT},
+	};
+	for (size_t i = 0; i < NELEM(classes); i++)
+		if (streq(w, classes[i].name)) {
+			/* \mathrel{...}: spaced as that class */
+			M *arg = tex_arg(p);
+			if (arg->kind == M_OP) {
+				arg->cls = classes[i].cls;
+				arg->unary = false;
+				return arg;
+			}
+			M *r = mrow();
+			madd(r, arg);
+			r->group = true;
+			r->cls = classes[i].cls;
+			return r;
+		}
+	if (streq(w, "mathop")) {
+		/* \mathop{ess\,sup}: an operator name, upright, taking limits */
+		M *arg = tex_arg(p);
+		M *m = mnew(M_BIGOP);
+		m->text = arg->kind == M_ID ? arg->text : eqn_linear(arg);
+		m->limits = true;
+		m->cls = OPC;
+		m->lim = p->t[p->i - 1].lim;
+		for (;;) {
+			if (accept(p, "_"))
+				m->b = script_arg(p);
+			else if (accept(p, "^"))
+				m->c = script_arg(p);
+			else
+				break;
+		}
+		return m;
 	}
 	if (streq(w, "sqrt")) {
 		M *index = NULL;
@@ -1892,7 +2075,18 @@ tex_command(P *p, Tok *t)
 		char *raw = tex_raw_group(p, t);
 		if (raw == NULL)
 			return mrow();
-		raw = trim(raw);
+		/* ess\,sup: TeX's spacing commands in a name are a space */
+		Buf nb = {0};
+		for (const char *c = trim(raw); *c; c++) {
+			if (*c == '\\' && c[1] && strchr(",;: !", c[1])) {
+				if (c[1] != '!')
+					bputc(&nb, ' ');
+				c++;
+			} else {
+				bputc(&nb, *c == '~' ? ' ' : *c);
+			}
+		}
+		raw = bstr(&nb);
 		M *id = ident(raw, V_NORMAL);
 		if (streq(w, "operatorname")) {
 			id->func = true;
@@ -2086,10 +2280,10 @@ word(P *p, Tok *t)
 				}
 				M *m = mnew(M_ACCENT);
 				m->a = a;
-				m->text = "̅";
+				m->text = "̄";	/* the macron, as unicode-math's \bar */
 				return m;
 			}
-			return accent(p, accents[i].mark);
+			return accent(p, accents[i].mark, !p->tex || startswith(w, "wide"));
 		}
 	if (streq(w, "overline") || streq(w, "conj")) {
 		M *o = mnew(M_OVERLINE);
@@ -2378,6 +2572,7 @@ nud(P *p)
 	if (streq(s, "(") || streq(s, "[") || streq(s, "{") || streq(s, "⟨")) {
 		const char *closer;
 		Items it = group_items(p, s, &closer);
+		int cds = p->closer_dsize;
 		bool semi = false;
 		for (size_t i = 0; i < it.seps.n; i++)
 			semi |= it.seps.v[i] == ';';
@@ -2401,6 +2596,8 @@ nud(P *p)
 			}
 		}
 		M *f = fence(s, body, close);
+		f->osize = delim_hint(t->dsize, p->tex);
+		f->csize = delim_hint(cds, p->tex);
 		if (streq(s, "{"))
 			f->sem = "set";
 		return f;
@@ -2411,18 +2608,24 @@ nud(P *p)
 		p->stop = (p->stop & ~(STOP_BAR | STOP_NORM)) | (norm ? STOP_NORM : STOP_BAR);
 		M *a = expr(p, 0);
 		p->stop = saved;
+		int cds = peek(p)->dsize;
 		if (!accept(p, s))
 			perr(p, peek(p), norm ? "missing closing ‖ (or ||)" : "missing closing |");
 		M *f = fence(norm ? "‖" : "|", a, norm ? "‖" : "|");
+		f->osize = delim_hint(t->dsize, p->tex);
+		f->csize = delim_hint(cds, p->tex);
 		f->sem = norm ? "norm" : "abs";
 		return f;
 	}
 	if (streq(s, "⌊") || streq(s, "⌈")) {
 		const char *cl = streq(s, "⌊") ? "⌋" : "⌉";
 		M *a = expr(p, 0);
+		int cds = peek(p)->dsize;
 		if (!accept(p, cl))
 			perr(p, peek(p), fmt("missing closing %s", cl));
 		M *f = fence(s, a, cl);
+		f->osize = delim_hint(t->dsize, p->tex);
+		f->csize = delim_hint(cds, p->tex);
 		f->sem = streq(s, "⌊") ? "floor" : "ceil";
 		return f;
 	}
@@ -2471,6 +2674,9 @@ nud(P *p)
 	}
 	const OpDef *o = find_op(s);
 	if (o && (o->cls == REL || o->cls == BIN)) {
+		/* {=} in TeX, as in \overset{def}{=}: the operator alone */
+		if (p->tex && (peek(p)->kind == T_EOF || is(peek(p), "}")))
+			return op(o->uni, o->cls);
 		/* a line that starts with a relation: "= b^2 + 2ab" */
 		M *r = mrow();
 		M *empty = mrow();
@@ -2482,8 +2688,8 @@ nud(P *p)
 			madd(r, expr(p, o->lbp));
 		return r;
 	}
-	if (streq(s, ",") || streq(s, ";") || streq(s, ":") || streq(s, ".") || streq(s, "!"))
-		return op(s, streq(s, "!") ? CLOSE : PUNCT);
+	if (streq(s, ",") || streq(s, ";") || streq(s, ":") || streq(s, ".") || streq(s, "!") || streq(s, "?"))
+		return op(s, streq(s, "!") || streq(s, "?") ? CLOSE : PUNCT);
 	if (streq(s, ")") || streq(s, "]") || streq(s, "}")) {
 		perr(p, t, fmt("unmatched '%s'", s));
 		return mrow();
@@ -2616,6 +2822,12 @@ led(P *p, M *left, int bp)
 	}
 	if (is(t, "|")) {
 		advance(p);
+		if (t->dsize == -3) {
+			/* \middle|: a bar as tall as the fence around it, spaced as TeX does */
+			M *mid = op("|", ORD);
+			mid->osize = -3;
+			return infix(left, mid, expr(p, bp));
+		}
 		return infix(left, op("∣", REL), expr(p, bp));
 	}
 	if (t->kind == T_WORD && (streq(s, "and") || streq(s, "or") || streq(s, "if") || streq(s, "when") ||

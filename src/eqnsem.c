@@ -10,6 +10,7 @@
 
 /* ---- shared ---- */
 
+static void tx(Buf *b, M *m);
 static const struct {
 	const char *op, *speech;
 } opnames[] = {
@@ -301,6 +302,35 @@ mml(Buf *b, M *m)
 		mml(b, m->a);
 		bputs(b, "<mo>¯</mo></mover>");
 		return;
+	case M_STACK: {
+		const char *sem = m->sem ? m->sem : "";
+		if (streq(sem, "underline")) {
+			bputs(b, "<munder accentunder=\"true\">");
+			mml(b, m->a);
+			bputs(b, "<mo>_</mo></munder>");
+			return;
+		}
+		const char *tag = m->b && m->c ? "munderover" : m->b ? "munder" : "mover";
+		bprintf(b, "<%s>", tag);
+		if (streq(sem, "arrow")) {
+			bputs(b, "<mo stretchy=\"true\">");
+			xml_escape(b, m->text);
+			bputs(b, "</mo>");
+		} else if (streq(sem, "overbrace") || streq(sem, "underbrace")) {
+			bool over = sem[0] == 'o';
+			bputs(b, over ? "<mover>" : "<munder>");
+			mml(b, m->a);
+			bputs(b, over ? "<mo>⏞</mo></mover>" : "<mo>⏟</mo></munder>");
+		} else {
+			mml(b, m->a);
+		}
+		if (m->b)
+			mml(b, m->b);
+		if (m->c)
+			mml(b, m->c);
+		bprintf(b, "</%s>", tag);
+		return;
+	}
 	case M_TABLE: {
 		bool left = m->colalign && m->colalign[0] == 'l';
 		bputs(b, left ? "<mtable columnalign=\"left\">" : "<mtable>");
@@ -789,9 +819,30 @@ say(Buf *b, M *m)
 			return;
 		}
 		say(b, m->a);
-		word(b, streq(a, "̂") ? "hat" : streq(a, "̃") ? "tilde" : streq(a, "̅") ? "bar" :
+		word(b, streq(a, "̂") ? "hat" : streq(a, "̃") ? "tilde" : streq(a, "̅") || streq(a, "̄") ? "bar" :
 		    streq(a, "̇") ? "dot" : streq(a, "̈") ? "double dot" : streq(a, "̌") ? "check" :
 		    streq(a, "̆") ? "breve" : "accent");
+		return;
+	}
+	case M_STACK: {
+		const char *sem = m->sem ? m->sem : "";
+		if (streq(sem, "arrow")) {
+			word(b, streq(m->text, "→") ? "right arrow" : "left arrow");
+		} else {
+			say(b, m->a);
+			if (streq(sem, "underline"))
+				word(b, "underlined");
+			else if (*sem)
+				word(b, sem[0] == 'o' ? "with a brace above" : "with a brace below");
+		}
+		if (m->c) {
+			word(b, "over");
+			say(b, m->c);
+		}
+		if (m->b) {
+			word(b, "under");
+			say(b, m->b);
+		}
 		return;
 	}
 	case M_OVERLINE:
@@ -1206,7 +1257,7 @@ lin(Buf *b, M *m, bool compact)
 		} else {
 			const char *n = streq(m->text, "̂") ? "hat" : streq(m->text, "̃") ? "tilde" :
 			    streq(m->text, "⃗") ? "vec" : streq(m->text, "̇") ? "dot" :
-			    streq(m->text, "̈") ? "ddot" : streq(m->text, "̅") ? "bar" : "hat";
+			    streq(m->text, "̈") ? "ddot" : streq(m->text, "̅") || streq(m->text, "̄") ? "bar" : "hat";
 			bprintf(b, "%s(", n);
 			lin(b, m->a, compact);
 			bputc(b, ')');
@@ -1216,6 +1267,10 @@ lin(Buf *b, M *m, bool compact)
 		bputs(b, "overline(");
 		lin(b, m->a, compact);
 		bputc(b, ')');
+		return;
+	case M_STACK:
+		/* tekx has no words of its own for these: the LaTeX reads back */
+		tx(b, m);
 		return;
 	case M_TABLE:
 		for (int r = 0; r < m->rows; r++) {
@@ -1489,7 +1544,6 @@ static const char *greek_upper[] = {
 	"\\Xi", "O", "\\Pi", "P", "", "\\Sigma", "T", "\\Upsilon", "\\Phi", "X", "\\Psi", "\\Omega",
 };
 
-static void tx(Buf *b, M *m);
 
 static const char *
 tex_symbol_of(const char *u)
@@ -1609,6 +1663,8 @@ tall(M *m)
 		return tall(m->a) || tall(m->b) || tall(m->c);
 	case M_SQRT: case M_ROOT: case M_ACCENT: case M_OVERLINE: case M_FENCE:
 		return tall(m->a);
+	case M_STACK:
+		return true;
 	case M_ROW:
 		for (size_t i = 0; i < m->kids.n; i++)
 			if (tall(m->kids.v[i]))
@@ -1892,6 +1948,36 @@ tx(Buf *b, M *m)
 		bputs(b, "\\overline");
 		tx_group(b, m->a);
 		return;
+	case M_STACK: {
+		const char *sem = m->sem ? m->sem : "";
+		if (streq(sem, "arrow")) {
+			bputs(b, streq(m->text, "→") ? "\\xrightarrow" : "\\xleftarrow");
+			if (m->b) {
+				bputc(b, '[');
+				tx(b, m->b);
+				bputc(b, ']');
+			}
+			tx_group(b, m->c);
+			return;
+		}
+		if (*sem) {
+			bprintf(b, "\\%s", sem);
+			tx_group(b, m->a);
+			if (m->c) {
+				bputc(b, '^');
+				tx_group(b, m->c);
+			}
+			if (m->b) {
+				bputc(b, '_');
+				tx_group(b, m->b);
+			}
+			return;
+		}
+		bputs(b, m->b ? "\\underset" : "\\overset");
+		tx_group(b, m->b ? m->b : m->c);
+		tx_group(b, m->a);
+		return;
+	}
 	case M_TABLE:
 		if (m->colalign) {
 			bprintf(b, "\\begin{array}{%s} ", m->colalign);

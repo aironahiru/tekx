@@ -181,5 +181,12 @@ fi
 # 12. one document through every back end: they agree on every number
 TEKX=$T sh test/integration.sh || status=1
 
+# 13. formula layout: unchanged, and (with LUALATEX set) measured against LuaTeX
+if $update; then
+	TEKX=$T sh test/luatex/run.sh -u >/dev/null || status=1
+else
+	TEKX=$T sh test/luatex/run.sh || status=1
+fi
+
 [ $status -eq 0 ] && echo "all tests passed"
 exit $status

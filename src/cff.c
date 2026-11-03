@@ -316,9 +316,12 @@ pt(Interp *t, double x, double y)
 	if (y > t->y1) t->y1 = y;
 }
 
+/* every segment measures its start too: a moveto's point lies on the
+ * contour, and may be its extreme (the bottom of "<", of a comma) */
 static void
 lineto(Interp *t, double dx, double dy)
 {
+	pt(t, t->x, t->y);
 	t->x += dx;
 	t->y += dy;
 	pt(t, t->x, t->y);
@@ -330,6 +333,7 @@ curveto(Interp *t, double a, double b, double c, double d, double e, double f)
 	double p0x = t->x, p0y = t->y;
 	double p1x = p0x + a, p1y = p0y + b, p2x = p1x + c, p2y = p1y + d, p3x = p2x + e, p3y = p2y + f;
 
+	pt(t, p0x, p0y);
 	pt(t, p3x, p3y);
 	for (int axis = 0; axis < 2; axis++) {
 		double q0 = axis ? p0y : p0x, q1 = axis ? p1y : p1x, q2 = axis ? p2y : p2x, q3 = axis ? p3y : p3x;
