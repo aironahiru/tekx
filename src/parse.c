@@ -648,7 +648,7 @@ starts_block(int i)
 	    streq(w, "section*") || streq(w, "subsection*") || streq(w, "subsubsection*") ||
 	    streq(w, "abstract") || streq(w, "proof") || streq(w, "quote") || streq(w, "define") ||
 	    streq(w, "references") || streq(w, "bibliography") || streq(w, "contents") ||
-	    streq(w, "newpage") || streq(w, "pagebreak") || streq(w, "env") || is_theorem_kind(w) ||
+	    streq(w, "newpage") || streq(w, "env") || is_theorem_kind(w) ||
 	    streq(w, "figure") || find_custom(w) ||
 	    (streq(w, "let") && !strchr(s, '$'));
 	free(w);
@@ -878,8 +878,8 @@ static Node *section_stack[4];
 
 /* the settings a document may open with; anything else that looks like one
  * (a word followed by a quoted value) is an error, not silently prose */
-static const char *settings[] = {"title", "subtitle", "author", "date", "language", "lang",
-    "keywords", "subject", "paper", "size", "font", "msc", "numbering", "bibliography", "citations",
+static const char *settings[] = {"title", "subtitle", "author", "date", "language",
+    "keywords", "paper", "size", "font", "msc", "numbering", "bibliography", "citations",
     "running", "linenumbers", "notation"};
 
 static bool
@@ -1079,28 +1079,20 @@ blocks(Node *parent, int i, int base, bool top)
 			} else {
 				char *v = unquote(rest);
 				if (streq(w, "title") || streq(w, "subtitle") || streq(w, "author") || streq(w, "date") ||
-				    streq(w, "keywords") || streq(w, "subject") || streq(w, "msc") || streq(w, "running"))
+				    streq(w, "keywords") || streq(w, "msc") || streq(w, "running"))
 					v = typography(v, ln->no, col);
 				node_add(section_stack[0], "meta", ln->no, 0,
-				    fmt("%s %s", streq(w, "lang") ? "language" : w, v));
+				    fmt("%s %s", w, v));
 			}
 			i++;
 			continue;
 		}
-		if (top && streq(w, "document") && *rest) {
-			/* Ruby style: document title: "X", author: "Y" */
-			KVs v = kwargs(rest);
-			for (size_t k = 0; k < v.n; k++) {
-				if (v.v[k].key == NULL || !is_setting(v.v[k].key)) {
-					const char *best = v.v[k].key ? closest(v.v[k].key, settings, NELEM(settings)) : NULL;
-					if (best)
-						error_at(ln->no, ln->indent + 1, "unknown setting '%s:'; did you mean '%s:'?", v.v[k].key, best);
-					else
-						error_at(ln->no, ln->indent + 1, "expected setting: \"value\" pairs after document");
-					continue;
-				}
-				node_add(section_stack[0], "meta", ln->no, 0, fmt("%s %s", v.v[k].key, v.v[k].val));
-			}
+		/* one spelling for each thing: the old second spellings say what to write */
+		if (top && *rest && (streq(w, "document") || streq(w, "lang") || streq(w, "subject"))) {
+			error_at(ln->no, ln->indent + 1, "%s", streq(w, "document") ?
+			    "write each setting on a line of its own: title \"...\", then author \"...\"" :
+			    streq(w, "lang") ? "write language, not lang" :
+			    "the PDF subject is the subtitle: write subtitle \"...\"");
 			i++;
 			continue;
 		}
@@ -1247,7 +1239,12 @@ blocks(Node *parent, int i, int base, bool top)
 			i++;
 			continue;
 		}
-		if ((streq(w, "newpage") || streq(w, "pagebreak")) && !*rest) {
+		if (streq(w, "pagebreak") && !*rest) {
+			error_at(ln->no, ln->indent + 1, "write newpage, not pagebreak");
+			i++;
+			continue;
+		}
+		if (streq(w, "newpage") && !*rest) {
 			node_add(parent, "newpage", ln->no, 0, "");
 			i++;
 			continue;

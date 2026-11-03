@@ -1,12 +1,12 @@
 == tree
 document test/golden/language.tekx
   meta@2 title Golden
-  meta@2 author A. N. Author and B. Writer
-  meta@3 date 1 January 2026
-  meta@4 language en-GB
-  env@11 axiom2 theorem Postulate
-  abstract@13
-    para@14 0
+  meta@3 author A. N. Author and B. Writer
+  meta@4 date 1 January 2026
+  meta@5 language en-GB
+  env@12 axiom2 theorem Postulate
+  abstract@14
+    para@15 0
       text A short abstract with 
       emph
         text emphasis
@@ -16,98 +16,98 @@ document test/golden/language.tekx
       text , 
       code code
       text  and a tekx macro.
-  section@16 1 1 h1
+  section@17 1 1 h1
     heading
       text Headings with hashes
-    para@18 0
+    para@19 0
       text Paragraphs are separated by blank lines.
-      note@18:41
+      note@19:41
         text A footnote with 
         emph
           text emphasis
         text , 
-        math@18:72 x^2
+        math@19:72 x^2
         text  and [brackets].
       text  A line break inside a paragraph is a space – and dashes, quotes “like these”, ellipses… and non breaking spaces become real typography. See Knuth (2026) and Lamport (1994).
-    section@23 2 1 -
+    section@24 2 1 -
       heading
         text A subsection
-      list@25 0 1
-        item@25
-          para@25 0
-            text bullets
+      list@26 0 1
         item@26
           para@26 0
+            text bullets
+        item@27
+          para@27 0
             text with 
             emph
               text inline
             text  
-            math@26:18 x
+            math@27:18 x
             text  math
-          list@27 1 1
-            item@27
-              para@27 0
-                text nested
+          list@28 1 1
             item@28
               para@28 0
+                text nested
+            item@29
+              para@29 0
                 text ordered
-      list@30 1 1
-        item@30
-          para@30 0
-            text parenthesized
+      list@31 1 1
         item@31
           para@31 0
+            text parenthesized
+        item@32
+          para@32 0
             text numbers
-      quote@33
-        para@33 0
+      quote@34
+        para@34 0
           text A quotation over two lines.
-      quote@36
-        para@36 0
+      quote@37
+        para@37 0
           strong
             text Careful.
           text  The macro wraps this body.
-      theorem@39 axiom2 choice
+      theorem@40 axiom2 choice
         heading
           text Choice
-        para@40 0
+        para@41 0
           text Every family of nonempty sets has a choice function.
-      theorem@42 theorem -
-        para@43 0
+      theorem@43 theorem -
+        para@44 0
           text Written with do and end.
-      proof@46
+      proof@47
         heading
           text Proof of everything
-        para@47 0
+        para@48 0
           text Trivial.
-  section@49 1 0 -
+  section@50 1 0 -
     heading
       text Unnumbered
-    table@51
+    table@52
       align l c r
-      row@51 1
+      row@52 1
         cell
           text Left
         cell
           text Center
         cell
           text Right
-      row@53 0
+      row@54 0
         cell
           text a
         cell
-          math@53:10 b
+          math@54:10 b
         cell
           code c
-    code@55
+    code@56
       verbatim verbatim {brand} // not a comment
-    let@59:5 f: RR -> RR
+    let@60:5 f: RR -> RR
       prose
         text be smooth
-    para@61 0
+    para@62 0
       text Prices such as $5 and $10 stay text, and so does a lone $ sign, while 
-      math@61:72 x
+      math@62:72 x
       text  is mathematics.
-    para@63 0
+    para@64 0
       text Links: 
       url https://example.org
       text , 
@@ -116,17 +116,17 @@ document test/golden/language.tekx
       text , 
       url https://example.org/y
       text , 
-      ref@63:85 choice
+      ref@64:85 choice
       text , 
-      ref@63:94 h1
+      ref@64:94 h1
       text .
-    refs@65
-      entry@66 knuth
+    refs@66
+      entry@67 knuth
         text D. E. Knuth, 
         emph
           text The TeXbook
         text , 1984.
-      entry@67 lamport
+      entry@68 lamport
         text L. Lamport, 
         emph
           text LaTeX

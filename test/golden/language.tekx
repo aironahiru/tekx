@@ -1,5 +1,6 @@
 // Every construct of the document language, in one file.
-document title: "Golden", author: "A. N. Author and B. Writer"
+title "Golden"
+author "A. N. Author and B. Writer"
 date "1 January 2026"
 language en-GB
 

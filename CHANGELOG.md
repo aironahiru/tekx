@@ -90,6 +90,15 @@ The release from which the compatibility promise holds.
 - **Numbering.** All numbers come from one numbering pass shared by the PDF
   and HTML back ends.
 
+### Removed
+
+Second spellings, so that each thing has one: the `document title: …,
+author: …` one-liner (write each setting on its own line), `lang` (write
+`language`), `subject` (the PDF subject is the subtitle), and `pagebreak`
+(write `newpage`). Each old spelling is an error that names the one to use.
+The formula attachment that repeated each formula's source is also gone: the
+MathML attachment already carries it.
+
 ### Fixed
 
 - A use-after-free in the PDF writer's name tree, found by fuzzing before

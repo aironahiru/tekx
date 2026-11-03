@@ -2324,8 +2324,6 @@ read_meta(Node *n)
 			language = val;
 		else if (streq(key, "keywords"))
 			meta_keywords = val;
-		else if (streq(key, "subject"))
-			meta_subject = val;
 		else if (streq(key, "paper")) {
 			if (streq(val, "letter"))
 				PW = 612, PH = 792;

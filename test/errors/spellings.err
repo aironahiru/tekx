@@ -1,0 +1,4 @@
+test/errors/spellings.tekx:1:1: error: write each setting on a line of its own: title "...", then author "..."
+test/errors/spellings.tekx:2:1: error: write language, not lang
+test/errors/spellings.tekx:3:1: error: the PDF subject is the subtitle: write subtitle "..."
+test/errors/spellings.tekx:5:1: error: write newpage, not pagebreak

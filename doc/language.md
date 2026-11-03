@@ -34,7 +34,7 @@ and the document's metadata (PDF title, authors, language, XMP).
 | `author TEXT` | one or more authors, separated by ` and ` |
 | `author "Name", affiliation: "…", email: "…"` | one author with details (also `orcid:` and `url:`; `affiliation:` may repeat) |
 | `date TEXT` | a date as written, or `today` (honours `SOURCE_DATE_EPOCH`) |
-| `language TAG` | a BCP 47 language tag, default `en` (also `lang`) |
+| `language TAG` | a BCP 47 language tag, default `en` |
 | `keywords TEXT` | key words: printed after the abstract, and the PDF's keywords |
 | `msc TEXT` | the 2020 Mathematics Subject Classification, printed after the abstract |
 | `numbering by section` | theorems and equations numbered within sections: Theorem 2.3, (2.3); the default is `numbering continuous` |
@@ -49,8 +49,7 @@ and the document's metadata (PDF title, authors, language, XMP).
 | `font ROLE FILE` | replace a built-in font; ROLE is `text`, `italic`, `bold`, `bolditalic`, `math` or `mono` |
 
 Quotes around values are optional, and protect commas: `"London, UK"` is one
-value. The Ruby-flavoured one-liner `document title: "A Title", author: "Ada
-Lovelace"` sets several fields at once.
+value. Each setting has its own line, and each thing has one spelling.
 
 A journal paper's front matter:
 
