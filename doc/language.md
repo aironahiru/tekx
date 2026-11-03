@@ -1,79 +1,64 @@
 # The tekx language
 
-A tekx file is plain UTF-8 text. Prose is written as prose; structure comes from
-a keyword at the start of a line and from indentation; mathematics is written
-the way it is spoken. This document describes the whole language.
+A tekx file is UTF-8 text. A keyword at the start of a line starts a block.
+Indentation, or `do ... end`, gives a block its body. A line indented further
+than the text around it is a displayed formula.
 
-- [Documents](#documents)
-- [Blocks](#blocks)
-- [Inline text](#inline-text)
-- [Mathematics](#mathematics)
-- [Cross-references](#cross-references)
-- [Citations and bibliography](#citations-and-bibliography)
-- [Macros and definitions](#macros-and-definitions)
-- [Coming from LaTeX](#coming-from-latex)
-- [Errors](#errors)
-
-## Documents
-
-```
-title "A Title"
-subtitle "An optional subtitle"
-author "Ada Lovelace and Charles Babbage"
-date today
-```
-
-Metadata lines may appear anywhere at the top level. They set the title block
-and the document's metadata (PDF title, authors, language, XMP).
-
-| line | effect |
+| section | |
 |---|---|
-| `tekx 0.2` | the tekx version the document is written for (see [compatibility.md](compatibility.md)) |
-| `title TEXT` | the document title; also the PDF title shown in the window bar |
-| `subtitle TEXT` | under the title; also the PDF subject |
-| `author TEXT` | one or more authors, separated by ` and ` |
-| `author "Name", affiliation: "…", email: "…"` | one author with details (also `orcid:` and `url:`; `affiliation:` may repeat) |
-| `date TEXT` | a date as written, or `today` (honours `SOURCE_DATE_EPOCH`) |
-| `language TAG` | a BCP 47 language tag, default `en` |
-| `keywords TEXT` | key words: printed after the abstract, and the PDF's keywords |
-| `msc TEXT` | the 2020 Mathematics Subject Classification, printed after the abstract |
-| `numbering by section` | theorems and equations numbered within sections: Theorem 2.3, (2.3); the default is `numbering continuous` |
-| `bibliography "refs.bib"` | read a BibTeX database (several may be listed, separated by commas) |
-| `running "Short Title"` | running heads: the short title on odd pages, the authors on even pages, none on the first |
-| `linenumbers on` | referee line numbers, every fifth line, in the left margin |
-| `citations alphabetic` | AMS alphabetic labels, [Hoo71], [BC47], instead of numbers (`citations numeric`, the default, sorts the list by author) |
-| `citations ordered` | numbers in the order of first citation, as many applied and physics journals require |
-| `notation tex` | every formula is read as LaTeX, even one without a command: `$a_{ij}$`, `$ABCD$` (the default is `notation tekx`) |
-| `paper a4` | `a4` (default), `a5` or `letter` |
-| `size 11` | the body type size in points, 6 to 24 (default 11) |
-| `font ROLE FILE` | replace a built-in font; ROLE is `text`, `italic`, `bold`, `bolditalic`, `math` or `mono` |
+| [Settings](#settings) | title, authors, numbering, paper, fonts |
+| [Blocks](#blocks) | paragraphs, headings, theorems, lists, tables, displays, figures |
+| [Inline text](#inline-text) | emphasis, links, footnotes, quotes, dashes |
+| [Mathematics](#mathematics) | atoms, operators, scripts, functions, big operators, fences, accents |
+| [References](#references) | `#label` and `@label` |
+| [Citations](#citations) | BibTeX and the reference list |
+| [Definitions](#definitions) | macros, notation, environments, packages |
+| [Errors](#errors) | what a diagnostic looks like |
 
-Quotes around values are optional, and protect commas: `"London, UK"` is one
-value. Each setting has its own line, and each thing has one spelling.
+LaTeX notation inside formulas is described in [latex.md](latex.md).
 
-A journal paper's front matter:
+## Settings
 
 ```
+tekx 1.0
 title "Gaps Between Sums of Two Squares"
 author "Ada Lovelace", affiliation: "University of London", email: "ada@example.org"
 author "Charles Babbage", affiliation: "Cambridge", orcid: "0000-0002-1825-0097"
+date today
 msc "11N36 (primary); 11E25 (secondary)"
 keywords "sums of two squares, short intervals"
 numbering by section
 bibliography "refs.bib"
 ```
 
-Each author's affiliations sit under the name, and the email address, ORCID
-and web page are links. A line that looks like a setting but isn't one
-(`affilation "London"`) is an error with a suggestion, not a paragraph.
+| setting | effect |
+|---|---|
+| `tekx 1.0` | the version the document is written for; see [compatibility.md](compatibility.md) |
+| `title TEXT` | the title; also the PDF title |
+| `subtitle TEXT` | under the title; also the PDF subject |
+| `author TEXT` | authors separated by ` and ` |
+| `author "Name", affiliation: "...", email: "..."` | one author with details; also `orcid:` and `url:`; `affiliation:` may repeat |
+| `date TEXT` | a date as written, or `today` (honours `SOURCE_DATE_EPOCH`) |
+| `language TAG` | a BCP 47 tag; default `en` |
+| `keywords TEXT` | printed after the abstract; also the PDF keywords |
+| `msc TEXT` | the Mathematics Subject Classification, printed after the abstract |
+| `numbering by section` | Theorem 2.3 and (2.3); default `numbering continuous` |
+| `bibliography "refs.bib"` | BibTeX databases, separated by commas |
+| `running "Short Title"` | running heads: the short title on odd pages, the authors on even pages |
+| `linenumbers on` | line numbers every fifth line, for referees |
+| `citations alphabetic` | labels such as [Hoo71]; `citations ordered` numbers by first citation; default `numeric` |
+| `notation tex` | read every formula as LaTeX; see [latex.md](latex.md) |
+| `paper a4` | `a4` (default), `a5` or `letter` |
+| `size 11` | body size in points, 6 to 24 |
+| `font ROLE FILE` | replace a font; ROLE is `text`, `italic`, `bold`, `bolditalic`, `math` or `mono` |
 
-A `math` font must have an OpenType MATH table. Fonts must permit embedding.
+Quotes around a value are optional and protect commas. Each setting has one
+spelling. A line that looks like a misspelled setting (`affilation "London"`)
+is an error with a suggestion. A `math` font needs an OpenType MATH table.
 
 ## Blocks
 
-Blocks are separated by blank lines. A block that has a body takes the lines
-indented below it; `do … end` is an equivalent spelling that needs no
-indentation:
+Blocks are separated by blank lines. These two are the same:
 
 ```
 theorem "Pythagoras"
@@ -86,23 +71,9 @@ end
 
 ### Paragraphs
 
-Consecutive lines form a paragraph; a line break is a space. The first line of a
-paragraph is indented, except after headings, displays and the like.
-
-A paragraph that continues a sentence after a display formula is not indented:
-in
-
-```
-The identity
-
-    e^(i pi) + 1 = 0
-
-where e is Euler's number, ...
-```
-
-the text after the display goes on with the same paragraph, because it starts
-with a lowercase letter. A paragraph that starts with a capital letter after a
-display is a new paragraph.
+Consecutive lines form a paragraph. The first line is indented, except after
+a heading or a display. Text after a display that starts with a lowercase
+letter continues the paragraph.
 
 ### Headings
 
@@ -112,17 +83,10 @@ subsection Notation
 subsubsection Conventions
 section* Acknowledgements        // unnumbered
 # Introduction                   // the same as section
-## Notation
-### Conventions
 ```
 
-Sections are numbered 1, 1.1, 1.1.1 and nest: a section contains everything
-up to the next heading of the same or a higher level. A trailing `#label`
-makes the section a target for `@label`.
-
-A line holding only `appendix` turns the sections after it into appendices:
-"Appendix A", with subsections A.1 and, under `numbering by section`, Lemma A.1
-and equation (A.1).
+Sections are numbered 1, 1.1, 1.1.1. A line holding only `appendix` makes the
+sections after it Appendix A, B, with A.1 and, by section, Lemma A.1 and (A.1).
 
 ### Theorems and proofs
 
@@ -134,48 +98,47 @@ proof
   The margin is too small.
 ```
 
-The theorem-like blocks are `theorem`, `lemma`, `proposition`, `corollary`,
-`conjecture`, `claim`, `axiom`, `hypothesis`, `fact` (italic body), `definition`,
-`example`, `exercise`, `problem`, `solution`, `notation`, `assumption` (upright
-body), and `remark`, `note`, `observation` (italic head, upright body). They
-share one counter and take an optional quoted title and `#label`.
+| kinds | body |
+|---|---|
+| `theorem` `lemma` `proposition` `corollary` `conjecture` `claim` `axiom` `hypothesis` `fact` | italic |
+| `definition` `example` `exercise` `problem` `solution` `notation` `assumption` | upright |
+| `remark` `note` `observation` | italic head, upright body |
 
-A star makes any of them unnumbered: `theorem* "Main Theorem"` sets "Theorem
-(Main Theorem)." and a reference to it reads its title.
+They share one counter and take an optional title and `#label`. A star
+(`theorem*`) leaves one unnumbered. `proof` ends with ∎ at the right margin;
+`proof "Proof of @fermat"` replaces its head.
 
-`proof` sets "Proof." and ends with ∎ at the right margin; `proof "Proof of
-@fermat"` replaces the head. Define new kinds with
-`define axiom2 like theorem titled "Postulate"`.
-
-### Lists
+### Lists, tables, quotations, code
 
 ```
 - an item
-- another, with
-  a continuation line
+- another
   1. nested and numbered
   2. like this
-```
 
-Bullets are `-`, `+` or `*`; numbers are `1.` or `1)` (the first number is the
-starting value). An item's body may hold any blocks, indented to its text.
-
-### Tables
-
-```
-| Symbol | Meaning |
-|:------:|---------|
+| Symbol | Meaning         |
+|:------:|-----------------|
 | $NN$   | natural numbers |
-| $RR$   | real numbers |
+
+> A quotation.
 ```
 
-Rows above the separator are header cells (tagged `TH` with column scope).
-Colons in the separator align columns: `:--` left, `:-:` centre, `--:` right.
-Cells hold inline text, including mathematics.
+Bullets are `-`, `+` or `*`; numbers are `1.` or `1)`. Table rows above the
+separator are headers; colons align columns. Code goes between ```` ``` ````
+fences.
+
+| block | meaning |
+|---|---|
+| `abstract` | the abstract |
+| `quote` | a quotation, the same as lines starting with `> ` |
+| `let f: RR -> RR be continuous` | "Let f : ℝ → ℝ be continuous."; declares `f` a function |
+| `contents` | a table of contents with page numbers and links |
+| `references` | a reference list given by hand: `key: text` |
+| `newpage` | a page break |
+
+Comments run from `//` to the end of the line.
 
 ### Displays
-
-Any line indented further than the paragraph around it is display mathematics:
 
 ```
 The Gaussian integral
@@ -185,45 +148,13 @@ The Gaussian integral
 underlies the normal distribution.
 ```
 
-A fraction written `a/b` is stacked in a display and set on the line, a/b,
-everywhere else: in running text, in scripts (`x^(1/4)` is x^{1/4}) and inside
-the numerator and denominator of a stacked fraction. Compound parts get
-parentheses: `(1 + sqrt 5)/2` reads (1 + √5)/2. `frac(a, b)`, `a over b` and
-`\frac{a}{b}` always stack. This is how print sets fractions, and what LaTeX's
-`/` and `\frac` mean.
-
-Consecutive display lines form one display. They are aligned at their first
-relation, or at `&` if you place one. A line that starts with a relation
-continues the line above. A line that starts with `+` or `−` is indented under
-the right-hand side:
-
-```
-    (a + b)^2 = (a + b)(a + b)
-              = a^2 + 2 a b + b^2
-```
-
-A trailing `#label` numbers the line, as in (1), and makes it a target. Only
-labelled lines are numbered.
-
-A display too wide for the text is broken by tekx, before a relation or a
-binary operator, which then begins the next line. This is how the TeXbook and
-the AMS set long formulas:
-- a line that starts with a relation aligns it under the first relation;
-- a line that starts with + or − is indented 2 em past it;
-- the equation number goes on the last line.
-
-tekx prefers breaks at relations, and fills the lines evenly. A display that
-can't be broken narrowly enough draws a warning.
-
-Inside a theorem or other block, a display is indented further than the
-block's text. A display that ends a block after a blank line, indented only a
-little past the text, draws a warning. Such a display is usually meant to
-follow the block. Put a line of text before it to move it out, or indent it 4
-spaces past the text to keep it in.
-
-A line that ends with `cases` or a matrix keyword (`matrix`, `pmatrix`,
-`bmatrix`, `vmatrix`, `Vmatrix`, `Bmatrix`) takes the lines indented below it as
-rows:
+- `#label` at the end of a line numbers it. Only labelled lines are numbered.
+- Consecutive display lines form one display, aligned at their first relation
+  or at `&`. A line that starts with a relation continues the one above.
+- A display wider than the text is broken before a relation or an operator.
+  The equation number goes on the last line.
+- `cases` and the matrix keywords take the lines indented below them as rows.
+- `$$ formula $$` is also a display.
 
 ```
     abs(x) = cases
@@ -235,11 +166,10 @@ rows:
       sin theta   cos theta
 ```
 
-The cells of a row are separated by `&`, by commas, by two or more blanks, or,
-failing those, by single blanks.
+![A display broken across lines](img/breaking.png)
 
-Displays may also be written `$$ formula $$` on one line, or between lines that
-hold only `$$`.
+A fraction written `a/b` is stacked in a display and set on the line in text
+and in scripts: `x^(1/4)`. `frac(a, b)` and `a over b` always stack.
 
 ### Figures
 
@@ -249,448 +179,219 @@ figure "plot.png" width 60% #plot
   The graph of $y = x^2$.
 ```
 
-A figure places a PNG or JPEG image, centred, with a numbered caption: "Figure
-1. The graph of y = x²." The file name is relative to the source file.
-
-- **width:** a percentage of the text width, or `cm`, `mm`, `in` or `pt`. The
-  default is the image's own size at 96 pixels per inch, capped at the text width.
-- **alt:** required. It is what a reader who cannot see the figure is told, and
-  tekx refuses a figure without it. The lines after it form the caption.
-- **Structure:** the image is a `Figure` with its alternative text, and the
-  caption is a `Caption`; both sit inside an `Aside`.
-
-PNG images may be gray, gray and alpha, RGB, RGBA or palette, of any bit depth;
-transparency becomes a soft mask. Interlaced PNG is refused. JPEG (gray or RGB)
-is embedded as it is.
-
-### Other blocks
-
-| block | meaning |
-|---|---|
-| `abstract` + body | the abstract, set narrower and smaller under a heading |
-| `quote` + body, or lines starting with `> ` | a block quotation |
-| ```` ``` ```` … ```` ``` ```` | verbatim code (an optional language name after the fence) |
-| `let MATH [be PROSE]` | "Let 𝑓 : ℝ → ℝ be continuous." — also declares `f` a function |
-| `contents` | a table of contents with page numbers and links |
-| `references` + entries | the bibliography; entries are `key: text`, cited as `@key` |
-| `newpage` | start a new page |
-
-Comments run from `//` (at the start of a line or after a blank) to the end of
-the line.
+PNG or JPEG, centred, with a numbered caption. `width` is a percentage of the
+text width or a length in `cm`, `mm`, `in` or `pt`. `alt` is required: it is
+what a reader who cannot see the image is told.
 
 ## Inline text
 
 | write | get |
 |---|---|
-| `*emphasis*` | *emphasis* (italic; upright inside italic) |
-| `**strong**` | **strong** (bold) |
-| `` `code` `` | `code` in the monospaced font |
-| `$x^2$` | inline mathematics |
-| `[text](https://…)` | a link |
-| `<https://…>` or a bare `https://…` | a link that shows its address |
+| `*emphasis*` | italic |
+| `**strong**` | bold |
+| `` `code` `` | monospaced |
+| `$x^2$` | a formula |
+| `[text](https://...)`, `<https://...>` | a link |
 | `@label` | a cross-reference |
-| `$` | a dollar sign when no formula can close it: `$5 and $10` stays text |
-| `^[text]` | a footnote, numbered and set at the foot of the page |
+| `^[text]` | a footnote |
 | `{name}` | a text macro |
-| `--`, `---`, `...` | – — … |
-| `"quotes"`, `'quotes'` | “quotes”, ‘quotes’ |
+| `--` `---` `...` | en dash, em dash, ellipsis |
+| `"quotes"` | “quotes” |
 | `~` | a non-breaking space |
-| `\*` | a literal character (`\` escapes the next one) |
+| `\*` | a literal character |
 
-A footnote's text may hold any inline markup, mathematics included. Its mark is
-a link to the note, and the note is tagged as an `FENote` that follows its mark
-in the reading order.
-
-Long words are hyphenated (US English patterns). Lines are justified by the
-Knuth–Plass algorithm.
+A lone `$`, as in `$5 and $10`, stays a dollar sign.
 
 ## Mathematics
 
-The aim is that a formula reads aloud the way it is written, and that it is
-written the way a mathematician says it.
+A formula is written the way it is read aloud.
+
+```
+    sum k for k from 1 to n = n(n + 1)/2
+
+    integral of e^(-x^2) dx from -infinity to infinity = sqrt pi
+
+    limit of sin x / x as x approaches 0 = 1
+
+    zeta(s) = prod_(p prime) 1/(1 - p^(-s))
+
+    {x in RR : x^2 < 2}  quad  binom(n, k)  quad  root 3 of x  quad  hat x_i  quad  f'(x)
+```
+
+![The formulas above, set](img/math.png)
 
 ### Atoms
 
-- **Letters:** a single letter is an italic variable, `x`.
-- **Greek:** spelled out, `alpha`, `beta` … `omega`, `Gamma` … `Omega`, plus
-  `varepsilon`, `vartheta`, `varphi`, `varrho`, `varsigma`, `varpi`.
-- **Letters with digits:** `x1` means x₁ and `alpha2` means α₂.
-- **Sets:** `RR`, `NN`, `ZZ`, `QQ`, `CC`, `HH`, `PP`, `FF`, `EE` give ℝ, ℕ, ℤ, ℚ,
-  ℂ, ℍ, ℙ, 𝔽, 𝔼.
-- **Symbols:** `infinity` (or `infty`, `oo`), `partial`, `nabla`, `emptyset`,
-  `aleph`, `hbar`, `ell`, `degree`, `cdots`, `ldots`, `vdots`, `ddots`; `...`
-  chooses … or ⋯ from context.
-- **Numbers:** `3.14`.
-- **Words:** in quotes are set as text, `"speed"`. The words `if`, `otherwise`,
-  `and`, `or`, `when`, `where`, `unless`, `for all`, `prime`, `odd`, `even` are
-  text without quotes.
-- **Unknown words:** a word of four or more letters is one upright name, so
-  `velocity = distance/time` reads as you would expect. Shorter unknown words
-  are products of letters, so `abc` is a·b·c.
-- **Unicode:** any symbol can be typed directly, `∑ ≤ ∀ ∈ ℝ`, as can
-  superscripts and subscripts, `x²`, `a₁`.
+| write | get |
+|---|---|
+| `x` | an italic variable |
+| `alpha` ... `omega`, `Gamma` ... `Omega`, `varepsilon`, `varphi` | Greek letters |
+| `x1`, `alpha2` | x₁, α₂ |
+| `RR NN ZZ QQ CC` | ℝ ℕ ℤ ℚ ℂ |
+| `infinity` `partial` `nabla` `emptyset` `aleph` `hbar` `ell` | ∞ ∂ ∇ ∅ ℵ ℏ ℓ |
+| `"speed"` | text |
+| `if` `otherwise` `and` `or` `when` `where` `for all` | text, without quotes |
+| `velocity` | a word of four or more letters is one upright name |
+| `abc` | a shorter unknown word is a product, a·b·c |
+| `∑ ≤ ∀ x² a₁` | Unicode, typed directly |
 
 ### Operators, loosest first
 
 | binding | operators |
 |---|---|
-| 1 | `&` alignment |
+| 1 | `&` |
 | 2, 3 | `;` `,` |
 | 5 | `if` `when` `where` `for` `otherwise` |
-| 8 | `:` (as in `f: A -> B`, `{x : x > 0}`) |
-| 10, 12 | `<=>` `iff` · `=>` `implies` |
-| 14, 16 | `or` · `and` (as words) |
-| 20 | relations: `=` `!=` `<` `>` `<=` `>=` `~` `~=` `approx` `equiv` `propto` `in` `notin` `not in` `subset` `subseteq` `supset` `->` `to` `|->` `mapsto` `:=` `divides` `perp` `parallel` … |
-| 30 | `over` (a fraction of everything around it) |
-| 40 | `+` `-` `+-` `-+` `union` `setminus` `oplus` |
+| 8 | `:` |
+| 10, 12 | `<=>` `iff`, `=>` `implies` |
+| 14, 16 | `or`, `and` |
+| 20 | `=` `!=` `<` `>` `<=` `>=` `~` `approx` `equiv` `in` `notin` `subset` `subseteq` `->` `to` `mapsto` `:=` `divides` |
+| 30 | `over` |
+| 40 | `+` `-` `+-` `union` `setminus` `oplus` |
 | 42 | `/` with blanks around it |
-| 45 | juxtaposition with a blank: `2 x`, `1/2 x` |
-| 50 | `*` (·) `times` `cdot` `div` `intersect` `circ` `otimes` `mod`, and `/` without blanks |
+| 45 | juxtaposition with a blank: `2 x` |
+| 50 | `*` `times` `cdot` `div` `intersect` `circ` `otimes` `mod`, `/` without blanks |
 | 55 | unary `-` |
 | 60 | juxtaposition without a blank: `2x`, `n(n + 1)` |
-| 70 | `^` `_` `!` `'` `squared` `cubed` `inverse` `transpose` |
+| 70 | `^` `_` `!` `'` `squared` `inverse` `transpose` |
 
-`/` makes a fraction and drops the parentheses that only grouped:
-`(a + b)/(c - d)` is a fraction of a + b over c − d.
+Blanks group: `1/2 x` is ½·x, `1/2x` is 1/(2x), `h/2pi` is h/(2π). `/` drops
+parentheses that only group: `(a + b)/(c - d)`. `a equiv b (mod n)` sets the
+modulus as amsmath's `\pmod` does.
 
-Blanks group. `1/2 x` is ½·x while `1/2x` is 1/(2x); `h/2pi` is h/(2π);
-`sin x / x` is (sin x)/x.
+### Scripts and functions
 
-### Scripts
+`x^2`, `x_i`, `x_i^2`, `x^(n+1)`, `x_max` (a word of three or more letters is
+upright), `f'`, `f''`, `e^-x`, `A^T`, `x squared`, `f inverse`.
 
-`x^2`, `x_i`, `x_i^2`, `x^(n+1)` (parentheses group and disappear), `x_max`
-(words of three or more letters are upright), `f'`, `f''`, `e^-x`, `A^T`,
-`x squared`, `f inverse`.
+`sin`, `cos`, `log`, `exp`, `det`, `gcd` and names declared with
+`define operator` are upright and take an argument without parentheses:
+`sin 2 pi x`. The argument runs until `+`, a relation or another function name.
+`f`, `g`, `h`, names declared with `define function`, and names introduced by
+`f(x) = ...` or `let` apply to a parenthesized argument: `f(x)`, `f^(-1)(y)`.
 
-### Functions
-
-`sin`, `cos`, `tan`, `log`, `ln`, `exp`, `det`, `dim`, `ker`, `gcd`, … and
-anything declared with `define operator` are upright and take an argument
-without parentheses: `sin 2 pi x`. An argument runs until `+`, a relation, or
-another function name. So `sin x cos y` means (sin x)(cos y).
-
-`f`, `g`, `h`, `F`, `G`, `H`, names declared with `define function`, and names
-introduced by `f(x) = …`, `f: A -> B` or `let` apply to a parenthesized argument:
-`f(x)`, `g(x, y)`, `f^(-1)(y)`, `f'(x)`. Other letters followed by parentheses
-multiply: `x(y + 1)`.
-
-### Big operators and limits
+### Big operators
 
 ```
-sum k^2 for k from 1 to n           sum_(k=1)^n k^2        ∑_(k=1)^n k²
-sum from k = 1 to n of k^2          sum over i in I of x_i
-prod_(p prime) 1/(1 - p^(-s))
-integral of f(x) dx from 0 to 1     integral_0^1 f(x) dx   int_0^1 f
-integral of e^(-x^2) dx from -infinity to infinity
-limit of f(x) as x approaches 0     lim_(x -> 0) f(x)      limit of g(t) as t goes to 0 from the right
-max_(i) a_i     min(a, b)     sup     inf     liminf     limsup
-union_(i=1)^n A_i     intersection_i B_i
+sum k^2 for k from 1 to n           sum_(k=1)^n k^2
+sum over i in I of x_i              prod_(p prime) 1/(1 - p^(-s))
+integral of f(x) dx from 0 to 1     integral_0^1 f(x) dx
+limit of f(x) as x approaches 0     lim_(x -> 0) f(x)
+max_(i) a_i   sup   inf   limsup    union_(i=1)^n A_i
 ```
 
-A big operator's body extends over products but stops at `+`, `−` and
-relations; use parentheses for more. Integrals end at their differentials
-(`dx`, `dt`, `dtheta`), which are set with an upright d. In display style, limits
-of sums, products, unions and `lim` go under and over the operator, while those of
-integrals go beside it.
+A big operator's body stops at `+`, `-` and relations. Integrals end at their
+differential, set with an upright d. In a display, limits of sums, products,
+unions and `lim` go under and over; those of integrals go beside.
 
-### Roots, fences and arrays
+### Roots, fences, arrays
 
 | write | get |
 |---|---|
-| `sqrt x`, `sqrt(x + 1)`, `square root of x` | √x |
-| `root 3 of x`, `root(3, x)`, `cube root of x` | ∛x |
-| `abs(x)`, `|x|`, `absolute value of x` | \|x\| |
+| `sqrt x`, `square root of x` | √x |
+| `root 3 of x`, `cube root of x` | ∛x |
+| `abs(x)`, `|x|` | \|x\| |
 | `norm(v)`, `||v||` | ‖v‖ |
 | `floor(x)`, `ceil(x)` | ⌊x⌋, ⌈x⌉ |
-| `binom(n, k)`, `n choose k` | binomial coefficient |
-| `{x in RR : x > 0}`, `{1, 2, 3}` | sets |
-| `[0, 1)` | intervals: brackets need not match |
-| `[1, 2; 3, 4]`, `(1, 2; 3, 4)`, `matrix(1, 2; 3, 4)` | matrices (`;` separates rows) |
+| `binom(n, k)`, `n choose k` | a binomial coefficient |
+| `{x in RR : x > 0}` | a set |
+| `[0, 1)` | an interval |
+| `[1, 2; 3, 4]`, `matrix(1, 2; 3, 4)` | a matrix |
 | `cases(x if x >= 0; -x otherwise)` | cases |
 
-Parentheses, brackets and bars grow with their contents.
+Brackets grow when their content is taller than they are.
 
 ### Accents and styles
 
-`hat x`, `bar x` (an overline on longer arguments), `vec v`, `tilde x`,
-`dot x`, `ddot x`, `check x`, `breve x`, `overline(z + w)`. Unicode combining
-marks also work: `x̂`.
+`hat x`, `bar x`, `vec v`, `tilde x`, `dot x`, `ddot x`, `overline(z + w)`;
+`bb R`, `cal A`, `frak g`, `bold v`, `sans x`, `mono x`, `upright d`,
+`text "words"`. `quad` and `qquad` are spaces of 1 and 2 em.
 
-`bb R`, `cal A`, `frak g`, `bold v`, `bolditalic v`, `sans x`, `mono x`,
-`upright d`; `text "words"`.
+`for all epsilon > 0, there exists delta > 0` sets ∀ε > 0, ∃δ > 0.
 
-### Quantifiers and logic
+### What a formula produces
 
-`for all epsilon > 0, there exists delta > 0` is set as ∀ε > 0, ∃δ > 0. Also
-`forall`, `exists`, `exists unique`, `not`, `land`, `lor`, `implies`, `iff`,
-`therefore`, `because`.
+| output | example for `sum k^2 for k from 1 to n` |
+|---|---|
+| layout | TeX's rules with the font's OpenType MATH constants |
+| MathML | PDF structure elements and an associated file |
+| speech | "the sum from k equals 1 to n of k squared" |
+| copy text | `∑_(k=1)^n k²`, which reads back as the same formula |
 
-### LaTeX notation
+`tekx explain` shows all of these for a formula given as an argument or on
+standard input.
 
-A formula may be written in LaTeX's notation instead, and it means the same:
+## References
 
-```
-    \sum_{k=1}^{n} k = \frac{n(n+1)}{2}
-    f(x) = \begin{cases} x & \text{if } x \ge 0 \\ -x & \text{otherwise} \end{cases}
-```
-
-The result is the same formula, with the same layout, MathML, speech and copy
-text. The copy text is written in tekx's own notation.
-
-As soon as a formula uses one TeX command (even one that only steers layout,
-such as `\left`), TeX's reading rules apply to that formula:
-- braces group without being drawn, and `\{ \}` are set braces;
-- a run of letters is a product, as in TeX (`\text{…}` or `\mathrm{…}` makes a
-  word).
-
-A formula with no command in it, such as `$a_{ij}$` or `$ABCD$`, is read in
-tekx notation, where `{ij}` is a set and `ABCD` one name. A document written in
-LaTeX's notation throughout says `notation tex`, and every formula is then read
-as LaTeX reads it. `tekx import` writes that line.
-
-A display may end with its sentence's full stop, `x = 1.`, as displays in
-papers do; the stop belongs to the sentence, not to the formula.
-
-What is understood:
-- **Commands with arguments:** `\frac`, `\dfrac`, `\tfrac`, `\sqrt` and
-  `\sqrt[n]`, `\binom`, `\text` and `\mbox`, `\mathrm`, `\operatorname`,
-  `\pmod`.
-- **Styles:** `\mathbb`, `\mathcal`, `\mathfrak`, `\mathbf`, `\boldsymbol`,
-  `\mathsf`, `\mathtt`.
-- **Names:** every Greek letter, operator, relation, arrow, delimiter and
-  function name under its LaTeX name.
-- **Spacing:** `\,` `\:` `\;` `\!` `\quad` `\qquad`.
-- **Environments:** `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`,
-  `matrix`, `cases`, `aligned`, `gathered`, `split` and `array`.
-- **Dropped,** because tekx sizes delimiters and chooses styles itself:
-  `\left`, `\right`, `\big` and its relatives, `\displaystyle`, `\limits`.
-
-An unknown command is an error with a suggestion: *unknown TeX command \fracc;
-did you mean \frac?*
-
-### Spacing
-
-`quad` and `qquad` insert one and two ems of space, as in
-`f(x) = x^2 quad x > 0`. Screen readers hear a pause there.
-
-### Seeing how a formula was read
-
-`tekx explain` shows the grouping tekx chose, with every implicit
-parenthesis written out:
-
-```
-$ tekx explain 'sin x/y + 1/2 x'
-formula    sin x/y + 1/2 x
-reads as   sin(x/y) + (1/2)·x
-says       sine the fraction x over y end fraction plus one half x
-copies as  sin x/y + 1/2 x
-MathML     <math …>
-```
-
-Give formulas as arguments, or one per line on the standard input.
-
-### What each formula produces
-
-For every formula, tekx produces:
-
-- **the typeset formula,** laid out by the rules of TeX's Appendix G with the
-  font's OpenType MATH constants;
-- **MathML,** both as PDF structure elements in the MathML namespace and as an
-  associated file of each `Formula`;
-- **speech,** which becomes the formula's alternative text, for example "the sum
-  from k equals 1 to n of k squared";
-- **copy text,** a linear Unicode form, for example `∑_(k=1)^n k²`. It is what
-  you get when you copy the formula out of the PDF, and tekx reads it back as the
-  same formula.
-
-## Cross-references
-
-Mark a target with `#label` at the end of a section heading, theorem line or
-display line, or with a reference key. Refer to it with `@label`:
+Mark a target with `#label` after a heading, a theorem line, a display line
+or a figure. Refer to it with `@label`.
 
 | target | reads |
 |---|---|
 | section | Section 2.1 |
-| theorem-like block | Theorem 3, Lemma 4 … |
+| theorem | Theorem 3 |
 | display line | (5) |
 | figure | Figure 2 |
 | appendix | Appendix A |
 
-References may point forward. Every reference is a link to a structure
-destination of its target, and says its full name to a screen reader
-("Equation 5"). An unknown label is an error with a suggestion.
+References may point forward and are links. `Theorem @main` reads "Theorem 3",
+`(@gauss)` reads "(5)", and `Lemmas @a and @b` reads "Lemmas 2 and 4".
 
-Habits from LaTeX are understood. `Theorem @main` reads "Theorem 3", not
-"Theorem Theorem 3", and `(@gauss)` reads "(5)". After a plural, references give
-their numbers alone: `Lemmas @a and @b` reads "Lemmas 2 and 4".
-
-## Citations and bibliography
+## Citations
 
 ```
 bibliography "refs.bib"
 
-Landau [@landau] improved [@hooley, Thm. 2; @bambah], as did @hooley.
+Landau [@landau] improved [@hooley, Thm. 2; @bambah].
 ```
 
 | write | get |
 |---|---|
 | `[@key]` | [3] |
-| `[@a; @b; @c]` | [1–3]: sorted, and runs of three or more become ranges |
-| `[@key, Thm. 2]` | [3, Thm. 2]: a note after the key, which may hold mathematics |
-| `[@a, p. 4; @b]` | [1, p. 4; 2] |
+| `[@a; @b; @c]` | [1–3] |
+| `[@key, Thm. 2]` | [3, Thm. 2] |
 | `@key` | [3], when no `#key` target exists |
 
-The `.bib` file is read as BibTeX reads it: `@string` macros, `#`
-concatenation, month names, braces, accents (`{\"U}`, `\'e`, `\ss`),
-mathematics in titles, and names written "First von Last", "von Last, First" or
-"von Last, Jr, First". Only the cited entries are printed, sorted by author,
-year and title, in the style of the AMS:
+The `.bib` file is read as BibTeX reads it: `@string`, `#`, accents, names in
+every form, crossref. Only cited entries are printed, sorted as amsplain sorts
+them, in AMS style. DOIs and arXiv identifiers become links. Problems in a
+`.bib` file are warnings; citing an entry that could not be read is an error.
 
-> Christopher Hooley, *On the intervals between numbers that are sums of two
-> squares*, Acta Math. **127** (1971), 279–297, doi:10.1007/BF02392056.
+## Definitions
 
-With `citations alphabetic` the labels are those of the AMS alphabetic style:
-the first three letters of a single author's name and the year (Hoo71), the
-initials of two to four authors (BC47), three initials and a plus for more
-(ABC+99), and a, b for labels that would repeat. Alphabetic citations keep the
-order they are written in.
-
-Articles, books, collections, proceedings, theses, reports and miscellaneous
-entries are supported. DOIs and arXiv identifiers become links. The list is set
-where a `references` line stands, or at the end of the document. A `references`
-block may also give entries by hand (`key: text`), cited the same way.
-
-Problems in a `.bib` file (an unclosed entry, an undefined `@string`) are
-warnings with the file and line, as BibTeX makes them, so one broken entry in
-a shared bibliography doesn't stop every paper that uses it. Citing an entry
-that couldn't be read is an error.
-
-A citation key and a `#label` live apart: `[@landau]` is always the paper, even
-when an equation is labelled `#landau`. A bare `@landau` that could mean either
-is an error that says which to write. An unknown key is an error with a
-suggestion.
-
-## Macros and definitions
-
-All definitions are hoisted: a macro may be used before the line that defines
-it.
-
-### Text macros
+Definitions may be used before the line that makes them.
 
 ```
-define tekx2 as "tekx 2"
+define brand as "tekx"
 define cite(who, year = "2026") as "{who} ({year})"
 
-Built with {tekx2}; see {cite(Knuth)} or {cite Lamport, 1994}.
-```
-
-Arguments are positional or named (`{cite year: 1984, who: Knuth}`), and a
-parameter may have a default. Macros may use macros. `{today}` and `{tekx}` are
-built in.
-
-### Block macros
-
-```
 define block aside(title = "Aside")
   quote
     **{title}.** {body}
 
-aside "Careful"
-  The body of the call replaces {body}.
-```
-
-The indented lines under the definition are the template. A call is the
-macro's name, its arguments, and an indented body. A template line that
-consists of `{body}` alone receives the body's lines, keeping their structure;
-`{body}` inside a line receives the body joined into one line.
-
-### Mathematical notation
-
-```
-define function phi, psi                 // phi(x) is an application
-define operator Var, Tr                  // upright, prefix: Tr A
+define function phi, psi
+define operator Var, Tr
 define norm2(v) as ||v||_2 read as "the two-norm of {v}"
-define E(x) as EE[x] read as "the expected value of {x}"
-```
-
-A notation macro is expanded in the formula, so the layout, MathML and copy text
-show the expansion. Its `read as` text replaces the speech. `{v}` in the
-`read as` text is the speech of the argument.
-
-### Environments
-
-```
 define axiom2 like theorem titled "Postulate"
-```
 
-The new block `axiom2` is numbered and styled like a theorem, under the given
-name.
-
-### Packages
-
-```
 use house-notation 1.2
 ```
 
-takes in a package's definitions: notation, environments and macros shared by
-a group's documents. A package may also bring blocks of its own, implemented
-by programs that rewrite the document. Packages are pinned by content hash in
-`tekx.lock` and managed with `tekx pkg`; see [packages.md](packages.md).
-
-## Coming from LaTeX
-
-tekx reads LaTeX and writes it, so a move costs nothing and journals still get
-what they ask for.
-
-```
-tekx import paper.tex           # writes paper.tekx
-tekx -o paper.tex paper.tekx    # amsart LaTeX for submission
-```
-
-**Import.** `tekx import` converts the parts of LaTeX that papers use:
-- **front matter:** amsart and article title pages (`\author`, `\address`,
-  `\email`, `\urladdr`, `\subjclass`, `\keywords`, `\date`) become settings;
-- **structure:** sections, the abstract and `\appendix`, each with its labels;
-- **theorems:** `\newtheorem` declarations map to tekx's kinds by name
-  (Theorem, Lemma, Corollary …), and others become
-  `define NAME like theorem titled "…"`;
-- **mathematics:** `equation`, `align`, `gather`, `multline`, `split`, `\[ \]`
-  and `$$` become displays. Labelled lines keep their labels, and numbered lines
-  without one get a label, so that every equation keeps its number. Formulas
-  stay in LaTeX's notation under `notation tex`;
-- **text:** lists, tables, figures, footnotes, `verbatim`, quotations, links and
-  accents;
-- **references:** `\ref`, `\eqref`, `\cref` and `\autoref` become `@label`
-  ("Theorem~\ref{x}" becomes `@x`, which reads "Theorem 2"), and `\cite[note]{a,b}`
-  becomes `[@a; @b, note]`;
-- **macros:** `\newcommand` and `\def` are expanded where they are used, and
-  `\DeclareMathOperator{\Var}{Var}` becomes `define operator Var`.
-
-What cannot be carried over is kept as text, and each case is reported as a
-warning at its file, line and column. That covers unknown commands and
-environments, `\tag`, table numbers, prenotes in citations, and a figure's alt
-text, which is copied from the caption and should be rewritten as a description
-of the image.
-
-**Export.** `-o paper.tex` writes an amsart document with `\newtheorem`
-declarations (one shared counter, as in tekx), `equation` and `align`
-environments with labels, and `\cite`. References read "Theorem~\ref{x}" and
-"\eqref{x}", so nothing beyond amsmath and hyperref is needed. A document with a
-`bibliography` keeps it as `\bibliography{…}` for BibTeX. Formulas are written
-from their meaning, so `sum k^2 for k from 1 to n` arrives as
-`\sum_{k = 1}^{n} k^{2}`. The test suite compiles the exports with pdflatex and
-BibTeX when TeX Live is at hand.
+| definition | use |
+|---|---|
+| text macro | `{brand}`, `{cite(Knuth)}`, `{cite year: 1984, who: Knuth}` |
+| block macro | `aside "Careful"` with an indented body that replaces `{body}` |
+| function, operator | `phi(x)` applies; `Tr A` is upright and prefix |
+| notation | `norm2(v)` expands in the formula; `read as` replaces its speech |
+| environment | `axiom2` is numbered and styled like a theorem |
+| package | see [packages.md](packages.md) |
 
 ## Errors
-
-Errors name the file, line and column, and say how to fix what they can:
 
 ```
 paper.tekx:5:16: error: unknown macro {golden} (define it with: define golden as "...")
 paper.tekx:7:1: error: unknown block 'theorm'; did you mean 'theorem'?
-paper.tekx:9:12: error: this '(' is never closed
 paper.tekx:12:5: error: unknown label @strat; did you mean @start?
 ```
 
-When there are errors, nothing is written: tekx never leaves a broken or stale
-PDF behind.
+When there is an error, nothing is written.

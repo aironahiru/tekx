@@ -1,0 +1,15 @@
+paper a5
+title "Sums of Squares"
+author "Ada Lovelace"
+date "3 November 2026"
+
+theorem "Fermat" #fermat
+  An odd prime $p$ is a sum of two squares if and only if $p equiv 1 (mod 4)$.
+
+proof
+  If $p = a^2 + b^2$, then $a^2 + b^2 equiv 1 (mod 4)$ because squares are $0$ or $1$ modulo $4$.
+
+By Theorem @fermat, $13 = 2^2 + 3^2$ and $29 = 2^2 + 5^2$, as Euler showed [@euler].
+
+references
+  euler: L. Euler, *Demonstratio theorematis Fermatiani*, Novi Comm. Acad. Sci. Petrop. 5 (1760), 3–13.

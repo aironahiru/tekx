@@ -104,7 +104,7 @@ That creates a directory with a manifest and a first file. The manifest,
 package "house-notation"
 version "1.3.0"
 summary "House style: notation, environments, names"
-requires "tekx 0.2"
+requires "tekx 1.0"
 depends "house-base 1.0"
 provides "main.tekx"
 ```

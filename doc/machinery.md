@@ -1,8 +1,4 @@
-# The hidden machinery
-
-> Write programs that do one thing and do it well. Write programs to work
-> together. Write programs to handle text streams, because that is a
-> universal interface. — Doug McIlroy
+# Machinery
 
 tekx is one binary, but inside it is a Unix pipeline. This document describes
 the design, the five stages (and the web back end that can stand in for the last
@@ -32,6 +28,10 @@ the shell.
   byte buffers (`Buf`) are the only data structures.
 - **Untrusted font data:** fonts are read through a bounds-checked reader whose
   error flag is sticky. A malformed font yields wrong metrics, never a crash.
+- **Invariants:** `_Static_assert` ties every table to the enum it is indexed
+  by (TeX's spacing table to the atom classes, the MATH constants to their
+  count, the pipeline stages to their names). `INVARIANT()` stops with exit
+  status 70 and the file and line when an internal assumption fails.
 - **Warnings and sanitizers:** the build uses `-Wall -Wextra -Wpedantic -Wshadow
   -Wstrict-prototypes -Wmissing-prototypes -Werror`. The test suite runs
   everything under AddressSanitizer and UBSan, and requires the sanitized and

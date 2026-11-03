@@ -1,0 +1,19 @@
+paper a5
+
+    sum k for k from 1 to n = n(n + 1)/2
+
+    integral of e^(-x^2) dx from -infinity to infinity = sqrt pi
+
+    limit of sin x / x as x approaches 0 = 1
+
+    abs(x) = cases
+      x    if x >= 0
+      -x   otherwise
+
+    R = matrix
+      cos theta   -sin theta
+      sin theta   cos theta
+
+    zeta(s) = prod_(p prime) 1/(1 - p^(-s))
+
+    {x in RR : x^2 < 2}  quad  binom(n, k)  quad  root 3 of x  quad  hat x_i  quad  f'(x)

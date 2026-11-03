@@ -1,0 +1,14 @@
+paper a5
+notation tex
+
+    \hat{x}^2 + \bar{x}_i + V_i^2 + P_k + f^{(n)}(x) + 10^{-6}
+
+    (x+y)^2 \le \bigl( x^2 + y^2 \bigr) \cdot \Bigl[ \frac{a}{b} \Bigr]
+
+    \left\{ x \in \mathbb{R} \;\middle|\; \frac{x}{2} > 0 \right\}
+
+    \binom{n}{k} = \frac{n!}{k!\,(n-k)!}, \quad \sum\limits_{i=1}^{n} a_i, \quad \int_0^1 f(t)\,dt
+
+    \overbrace{a + b + c}^{3} = \underbrace{x_1 + \dots + x_n}_{n}, \quad A \xrightarrow{\varphi} B
+
+    \overset{\text{def}}{=} \quad \underline{x + y} \quad \overrightarrow{AB} \quad \widehat{xyz} \quad \sqrt[p]{x}
